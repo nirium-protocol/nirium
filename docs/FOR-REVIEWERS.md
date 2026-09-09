@@ -48,11 +48,9 @@ a raw Stellar key. Two concrete artifacts:
 - **Merged, not just proposed**: [nirium-pollar-adapter PR #1](https://github.com/nirium-protocol/nirium-pollar-adapter/pull/1) (deferred-mode wallet funding) merged 29 Aug 2026.
 - **Live demo**: [nirium-pollar-x402-demo.vercel.app](https://nirium-pollar-x402-demo.vercel.app) — log in with Google, pay a real x402 endpoint, holding zero XLM end to end.
 
-Honest status on the piece still in flight: the demo-app integration itself,
-[pollar-apps#30](https://github.com/pollar-xyz/pollar-apps/pull/30), is
-**open and mergeable, not yet merged** as of this writing — Pollar's own
-maintainer has signaled intent to merge but hasn't yet. Listed here as
-open, not claimed as done.
+The demo-app integration itself,
+[pollar-apps#30](https://github.com/pollar-xyz/pollar-apps/pull/30), was
+**merged by Pollar's own maintainer on 31 Aug 2026** (`bb277f6a`).
 
 ## 4. Upstream contributions — bugs fixed in code we don't control
 
@@ -62,9 +60,9 @@ weren't real, agreeing.
 | Where | What | Status |
 |---|---|---|
 | [stellar/stellar-dev-skill#96](https://github.com/stellar/stellar-dev-skill/pull/96) | Nirium listed in Stellar's own official developer-skills catalog | **Merged** 15 Aug 2026, reviewed by SDF DevRel |
-| [stellar/stellar-dev-skill#97](https://github.com/stellar/stellar-dev-skill/pull/97) | Multiple real production-hardening fixes to the agentic-payments skill (x402/MPP) | Open, CI green, under review |
+| [stellar/stellar-dev-skill#97](https://github.com/stellar/stellar-dev-skill/pull/97) | Multiple real production-hardening fixes to the agentic-payments skill (x402/MPP) | **Merged** 5 Sep 2026 |
 | [x402-foundation/x402#3171](https://github.com/x402-foundation/x402/issues/3171) | Filed by us against `@x402/core`'s reference implementation; fixed by an unrelated third-party contributor, not us | **Closed** 17 Aug 2026 — external confirmation, not self-reported |
-| [OpenZeppelin/stellar-contracts#844](https://github.com/OpenZeppelin/stellar-contracts/pull/844) | Fix for a real `fee-abstraction` expiration-check bug we found and filed | Open, mergeable, awaiting maintainer review |
+| [OpenZeppelin/stellar-contracts#844](https://github.com/OpenZeppelin/stellar-contracts/pull/844) | Proposed fix for a `fee-abstraction` expiration-check bug we filed (#840) | **Closed** — after review the maintainer treated the Lazy-mode value as intended behavior, not a bug; our reading, corrected by theirs |
 
 ## 5. GrantFox — the real numbers, not the flattering summary
 
@@ -93,4 +91,4 @@ open to re-litigate.
 
 *Every number and link on this page was checked live against its source
 (Horizon, GitHub's API, the running API itself) before being written down
-— not copied from an internal doc or an earlier draft.*
+— not copied from an internal doc or an earlier draft. Last verified: 9 Sep 2026.*
