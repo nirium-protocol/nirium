@@ -1,4 +1,4 @@
-"""Nirium — Official Python SDK for the Nirium autonomous DeFi agent."""
+"""Nirium — autonomous treasury and agentic-payments infrastructure for Stellar (x402 + MPP), Python client."""
 
 from typing import TYPE_CHECKING
 
@@ -7,7 +7,7 @@ from .client import Agent, WebSocketMaxRetriesExceeded, WebSocketStatus  # type:
 if TYPE_CHECKING:
     from .langchain_tools import NiriumX402Tool, create_nirium_x402_tool
 
-__version__ = "0.10.0"
+__version__ = "0.11.0"
 __all__ = [
     "Agent",
     "WebSocketMaxRetriesExceeded",
