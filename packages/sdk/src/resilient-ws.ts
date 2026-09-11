@@ -103,22 +103,27 @@ export class ResilientSignalClient {
 
       const WsClass = this.WebSocketCtor;
       this.ws = new WsClass(fullUrl);
+      // WebSocketCtor is typed `any` (it's either the global WebSocket or
+      // the `ws` package's constructor, picked at runtime), so assigning
+      // its result doesn't narrow `this.ws` past `WebSocket | null` for TS
+      // -- non-null by construction, we just set it on the line above.
+      const ws = this.ws!;
 
-      this.ws.on('open', () => {
+      ws.on('open', () => {
         this.reconnectAttempt = 0;
         this.updateStatus('connected');
         this.startHeartbeat();
 
         if (this.subscriptionId && this.ws?.readyState === WsClass.OPEN) {
-          this.ws.send(JSON.stringify({ type: 'subscribe', subscriptionId: this.subscriptionId }));
+          this.ws?.send(JSON.stringify({ type: 'subscribe', subscriptionId: this.subscriptionId }));
         }
       });
 
-      this.ws.on('message', (data: any) => {
+      ws.on('message', (data: any) => {
         this.handleMessage(data);
       });
 
-      this.ws.on('close', (code: number, reason: string) => {
+      ws.on('close', (code: number, reason: string) => {
         this.stopHeartbeat();
         if (!this.isIntentionallyClosed) {
           this.scheduleReconnect();
@@ -127,11 +132,11 @@ export class ResilientSignalClient {
         }
       });
 
-      this.ws.on('error', (err: Error) => {
+      ws.on('error', (err: Error) => {
         this.notifyError(err);
       });
 
-      this.ws.on('pong', () => {
+      ws.on('pong', () => {
         this.resetPongTimeout();
       });
     } catch (err: any) {

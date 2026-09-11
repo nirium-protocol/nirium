@@ -1,6 +1,6 @@
 # nirium
 
-Official Python SDK for the **Nirium Protocol** — autonomous AI treasury infrastructure on Stellar/Soroban.
+Autonomous treasury and agentic-payments infrastructure for **Nirium Protocol** on Stellar/Soroban — Python client.
 
 Nirium agents rebalance USDC ↔ CETES (tokenized Mexican T-bills via Etherfuse) 24/7 without human intervention. Built for developers who want to integrate autonomous treasury management, agentic payments (x402 + MPP), and real-time market signals into their applications.
 
@@ -32,7 +32,9 @@ async def main():
     market = await agent.get_market()
     print(f"XLM Price: ${market['xlmPrice']:.4f}")
 
-    # Execute a treasury rebalance strategy
+    # Trigger a demo strategy on Nirium's own shared testnet vault — a real,
+    # working transaction, not a simulation, but it moves Nirium's testnet
+    # funds, not yours. To rebalance YOUR OWN vault, see Treasury Rebalance below.
     result = await agent.execute("blend-yield", "USDC", {"amount": 5000})
     print(f"Success: {result['success']} | TX: {result.get('txHash')}")
 
@@ -169,6 +171,33 @@ Licensed for **independent service payments only** — contractors, freelancers,
 
 Mainnet is invite-only during early access and additionally requires `client_info`.
 
+## Treasury Rebalance
+
+Two ways to rebalance a DeFindex vault between idle cash and an invested strategy. Neither is a swap — the contract's `rebalance()` exposes exactly two instructions, `Unwind` and `Invest`, and neither accepts a destination address, so withdrawing anywhere but back into the vault itself is not expressible.
+
+### Propose — you review and sign, available to everyone today
+
+The agent decides what it would do, using the same decision logic as the autonomous signer below, but it never signs. Public, no allowlist, no invite required — works for any vault where you're already the on-chain rebalance manager.
+
+```python
+proposal = await agent.propose_treasury_rebalance(
+    vault="CABC...",
+    caller="GABC...",   # must already be this vault's rebalanceManager on-chain
+    enter_at=2.5,        # your own mandate — Nirium never supplies a default here
+    exit_at=2.0,
+)
+
+if proposal["instructions"]:
+    signed_xdr = sign_with_your_wallet(proposal["xdr"])
+    await agent.submit_treasury_tx(signed_xdr)
+else:
+    print("Nothing to propose:", proposal["reason"])
+```
+
+### Autonomous — Nirium signs, invite-only during legal review
+
+`execute_treasury_rebalance()` has Nirium sign and submit with its own RebalanceManager key — full autonomy, no per-cycle approval. **This is invite-only while a specific legal question stays open**: whether executing on a client's behalf without taking custody still counts as regulated facilitation under Mexican law. It only runs against vaults explicitly allowlisted server-side; calling it against any other vault returns 403, and Nirium's mainnet infrastructure returns 501 for it entirely, since that box holds no signing key by design. Ask if you want autonomous execution today — otherwise, `propose_treasury_rebalance()` above gives you the same decision-making with you as the one who signs.
+
 ## Audit Trail
 
 Anchor evidence to IPFS and get back a CID — an integrity seal, not notarization.
@@ -198,6 +227,7 @@ Anchor a **hash** rather than the data itself: IPFS content cannot be deleted, s
 | Revenue | `get_revenue()`, `get_info()` |
 | Nodes | `get_nodes()` |
 | Payouts | `create_payout_run()`, `submit_payout()`, `onboard_payout_recipient()`, `submit_payout_onboard()`, `get_payout_runs()`, `get_payout_terms()`, `get_payout_info()` |
+| Treasury | `get_treasury_info()`, `get_treasury_vault()`, `get_treasury_vaults()`, `get_treasury_strategy_asset()`, `deploy_treasury_vault()`, `deposit_to_treasury_vault()`, `withdraw_from_treasury_vault()`, `set_treasury_rebalance_manager()`, `build_treasury_rebalance()`, `propose_treasury_rebalance()`, `execute_treasury_rebalance()`, `submit_treasury_tx()` |
 | Audit Trail | `anchor_audit_record()`, `get_audit_info()` |
 | Reporting | `get_reporting_summary()`, `get_reporting_export()` |
 | Admin | `configure_llm()` |

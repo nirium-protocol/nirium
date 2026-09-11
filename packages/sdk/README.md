@@ -2,7 +2,7 @@
 
 Autonomous treasury and agentic-payments infrastructure for **Nirium Protocol** on Stellar/Soroban.
 
-Nirium agents rebalance USDC ↔ CETES (tokenized Mexican T-bills via Etherfuse) 24/7 without human intervention. Built for developers who want to integrate autonomous treasury management, agentic payments (x402 + MPP), and real-time market signals into their applications.
+Nirium agents rebalance USDC ↔ CETES (tokenized Mexican T-bills via Etherfuse) 24/7 without human intervention. Built for developers who want to integrate autonomous treasury management, agentic payments (x402 + MPP) — in both directions, paying for other APIs with `initX402()` and charging for your own with `x402Serve()` — and real-time market data into their applications.
 
 ## Install
 
@@ -28,7 +28,9 @@ console.log('Agent alive:', alive);
 const market = await agent.getMarket();
 console.log('XLM Price:', market.xlmPrice);
 
-// Execute a treasury rebalance strategy
+// Trigger a demo strategy on Nirium's own shared testnet vault — a real,
+// working transaction, not a simulation, but it moves Nirium's testnet
+// funds, not yours. To rebalance YOUR OWN vault, see Treasury Rebalance below.
 const result = await agent.execute('blend-yield', 'USDC', { amount: 5000 });
 console.log('Result:', result.success, result.txHash);
 
@@ -53,6 +55,7 @@ agent.subscribe((signal) => {
 | Revenue | `getRevenue()`, `getInfo()` |
 | Nodes | `getNodes()` |
 | Payouts | `createPayoutRun()`, `submitPayout()`, `onboardPayoutRecipient()`, `submitPayoutOnboard()`, `getPayoutRuns()`, `getPayoutTerms()`, `getPayoutInfo()` |
+| Treasury | `getTreasuryInfo()`, `getTreasuryVault()`, `getTreasuryVaults()`, `getTreasuryStrategyAsset()`, `deployTreasuryVault()`, `depositToTreasuryVault()`, `withdrawFromTreasuryVault()`, `setTreasuryRebalanceManager()`, `buildTreasuryRebalance()`, `proposeTreasuryRebalance()`, `executeTreasuryRebalance()`, `submitTreasuryTx()` |
 | Audit Trail | `anchorAuditRecord()`, `getAuditInfo()` |
 | Reporting | `getReportingSummary()`, `getReportingExport()`, `getReportingExportUrl()` |
 | Admin | `configureLLM()` |
@@ -101,6 +104,26 @@ agent.initMpp({
 const response = await agent.mppFetch('https://nirium-agent.fly.dev/api/v1/mpp/signals');
 const data = await response.json();
 ```
+
+### x402Serve() — Charging Your Own API
+
+`initX402()` above lets you *pay* for someone else's API. This is the other side: charging for yours.
+
+```typescript
+import { x402Serve } from 'nirium';
+
+app.use('/premium', x402Serve({
+  payTo: 'G...',                 // your Stellar address — where payments land
+  routes: { 'GET /signals': '$0.02' },
+  facilitatorApiKey: '...',      // required on mainnet; OpenZeppelin Channels by default
+}));
+```
+
+Runs on **your own server**, not Nirium's — `x402Serve()` is a client-side function you call from your own code; Nirium doesn't operate, host, or route through anything here, is never in the payment path, and never sees your end users' requests.
+
+**Usage telemetry — opt-in, off by default:** set `NIRIUM_X402SERVE_TELEMETRY=true` to send a small, non-blocking usage ping to Nirium — your `payTo` address, a SHA-256 hash of your `facilitatorApiKey` (never the key itself), network, route/request counts, and this SDK's version. It never blocks, delays, or fails a payment if the ping fails, times out, or isn't sent at all. Disabled by default since v0.14.0 — it's the only channel that would otherwise connect Nirium to how a specific integrator is using this locally-run function, and that isn't a decision this package should make for you.
+
+**Compliance is yours.** `x402Serve()` is a general-purpose library, not a service Nirium provides to your end users. You choose what to charge for, who your `payTo` is, and which jurisdiction you operate in — you remain solely responsible for complying with the financial, tax, and consumer-protection laws that apply to your own use of it.
 
 ### Endpoint Access Model
 
@@ -202,6 +225,34 @@ console.log(settled.txHash, settled.cid);   // on-chain hash + IPFS receipt
 Licensed for **independent service payments only** — contractors, freelancers, B2B. Not for subordinate-employee salary. Read `getPayoutTerms()` before integrating; classifying recipients and meeting tax and labor obligations is the client's responsibility.
 
 Mainnet is invite-only during early access and additionally requires `clientInfo`.
+
+## Treasury Rebalance
+
+Two ways to rebalance a DeFindex vault between idle cash and an invested strategy. Neither is a swap — the contract's `rebalance()` exposes exactly two instructions, `Unwind` and `Invest`, and neither accepts a destination address, so withdrawing anywhere but back into the vault itself is not expressible.
+
+### Propose — you review and sign, available to everyone today
+
+The agent decides what it would do, using the same decision logic as the autonomous signer below, but it never signs. Public, no allowlist, no invite required — works for any vault where you're already the on-chain rebalance manager.
+
+```typescript
+const proposal = await agent.proposeTreasuryRebalance({
+  vault: 'CABC...',
+  caller: 'GABC...',   // must already be this vault's rebalanceManager on-chain
+  enterAt: 2.5,        // your own mandate — Nirium never supplies a default here
+  exitAt: 2.0,
+});
+
+if (proposal.instructions.length) {
+  const signedXdr = await signWithYourWallet(proposal.xdr!);
+  await agent.submitTreasuryTx(signedXdr);
+} else {
+  console.log('Nothing to propose:', proposal.reason);
+}
+```
+
+### Autonomous — Nirium signs, invite-only during legal review
+
+`executeTreasuryRebalance()` has Nirium sign and submit with its own RebalanceManager key — full autonomy, no per-cycle approval. **This is invite-only while a specific legal question stays open**: whether executing on a client's behalf without taking custody still counts as regulated facilitation under Mexican law. It only runs against vaults explicitly allowlisted server-side; calling it against any other vault returns 403, and Nirium's mainnet infrastructure returns 501 for it entirely, since that box holds no signing key by design. Ask if you want autonomous execution today — otherwise, `proposeTreasuryRebalance()` above gives you the same decision-making with you as the one who signs.
 
 ## Audit Trail
 

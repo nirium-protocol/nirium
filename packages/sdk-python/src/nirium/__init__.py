@@ -7,7 +7,7 @@ from .client import Agent, WebSocketMaxRetriesExceeded, WebSocketStatus  # type:
 if TYPE_CHECKING:
     from .langchain_tools import NiriumX402Tool, create_nirium_x402_tool
 
-__version__ = "0.9.0"
+__version__ = "0.10.0"
 __all__ = [
     "Agent",
     "WebSocketMaxRetriesExceeded",

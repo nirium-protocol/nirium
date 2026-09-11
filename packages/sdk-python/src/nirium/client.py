@@ -443,6 +443,173 @@ class Agent:
             },
         )
 
+    # ─── Treasury (DeFindex) ───────────────────────────────────
+    #
+    # Nirium never holds these funds. It holds the RebalanceManager role of a
+    # DeFindex vault the client deploys and owns — every write below returns
+    # an UNSIGNED XDR; you decide whether and when to sign it and call
+    # ``submit_treasury_tx``. ``rebalance()`` never takes a destination
+    # address, so withdrawal is not something the role can express.
+
+    async def get_treasury_info(self) -> Dict[str, Any]:
+        """Treasury node metadata: role, custody model, fees, security notes."""
+        return await self._get("/api/treasury/info")
+
+    async def get_treasury_vault(self, vault_id: str, holder: Optional[str] = None) -> Dict[str, Any]:
+        """Read a vault's roles, assets and managed funds.
+
+        Pass ``holder`` to also get its balance in the vault's asset.
+        """
+        return await self._get(f"/api/treasury/vault/{vault_id}", params={"holder": holder})
+
+    async def get_treasury_vaults(self, manager: Optional[str] = None) -> Dict[str, Any]:
+        """List vaults Nirium has deployed or read, on the current network."""
+        return await self._get("/api/treasury/vaults", params={"manager": manager})
+
+    async def get_treasury_strategy_asset(self, strategy_id: str) -> Dict[str, Any]:
+        """Read which asset a strategy manages, as declared by the strategy itself — pairs it correctly before you deploy."""
+        return await self._get(f"/api/treasury/strategy/{strategy_id}")
+
+    async def deploy_treasury_vault(
+        self,
+        manager: str,
+        caller: str,
+        assets: List[Dict[str, Any]],
+        name: str,
+        symbol: str,
+        emergency_manager: Optional[str] = None,
+        fee_receiver: Optional[str] = None,
+        rebalance_manager: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Build an unsigned XDR to deploy a DeFindex vault.
+
+        ``manager`` keeps control (rescue, pause, revoke); Nirium only ever
+        holds ``rebalance_manager``, which cannot withdraw or change roles.
+        ``assets`` is ``[{"address": "C...", "strategies": [{"address": "C...", "name": "..."}]}]``.
+        Sign the returned XDR with ``caller`` and submit via
+        ``submit_treasury_tx``.
+        """
+        payload: Dict[str, Any] = {
+            "manager": manager, "caller": caller, "assets": assets,
+            "name": name, "symbol": symbol,
+        }
+        for key, value in (
+            ("emergencyManager", emergency_manager), ("feeReceiver", fee_receiver),
+            ("rebalanceManager", rebalance_manager),
+        ):
+            if value is not None:
+                payload[key] = value
+        return await self._post("/api/treasury/deploy", payload)
+
+    async def deposit_to_treasury_vault(
+        self,
+        vault: str,
+        from_: str,
+        amounts: List[Any],
+        invest: Optional[bool] = None,
+        max_slippage_bps: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """Build an unsigned deposit XDR.
+
+        ``amounts`` is one amount per vault asset, in stroops, as strings —
+        an i128 does not survive a JSON number. Sign with ``from_`` and
+        submit via ``submit_treasury_tx``.
+        """
+        payload: Dict[str, Any] = {"vault": vault, "from": from_, "amounts": [str(a) for a in amounts]}
+        if invest is not None:
+            payload["invest"] = invest
+        if max_slippage_bps is not None:
+            payload["maxSlippageBps"] = max_slippage_bps
+        return await self._post("/api/treasury/deposit", payload)
+
+    async def withdraw_from_treasury_vault(
+        self,
+        vault: str,
+        from_: str,
+        shares: Optional[Any] = None,
+        max_slippage_bps: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """Build an unsigned withdraw XDR. Omit ``shares`` to withdraw everything.
+
+        Sign with ``from_`` and submit via ``submit_treasury_tx``.
+        """
+        payload: Dict[str, Any] = {"vault": vault, "from": from_}
+        if shares is not None:
+            payload["shares"] = str(shares)
+        if max_slippage_bps is not None:
+            payload["maxSlippageBps"] = max_slippage_bps
+        return await self._post("/api/treasury/withdraw", payload)
+
+    async def set_treasury_rebalance_manager(
+        self, vault: str, manager: str, rebalance_manager: str,
+    ) -> Dict[str, Any]:
+        """Build an unsigned XDR handing the RebalanceManager role to a new address.
+
+        Only the vault's current Manager can sign it — the same door that
+        grants Nirium the role also revokes it.
+        """
+        return await self._post("/api/treasury/set-rebalance-manager", {
+            "vault": vault, "manager": manager, "rebalanceManager": rebalance_manager,
+        })
+
+    async def build_treasury_rebalance(
+        self, vault: str, instructions: List[Dict[str, Any]], caller: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Build an unsigned rebalance XDR.
+
+        ``instructions`` is
+        ``[{"kind": "Unwind" | "Invest", "strategy": "C...", "amount": "1000000"}]``
+        — the vault's own strategies only, no other instruction is
+        expressible. Sign with the vault's RebalanceManager and submit via
+        ``submit_treasury_tx``. To have Nirium sign with its own key instead,
+        see ``execute_treasury_rebalance``.
+        """
+        payload: Dict[str, Any] = {"vault": vault, "instructions": instructions}
+        if caller is not None:
+            payload["caller"] = caller
+        return await self._post("/api/treasury/rebalance", payload)
+
+    async def propose_treasury_rebalance(
+        self, vault: str, caller: str, enter_at: float, exit_at: float,
+        min_idle: Optional[Any] = None,
+    ) -> Dict[str, Any]:
+        """Ask the agent what it would propose for this vault — the same decision
+        logic the autonomous signer uses (rate vs. your own ``enter_at``/``exit_at``),
+        but this never signs. Returns an unsigned XDR for you to review and sign
+        yourself, or an empty ``instructions`` list with a ``reason`` if there's
+        nothing to do right now. Public: no allowlist, no invite — works for any
+        vault where ``caller`` is already the on-chain rebalanceManager. Unlike
+        ``execute_treasury_rebalance``, Nirium never executes on your behalf here,
+        so this doesn't wait on the same legal review the fully autonomous path does.
+
+        ``enter_at``/``exit_at`` are your mandate, not a Nirium default. ``min_idle``
+        is stroops, as a string or number — omit for no minimum (0).
+        """
+        payload: Dict[str, Any] = {
+            "vault": vault, "caller": caller, "enterAt": enter_at, "exitAt": exit_at,
+        }
+        if min_idle is not None:
+            payload["minIdle"] = str(min_idle)
+        return await self._post("/api/treasury/rebalance/propose", payload)
+
+    async def execute_treasury_rebalance(
+        self, vault: str, instructions: List[Dict[str, Any]], caller: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Sign and submit a rebalance with Nirium's own RebalanceManager key and wait for confirmation.
+
+        Only available where that key actually lives — mainnet's
+        receive-only box returns 501 by design, not a broken 500.
+        """
+        payload: Dict[str, Any] = {"vault": vault, "instructions": instructions}
+        if caller is not None:
+            payload["caller"] = caller
+        return await self._post("/api/treasury/rebalance/execute", payload)
+
+    async def submit_treasury_tx(self, xdr: str) -> Dict[str, Any]:
+        """Broadcast an XDR you already signed (deploy/deposit/withdraw/rebalance/set-rebalance-manager) and wait for confirmation."""
+        return await self._post("/api/treasury/submit", {"xdr": xdr})
+
+
     # ─── Admin ───────────────────────────────────────────────
 
     async def configure_llm(

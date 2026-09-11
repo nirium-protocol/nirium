@@ -1,7 +1,7 @@
 {
   "name": "nirium",
-  "version": "0.13.2",
-  "description": "Official TypeScript SDK for the Nirium autonomous agent economy on Stellar (x402 + MPP)",
+  "version": "0.14.1",
+  "description": "Autonomous treasury and agentic-payments infrastructure for Stellar (x402 + MPP)",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "homepage": "https://nirium.xyz",
@@ -51,7 +51,6 @@
     "stellar",
     "soroban",
     "defi",
-    "sdk",
     "agent",
     "autonomous",
     "treasury",

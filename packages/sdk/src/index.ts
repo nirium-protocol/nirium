@@ -5,6 +5,7 @@
 // ═══════════════════════════════════════════════════════════════
 
 import WebSocket from 'ws';
+import { createHash } from 'node:crypto';
 // @ts-ignore — ESM subpath imports
 import { x402Client as X402ClientClass, wrapFetchWithPayment } from '@x402/fetch';
 // @ts-ignore
@@ -333,6 +334,188 @@ export interface ReportingSummary {
     anchors: { count: number; latestCid: string | null };
     generatedAt: string;
     disclaimer: string;
+}
+
+// ─── Treasury (DeFindex) ─────────────────────────────────────
+//
+// Nirium never holds these funds. It holds the RebalanceManager role of a
+// DeFindex vault the client deploys and owns — every write below returns an
+// UNSIGNED XDR; you decide whether and when to sign it and call
+// submitTreasuryTx. rebalance() never takes a destination address, so
+// withdrawal is not something the role can express.
+
+export interface TreasuryStrategyInput {
+    address: string;
+    name: string;
+}
+
+export interface TreasuryAssetInput {
+    address: string;
+    strategies: TreasuryStrategyInput[];
+}
+
+export interface TreasuryDeployOptions {
+    /** Account that pays to deploy the vault and signs the returned XDR. */
+    caller: string;
+    /** Owns the vault: can rescue funds, pause strategies, and revoke rebalanceManager. */
+    manager: string;
+    /** Defaults to `manager`. */
+    emergencyManager?: string;
+    /** Defaults to `manager`. */
+    feeReceiver?: string;
+    /** Defaults to Nirium's configured role address; required as an explicit value on mainnet. */
+    rebalanceManager?: string;
+    assets: TreasuryAssetInput[];
+    name: string;
+    symbol: string;
+}
+
+export interface TreasuryDeployResult {
+    ok: true;
+    network: string;
+    /** Unsigned — sign with `caller` and pass to submitTreasuryTx. */
+    xdr: string;
+    signWith: string;
+    roles: { manager: string; emergencyManager: string; feeReceiver: string; rebalanceManager: string };
+    note: string;
+}
+
+export interface TreasuryDepositOptions {
+    vault: string;
+    /** Account funding the deposit; also who signs the returned XDR. */
+    from: string;
+    /** One amount per vault asset, in stroops, as strings — an i128 does not survive a JSON number. */
+    amounts: Array<string | number>;
+    /** Invest the deposit into the strategy immediately. Default true. */
+    invest?: boolean;
+    maxSlippageBps?: number;
+}
+
+export interface TreasuryWithdrawOptions {
+    vault: string;
+    /** Account holding the vault shares; also who signs the returned XDR. */
+    from: string;
+    /** Omit to withdraw everything the account holds. */
+    shares?: string | number;
+    maxSlippageBps?: number;
+}
+
+export interface TreasuryWithdrawResult {
+    ok: true;
+    network: string;
+    vault: string;
+    xdr: string;
+    signWith: string;
+    shares: string;
+    heldShares: string;
+    minAmountsOut: string[];
+}
+
+export interface TreasurySetRebalanceManagerOptions {
+    vault: string;
+    /** Must match the vault's current Manager on-chain — verified before building. */
+    manager: string;
+    rebalanceManager: string;
+}
+
+export interface TreasuryInstruction {
+    kind: 'Unwind' | 'Invest';
+    strategy: string;
+    /** Stroops, as a string — an i128 does not survive a JSON number. */
+    amount: string | number;
+}
+
+export interface TreasuryRebalanceOptions {
+    vault: string;
+    instructions: TreasuryInstruction[];
+    /** Defaults to Nirium's configured rebalanceManager address. */
+    caller?: string;
+}
+
+export interface TreasuryRebalanceResult {
+    ok: true;
+    network: string;
+    vault: string;
+    xdr: string;
+    signWith: string;
+    instructionCount: number;
+}
+
+export interface TreasuryProposeRebalanceOptions {
+    vault: string;
+    caller: string;
+    /** Rate (%) at or above which idle funds get proposed for Invest. Your mandate, not a Nirium default. */
+    enterAt: number;
+    /** Rate (%) at or below which invested funds get proposed for Unwind. */
+    exitAt: number;
+    /** Stroops, as a string or number. Omit for no minimum (0). */
+    minIdle?: string | number;
+}
+
+export interface TreasuryProposeRebalanceResult {
+    ok: true;
+    network: string;
+    vault: string;
+    instructions: TreasuryInstruction[];
+    rate: number | null;
+    rateSource: 'declared';
+    /** Present only when `instructions` is non-empty. Sign with `signWith` and submit via submitTreasuryTx. */
+    xdr?: string;
+    signWith?: string;
+    /** Present only when `instructions` is empty, explaining why nothing was proposed. */
+    reason?: string;
+}
+
+export interface TreasuryRebalanceExecuteResult {
+    ok: true;
+    network: string;
+    vault: string;
+    hash: string;
+    explorer: string;
+    instructionCount: number;
+    /** Present when an instruction amount was reduced to what the vault actually held. */
+    clamped?: Array<{ strategy: string; asked: string; used: string }>;
+}
+
+export interface TreasurySubmitResult {
+    ok: true;
+    network: string;
+    hash: string;
+    explorer: string;
+    /** Present when the submitted tx deployed a new vault. */
+    contract?: string;
+}
+
+export interface TreasuryVaultRoles {
+    manager: string;
+    emergencyManager: string;
+    feeReceiver: string;
+    rebalanceManager: string;
+}
+
+export interface TreasuryVaultState {
+    ok: true;
+    network: string;
+    vault: string;
+    roles: TreasuryVaultRoles;
+    assets?: unknown;
+    totalManagedFunds?: unknown;
+    /** Balance of `holder` in the vault's asset — only present when you passed `holder`. */
+    holderBalance?: string;
+    /** True only when Nirium holds RebalanceManager and NOT Manager on this vault. */
+    niriumIsRebalanceManagerOnly: boolean | null;
+    autonomousRebalancing: 'enabled' | 'invite-only' | 'not-managed-by-nirium';
+}
+
+export interface TreasuryVaultSummary {
+    vault: string;
+    manager: string;
+    asset: string | null;
+    strategy: string | null;
+    label: string | null;
+    deploy_tx: string | null;
+    created_at: string;
+    last_rebalance: string | null;
 }
 
 /** Build a `?a=1&b=2` suffix, dropping undefined values. Returns '' when empty. */
@@ -756,6 +939,104 @@ export class Agent {
         return `${this.baseUrl}/api/reporting/export${queryString({ ...period, type, format: 'csv' })}`;
     }
 
+    // ─── Treasury (DeFindex) ─────────────────────────────────
+    //
+    // Nirium never holds these funds — it holds the RebalanceManager role of
+    // a DeFindex vault the client deploys and owns. Every write below returns
+    // an unsigned XDR; sign it yourself and call submitTreasuryTx.
+
+    /** Treasury node metadata: role, custody model, fees, security notes. */
+    async getTreasuryInfo(): Promise<Record<string, unknown>> {
+        return this.request('GET', '/api/treasury/info');
+    }
+
+    /** Read a vault's roles, assets and managed funds. Pass `holder` to also get its balance in the vault asset. */
+    async getTreasuryVault(vaultId: string, holder?: string): Promise<TreasuryVaultState> {
+        return this.request('GET', `/api/treasury/vault/${vaultId}${queryString({ holder })}`);
+    }
+
+    /** List vaults Nirium has deployed or read, on the current network. */
+    async getTreasuryVaults(manager?: string): Promise<{ ok: boolean; network: string; vaults: TreasuryVaultSummary[] }> {
+        return this.request('GET', `/api/treasury/vaults${queryString({ manager })}`);
+    }
+
+    /** Read which asset a strategy manages, as declared by the strategy itself — pairs it correctly before you deploy. */
+    async getTreasuryStrategyAsset(strategyId: string): Promise<{ ok: boolean; network: string; strategy: string; asset: string }> {
+        return this.request('GET', `/api/treasury/strategy/${strategyId}`);
+    }
+
+    /**
+     * Build an unsigned XDR to deploy a DeFindex vault. `manager` keeps
+     * control (rescue, pause, revoke); Nirium only ever holds
+     * `rebalanceManager`, which cannot withdraw or change roles. Sign with
+     * `caller` and submit via submitTreasuryTx.
+     */
+    async deployTreasuryVault(options: TreasuryDeployOptions): Promise<TreasuryDeployResult> {
+        return this.request('POST', '/api/treasury/deploy', options as unknown as Record<string, unknown>);
+    }
+
+    /** Build an unsigned deposit XDR. Sign with `from` and submit via submitTreasuryTx. */
+    async depositToTreasuryVault(
+        options: TreasuryDepositOptions
+    ): Promise<{ ok: boolean; network: string; vault: string; xdr: string; signWith: string }> {
+        return this.request('POST', '/api/treasury/deposit', options as unknown as Record<string, unknown>);
+    }
+
+    /** Build an unsigned withdraw XDR. Sign with `from` and submit via submitTreasuryTx. Omit `shares` to withdraw everything. */
+    async withdrawFromTreasuryVault(options: TreasuryWithdrawOptions): Promise<TreasuryWithdrawResult> {
+        return this.request('POST', '/api/treasury/withdraw', options as unknown as Record<string, unknown>);
+    }
+
+    /**
+     * Build an unsigned XDR handing the RebalanceManager role to a new
+     * address. Only the vault's current Manager can sign it — the same door
+     * that grants Nirium the role also revokes it.
+     */
+    async setTreasuryRebalanceManager(
+        options: TreasurySetRebalanceManagerOptions
+    ): Promise<{ ok: boolean; network: string; vault: string; xdr: string; signWith: string; previous: string }> {
+        return this.request('POST', '/api/treasury/set-rebalance-manager', options as unknown as Record<string, unknown>);
+    }
+
+    /**
+     * Build an unsigned rebalance XDR (Unwind/Invest between the vault's own
+     * strategies — no other instruction is expressible). Sign with the
+     * vault's RebalanceManager and submit via submitTreasuryTx. To have
+     * Nirium sign with its own key instead, see executeTreasuryRebalance.
+     */
+    async buildTreasuryRebalance(options: TreasuryRebalanceOptions): Promise<TreasuryRebalanceResult> {
+        return this.request('POST', '/api/treasury/rebalance', options as unknown as Record<string, unknown>);
+    }
+
+    /**
+     * Ask the agent what it would propose for this vault — the same decision
+     * logic the autonomous signer uses (rate vs. your own enterAt/exitAt),
+     * but this never signs. Returns an unsigned XDR for you to review and
+     * sign yourself, or an empty `instructions` array with a `reason` if
+     * there's nothing to do right now. Public: no allowlist, no invite —
+     * works for any vault where `caller` is already the on-chain
+     * rebalanceManager. Unlike executeTreasuryRebalance, Nirium never
+     * executes on your behalf here, so this doesn't wait on the same legal
+     * review the fully autonomous path does.
+     */
+    async proposeTreasuryRebalance(options: TreasuryProposeRebalanceOptions): Promise<TreasuryProposeRebalanceResult> {
+        return this.request('POST', '/api/treasury/rebalance/propose', options as unknown as Record<string, unknown>);
+    }
+
+    /**
+     * Sign and submit a rebalance with Nirium's own RebalanceManager key and
+     * wait for confirmation. Only available where that key actually lives —
+     * mainnet's receive-only box returns 501 by design, not a broken 500.
+     */
+    async executeTreasuryRebalance(options: TreasuryRebalanceOptions): Promise<TreasuryRebalanceExecuteResult> {
+        return this.request('POST', '/api/treasury/rebalance/execute', options as unknown as Record<string, unknown>);
+    }
+
+    /** Broadcast an XDR you already signed (deploy/deposit/withdraw/rebalance/set-rebalance-manager) and wait for confirmation. */
+    async submitTreasuryTx(xdr: string): Promise<TreasurySubmitResult> {
+        return this.request('POST', '/api/treasury/submit', { xdr });
+    }
+
     // ─── Admin ───────────────────────────────────────────────
 
     /** Update the active LLM provider (admin only). */
@@ -970,6 +1251,42 @@ export class Agent {
 // Devuelve middleware de Express. `@x402/express` se carga solo si llamas
 // esto — quien use el SDK únicamente como cliente no arrastra Express.
 
+// ─── Telemetría de uso, opt-in, no autorización ────────────────
+//
+// x402Serve() corre en TU servidor, no en el de Nirium — Nirium no opera
+// nada aquí, y por default no se entera de nada tampoco. Si querés ayudar
+// a decidir si esta librería necesita algún tipo de gate más adelante
+// (ver x402serve-gate-design.md), podés optar por mandar un ping
+// best-effort con tu `payTo` (dirección pública Stellar) y un hash de tu
+// `facilitatorApiKey` — nunca la llave en sí — con
+// `NIRIUM_X402SERVE_TELEMETRY=true`. Apagado por default desde v0.14.1:
+// antes era opt-out, y ser el único canal que conecta a Nirium con el uso
+// real de un tercero no debía ser una decisión que tomáramos por vos.
+// Nunca bloquea, nunca lanza, nunca retrasa una respuesta de pago.
+const X402SERVE_TELEMETRY_URL = 'https://nirium-agent-mainnet.fly.dev/api/x402serve/telemetry';
+const X402SERVE_TELEMETRY_ENABLED = process.env.NIRIUM_X402SERVE_TELEMETRY === 'true';
+
+const pingX402ServeTelemetry = (body: Record<string, unknown>): void => {
+    if (!X402SERVE_TELEMETRY_ENABLED) return;
+    try {
+        fetch(X402SERVE_TELEMETRY_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+            signal: AbortSignal.timeout(4000),
+        }).catch(() => { /* best-effort */ });
+    } catch { /* best-effort — un entorno sin fetch global no debe romper esto */ }
+};
+
+const sdkVersionForTelemetry = (): string | undefined => {
+    try {
+        // CommonJS build: plain `require` is already in scope, no import.meta needed.
+        return require('../package.json').version;
+    } catch {
+        return undefined;
+    }
+};
+
 export interface X402ServeConfig {
     /** Cuenta Stellar que recibe los pagos. Sin esto no hay a quién cobrarle. */
     payTo: string;
@@ -1046,15 +1363,29 @@ export function x402Serve(config: X402ServeConfig): any {
         const spec = typeof value === 'string' ? { price: value } : value;
         const routeKey = /^[A-Z]+\s/.test(key) ? key : `GET ${key}`;
         routes[routeKey] = {
+            // description va en el nivel de RouteConfig, no dentro de accepts
+            // (PaymentOption nunca tuvo ese campo — el resource server real
+            // lee routeConfig.description directo, mismo bug ya documentado
+            // en packages/agent/src/middleware/x402.ts).
+            ...(spec.description ? { description: spec.description } : {}),
             accepts: {
                 scheme: 'exact' as const,
                 price: spec.price,
                 network,
                 payTo: config.payTo,
-                ...(spec.description ? { description: spec.description } : {}),
             },
         };
     }
+
+    const facilitatorKeyHash = config.facilitatorApiKey
+        ? createHash('sha256').update(config.facilitatorApiKey).digest('hex').slice(0, 16)
+        : undefined;
+    const sdkVersion = sdkVersionForTelemetry();
+
+    pingX402ServeTelemetry({
+        event: 'mount', payTo: config.payTo, facilitatorKeyHash, network,
+        routeCount: entries.length, sdkVersion,
+    });
 
     // El middleware se construye en la PRIMERA petición, no aquí.
     //
@@ -1132,7 +1463,27 @@ export function x402Serve(config: X402ServeConfig): any {
         });
     };
 
+    // Volumen aproximado, no exacto: un contador en memoria que se vacía cada
+    // ~10 minutos o cada 50 requests, lo que llegue primero. Sin timers — un
+    // setInterval en un proceso serverless queda colgado o nunca corre; esto
+    // solo se revisa cuando de todos modos ya hay una petición en curso.
+    let requestsSinceFlush = 0;
+    let lastFlush = Date.now();
+    const HEARTBEAT_INTERVAL_MS = 10 * 60 * 1000;
+    const HEARTBEAT_REQUEST_THRESHOLD = 50;
+    const maybeFlushHeartbeat = () => {
+        requestsSinceFlush += 1;
+        if (requestsSinceFlush < HEARTBEAT_REQUEST_THRESHOLD && Date.now() - lastFlush < HEARTBEAT_INTERVAL_MS) return;
+        pingX402ServeTelemetry({
+            event: 'heartbeat', payTo: config.payTo, facilitatorKeyHash, network,
+            requestCount: requestsSinceFlush, sdkVersion,
+        });
+        requestsSinceFlush = 0;
+        lastFlush = Date.now();
+    };
+
     return async function niriumX402(req: any, res: any, next: any) {
+        maybeFlushHeartbeat();
         try {
             if (!cached) {
                 await preflight();
@@ -1146,6 +1497,9 @@ export function x402Serve(config: X402ServeConfig): any {
     };
 }
 
+// `.js` extension required even though the source is `.ts`: `module:
+// ESNext` emits these specifiers verbatim, and Node's native ESM resolver
+// (unlike a bundler) needs the real extension to find the compiled file.
 export { x402Metrics } from './metrics';
 export type { X402MetricsResult, MetricsSnapshot } from './metrics';
 
@@ -1156,4 +1510,3 @@ export {
   type ConnectionStatus,
   type ConnectionStatusInfo,
 } from './resilient-ws';
-

@@ -158,7 +158,7 @@ function scaffoldX402(dir, name) {
         type: 'module',
         scripts: { dev: 'tsx watch src/server.ts', build: 'tsc' },
         dependencies: {
-            nirium: '^0.10.0',
+            nirium: '^0.14.0',
             express: '^5.1.0',
             '@x402/express': '^2.17.0',
             '@x402/core': '^2.17.0',
@@ -224,7 +224,7 @@ function scaffoldTS(dir, name) {
             "build": "tsc"
         },
         dependencies: {
-            "nirium": "^0.10.0",
+            "nirium": "^0.14.0",
             "tsx": "^4.19.0",
             "typescript": "^5.7.0",
             "dotenv": "^16.4.5"
