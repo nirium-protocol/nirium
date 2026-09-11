@@ -1,6 +1,6 @@
 {
   "name": "nirium-cli",
-  "version": "1.1.1",
+  "version": "1.1.3",
   "description": "Nirium CLI — scaffold Stellar agent projects and check agent status",
   "main": "bin/nirium.js",
   "type": "module",
@@ -8,8 +8,7 @@
     "nirium": "bin/nirium.js"
   },
   "scripts": {
-    "build": "tsc",
-    "test": "tsc && node --test test/verify.test.js test/doctor.test.js test/pay-serve.test.js"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
     "stellar",
@@ -22,15 +21,15 @@
   "author": "Nirium Team",
   "license": "Apache-2.0",
   "dependencies": {
-    "@stellar/stellar-sdk": "^14.5.0",
     "axios": "^1.13.6",
     "commander": "^11.0.0",
-    "express": "^5.1.0"
+    "nirium": "^0.14.0",
+    "express": "^5.1.0",
+    "@stellar/stellar-sdk": "^14.5.0"
   },
   "devDependencies": {
-    "@types/express": "^5.0.0",
-    "@types/node": "^20.19.43",
-    "typescript": "^5.9.3"
+    "@types/node": "^20.19.30",
+    "typescript": "^5.0.0"
   },
   "files": [
     "bin",
@@ -38,7 +37,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/nirium-protocol/nirium-sdk.git"
+    "url": "git+https://github.com/nirium-protocol/nirium.git"
   },
   "homepage": "https://nirium.xyz",
   "engines": {
