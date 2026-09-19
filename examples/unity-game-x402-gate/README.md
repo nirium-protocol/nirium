@@ -160,6 +160,12 @@ references `com.scryingstone.stellar-sdk` and `com.scryingstone.stellar-wallet`
 (SUDK's packages), configure a `NetworkContext` the same way the rest of a
 SUDK-based game does, and call:
 
+Both packages are required to compile this file, even if your project only
+ever uses `SigningMethod.PrivateKey` — `com.scryingstone.stellar-wallet` is
+referenced unconditionally (`using StellarWallet;`,
+`UnityWalletSignerFromWalletManager`) regardless of which signing method you
+actually use at runtime.
+
 ```csharp
 var result = await PaidActionClient.RevealLootAsync(
     context,
