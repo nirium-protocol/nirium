@@ -252,7 +252,11 @@ namespace Nirium.Examples.UnityGameX402Gate
                 for (uint i = 0; i < authorizationsRequired.Count; i++)
                 {
                     byte[] preimageBytes = EncodeHashIdPreimage(authorizationsRequired[(int)i]);
-                    byte[] preimageHash = SHA256.HashData(preimageBytes);
+                    byte[] preimageHash;
+                    using (var sha256 = SHA256.Create())
+                    {
+                        preimageHash = sha256.ComputeHash(preimageBytes);
+                    }
                     byte[] signature = context.userAccount.Sign(preimageHash);
                     sim.AddAuthorisationSignature(i, context.userAccount.PublicKey, signature);
                 }
