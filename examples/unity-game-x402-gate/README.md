@@ -112,7 +112,8 @@ Fill in `.env`:
 - `X402_SELLER_ADDRESS` — a Stellar **public** key (G...) to receive
   payment. Public only; no secret involved.
 - `FACILITATOR_API_KEY` — free testnet key from
-  `POST https://channels.openzeppelin.com/testnet/gen`.
+  `GET https://channels.openzeppelin.com/testnet/gen` (open it in a browser,
+  or `curl`; a `POST` here returns `401 Unauthorized`).
 - `PLAYER_SECRET_KEY` — only needed for `wallet-bridge-smoke`, a throwaway
   testnet secret key that will actually pay. **Never use a mainnet key
   here.**
@@ -128,6 +129,13 @@ a payment:
 2. Fund it at the [Circle faucet](https://faucet.circle.com/) (network:
    Stellar) — this step is reCAPTCHA-gated and has to be done by a human in
    a browser; there's no API around it.
+
+`X402_SELLER_ADDRESS` needs to be a real account too, not just a valid-looking
+key: if you generate a fresh keypair for it (rather than pointing at an
+already-funded account), it has to be created on-chain (friendbot) and given
+the same USDC trustline above before it can receive the SAC transfer —
+otherwise `wallet-bridge-smoke` fails simulation with `HostError: Error(Contract, #13)`
+("trustline entry is missing for account").
 
 ### 2. Run the mocked test suite
 

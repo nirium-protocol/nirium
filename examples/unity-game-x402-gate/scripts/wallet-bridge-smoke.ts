@@ -101,8 +101,11 @@ async function main(): Promise<void> {
     console.log(`[smoke] payment accepted. Unlocked loot:`);
     console.log(JSON.stringify(payload.loot, null, 2));
 
-    const txHashHeader =
-      response.headers.get("x-payment-response") ?? response.headers.get("settlement-response");
+    // x402 v2's settlement header is `PAYMENT-RESPONSE`, not the v1 name
+    // `X-PAYMENT-RESPONSE` (and never `settlement-response`, which isn't a
+    // real header in either version). See "Settlement Response Delivery" in
+    // x402-foundation/x402's specs/transports-v2/http.md.
+    const txHashHeader = response.headers.get("payment-response");
     if (txHashHeader) {
       console.log(`[smoke] settlement response header: ${txHashHeader}`);
       const decoded = tryDecodeBase64Json(txHashHeader);
