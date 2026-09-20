@@ -82,6 +82,21 @@ namespace Nirium.Examples.UnityGameX402Gate
         public string network;
         public string price;
         public LootEntry loot;
+
+        /// <summary>
+        /// The Stellar transaction hash that settled this action's payment,
+        /// for a "view on stellar.expert" link. NOT part of the JSON body —
+        /// the server can't put it there (x402Serve() only settles, and only
+        /// sets its own PAYMENT-RESPONSE header, *after* seeing the body this
+        /// handler already sent; verified by reading @x402/express's source
+        /// and by shipping a body-side attempt that always came back empty
+        /// against the real deployed backend). Set separately in
+        /// <see cref="PaidActionClient.RevealLootAsync"/> from the response's
+        /// payment-response header, null if the request needed no payment
+        /// (e.g. a free/cached 200 on the first attempt).
+        /// </summary>
+        [JsonIgnore]
+        public string txHash;
     }
 
     /// <summary>Decoded from the 402 response's base64 `payment-required` header.</summary>
@@ -102,6 +117,21 @@ namespace Nirium.Examples.UnityGameX402Gate
         public int x402Version;
         public string error;
         public X402PaymentRequirement[] accepts;
+    }
+
+    /// <summary>
+    /// Decoded from the settled response's base64 `payment-response` header
+    /// (@x402/core's SettleResponse shape — verified against its
+    /// settleResponseSchema, not guessed). `transaction` is the real,
+    /// already-broadcast Stellar tx hash for this exact payment.
+    /// </summary>
+    [Serializable]
+    public class X402PaymentResponseEnvelope
+    {
+        public bool success;
+        public string payer;
+        public string transaction;
+        public string network;
     }
 
     public enum PaidActionStatusCode
@@ -314,7 +344,8 @@ namespace Nirium.Examples.UnityGameX402Gate
                     $"Paid retry to {actionUrl} failed: {second.StatusCode} {second.Body}");
             }
 
-            return ParseLootResponse(second.Body);
+            string txHash = DecodePaymentResponseHeader(second.PaymentResponseHeader)?.transaction;
+            return ParseLootResponse(second.Body, txHash);
         }
 
         struct ActionHttpResult
@@ -322,6 +353,7 @@ namespace Nirium.Examples.UnityGameX402Gate
             public long StatusCode;
             public string Body;
             public string PaymentRequiredHeader;
+            public string PaymentResponseHeader;
         }
 
         static async Task<ActionHttpResult> PostAction(
@@ -346,6 +378,7 @@ namespace Nirium.Examples.UnityGameX402Gate
                 StatusCode = request.responseCode,
                 Body = request.downloadHandler.text,
                 PaymentRequiredHeader = request.GetResponseHeader("payment-required"),
+                PaymentResponseHeader = request.GetResponseHeader("payment-response"),
             };
         }
 
@@ -357,14 +390,41 @@ namespace Nirium.Examples.UnityGameX402Gate
             return JsonConvert.DeserializeObject<X402PaymentRequiredEnvelope>(json);
         }
 
-        static PaidActionResult ParseLootResponse(string body)
+        /// <summary>
+        /// Decoded the same way as the 402's payment-required header (base64
+        /// JSON) — x402 v2 uses this encoding for every payment-related
+        /// header, not just the challenge. Returns null if the header is
+        /// absent (e.g. the first, unpaid attempt returned 200 outright) or
+        /// malformed; callers treat that as "no tx hash for this call",
+        /// never as a reason to fail the whole action — the loot was still
+        /// unlocked either way.
+        /// </summary>
+        static X402PaymentResponseEnvelope DecodePaymentResponseHeader(string headerValue)
+        {
+            if (string.IsNullOrEmpty(headerValue)) return null;
+            try
+            {
+                byte[] jsonBytes = Convert.FromBase64String(headerValue);
+                string json = Encoding.UTF8.GetString(jsonBytes);
+                return JsonConvert.DeserializeObject<X402PaymentResponseEnvelope>(json);
+            }
+            catch (Exception)
+            {
+                return null;
+            }
+        }
+
+        static PaidActionResult ParseLootResponse(string body, string txHash = null)
         {
             try
             {
                 var parsed = JsonConvert.DeserializeObject<RevealLootResponse>(body);
-                return parsed?.loot != null
-                    ? PaidActionResult.Ok(parsed)
-                    : PaidActionResult.Err(PaidActionStatusCode.UnexpectedStatus, $"Response carried no loot: {body}");
+                if (parsed?.loot == null)
+                {
+                    return PaidActionResult.Err(PaidActionStatusCode.UnexpectedStatus, $"Response carried no loot: {body}");
+                }
+                parsed.txHash = txHash;
+                return PaidActionResult.Ok(parsed);
             }
             catch (JsonException ex)
             {
