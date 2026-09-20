@@ -58,6 +58,20 @@ See [`docs/`](./docs) for full quickstarts, including [**"Charge AI agents in 5 
 
 Live on **both** Stellar networks. They are not two copies of the same thing.
 
+> **Settlement note (proposal, not a demand):** because nirium already speaks
+> x402 (`x402Serve()`/`initX402()`), the same exact-scheme flow can also
+> settle **fee-free in Nano (XNO)** — instant finality, no gas, fully
+> self-custodied (no freezeable stablecoin). At agent micropayment prices the
+> settlement cost on an EVM/Stellar rail can rival the call itself. The
+> buyer side already works today (independent, on-chain): an
+> OpenAI-Agents-SDK x402 payer settled a third-party seller in 0.00001292 XNO
+> on 2026-09-18, block
+> `E67FB89426F46E6AE4E0E5750B5F814A699965B8639DA89F38689EA1AFE57FC3`
+> (`confirmed: true`), via a thin adapter on feeless402:
+> https://github.com/PANDeveloper001/openai-agents-nano-x402. If Nano fits
+> your settlement model, a `nano:mainnet`/XNO accept beside your Stellar one
+> could be a one-route pilot; if it does not, this changes nothing.
+
 **Mainnet** (real value). The API box holds **no signing key** by design; a separate process with no HTTP surface signs autonomous rebalances, and clients sign their own fund movements.
 
 | What | Verify |
