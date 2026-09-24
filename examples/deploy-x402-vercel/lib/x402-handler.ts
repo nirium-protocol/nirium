@@ -1,4 +1,12 @@
-import { x402Serve } from "nirium";
+import { x402Serve, type X402GuardStore } from "nirium";
+import { createMemoryX402GuardStore } from "./x402-guard-memory-store.ts";
+
+// One shared store across warm invocations of this module - see the
+// caveat in x402-guard-memory-store.ts about cold starts / multiple
+// instances. This is what turns x402Serve()'s optional guard ON by
+// default in this template; set GUARD_STORE=none to turn it off.
+const defaultGuardStore: X402GuardStore | null =
+  process.env.GUARD_STORE === "none" ? null : createMemoryX402GuardStore();
 
 export type X402RouteConfig = {
   payTo?: string;
@@ -8,6 +16,12 @@ export type X402RouteConfig = {
   description?: string;
   facilitatorUrl?: string;
   facilitatorApiKey?: string;
+  /**
+   * Replay/rate-limit protection for x402Serve() - on by default in this
+   * template (in-memory store, see the caveat above). Pass `false` to
+   * disable for a single route, or swap `store`/`rateLimit` for your own.
+   */
+  guard?: false | { store?: X402GuardStore; rateLimit?: { max: number; windowMs: number } };
 };
 
 /**
@@ -44,6 +58,16 @@ export function withX402Protection(
       req.headers.get("PAYMENT-SIGNATURE") ||
       req.headers.get("x-payment-signature");
 
+    // Guard is ON by default in this template (config.guard !== false) -
+    // per-request X-PAYMENT reuse gets 409, and a default rate limit of
+    // 30 requests/minute per IP applies unless you override it.
+    const guardConfig = config.guard === false
+      ? undefined
+      : {
+          store: config.guard?.store ?? defaultGuardStore ?? undefined,
+          rateLimit: config.guard?.rateLimit ?? { max: 30, windowMs: 60_000 },
+        };
+
     const serveMiddleware = x402Serve({
       payTo,
       network,
@@ -55,6 +79,7 @@ export function withX402Protection(
       },
       ...(facilitatorUrl ? { facilitatorUrl } : {}),
       ...(facilitatorApiKey ? { facilitatorApiKey } : {}),
+      ...(guardConfig?.store ? { guard: guardConfig as { store: X402GuardStore; rateLimit?: { max: number; windowMs: number } } } : {}),
     });
 
     return new Promise<Response>((resolve) => {
@@ -104,6 +129,10 @@ export function withX402Protection(
         url: req.url,
         path: resource,
         headers: Object.fromEntries(req.headers.entries()),
+        // Vercel's Request has no `.ip`; the real client IP (behind Vercel's
+        // proxy) is this header. Falls back to "unknown" (one shared rate
+        // limit bucket) if absent, same as a direct/local request.
+        ip: req.headers.get("x-forwarded-for")?.split(",")[0]?.trim(),
       };
 
       if (paymentHeader) {

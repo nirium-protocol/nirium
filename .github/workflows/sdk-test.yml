@@ -1,0 +1,34 @@
+# There was no CI running packages/sdk's own tests before this - the repo's
+# only prior workflow (test-verify-audit-cid.yml) is scoped exclusively to
+# actions/verify-audit-cid/**. Added alongside x402Serve()'s guard feature
+# (issue #91) so "tests passing in CI" is a real, checkable fact for this
+# package going forward, not just a local run.
+name: SDK Tests
+on:
+  pull_request:
+    paths:
+      - packages/sdk/**
+      - .github/workflows/sdk-test.yml
+  push:
+    branches:
+      - main
+    paths:
+      - packages/sdk/**
+      - .github/workflows/sdk-test.yml
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/sdk
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      # --legacy-peer-deps: @stellar/mpp@0.7.1 peer-requires
+      # @stellar/stellar-sdk@^15.1.0 while this package pins ^14.5.0 - a
+      # pre-existing mismatch, unrelated to this workflow, not fixed here.
+      - run: npm install --no-audit --no-fund --legacy-peer-deps
+      - run: npm run build
+      - run: npm test
