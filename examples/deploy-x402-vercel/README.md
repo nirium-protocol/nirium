@@ -21,6 +21,38 @@ A minimal, zero-config template for deploying pay-per-request APIs protected by 
 
 ---
 
+## Replay/rate-limit protection (on by default in this template)
+
+`x402Serve()` on its own verifies and settles a payment; it does not stop the same payment proof from being replayed, and it does not rate-limit callers - see [nirium-protocol/nirium#91](https://github.com/nirium-protocol/nirium/issues/91). This template turns both on via `x402Serve()`'s `guard` config, using `lib/x402-guard-memory-store.ts` (a plain in-memory store):
+
+```ts
+const serveMiddleware = x402Serve({
+  payTo, network,
+  routes: { [resource]: { price: priceUsdc, description } },
+  guard: {
+    store: defaultGuardStore,                    // in-memory here, swap for Upstash below
+    rateLimit: { max: 30, windowMs: 60_000 },     // 30 req/min per IP
+  },
+});
+```
+
+A reused `PAYMENT-SIGNATURE` header against the same route gets `409 payment_replayed`; too many requests from one IP get `429 rate_limited`; if the guard's store is down, requests with a payment proof get `503` rather than being let through unprotected.
+
+**The in-memory store is a demo convenience, not production-durable**: Vercel serverless functions aren't guaranteed to reuse the same process between requests, so a replay hitting a different instance than the original won't be caught. For real production use, swap it for Upstash (the store `nirium` ships a reference adapter for):
+
+```ts
+import { createUpstashX402GuardStore } from "nirium";
+
+const store = createUpstashX402GuardStore({
+  url: process.env.UPSTASH_REDIS_REST_URL!,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+});
+```
+
+Pass `guard: false` in a route's config to disable it entirely, or set `GUARD_STORE=none` to disable the template's default in-memory store globally.
+
+---
+
 ## Testing Your Live Deployment
 
 ### 1. Request without payment (402 Payment Required)

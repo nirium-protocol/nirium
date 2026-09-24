@@ -13,6 +13,7 @@ import { createEd25519Signer } from '@x402/stellar';
 // @ts-ignore
 import { ExactStellarScheme } from '@x402/stellar/exact/client';
 import * as MppxModule from 'mppx';
+import { checkReplay, checkRateLimit, type X402GuardConfig } from './x402-guard';
 
 export interface AgentConfig {
     apiKey: string;
@@ -1300,6 +1301,13 @@ export interface X402ServeConfig {
     facilitatorAuthHeader?: string;
     appName?: string;
     appLogo?: string;
+    /**
+     * Optional replay/rate-limit protection - off by default. Providing
+     * `guard.store` turns it on; without it, x402Serve() behaves exactly
+     * as before. See x402-guard.ts and
+     * https://github.com/nirium-protocol/nirium/issues/91.
+     */
+    guard?: X402GuardConfig;
 }
 
 const X402_FACILITATORS = {
@@ -1482,8 +1490,36 @@ export function x402Serve(config: X402ServeConfig): any {
         lastFlush = Date.now();
     };
 
+    const sendDenied = (res: any, d: { status: number; body: Record<string, unknown>; headers?: Record<string, string> }) => {
+        if (d.headers) for (const [k, v] of Object.entries(d.headers)) res.setHeader(k, v);
+        res.status(d.status).json(d.body);
+    };
+
     return async function niriumX402(req: any, res: any, next: any) {
         maybeFlushHeartbeat();
+
+        if (config.guard) {
+            const guardReq = { method: req.method, url: req.originalUrl ?? req.url, headers: req.headers, ip: req.ip };
+
+            const rl = await checkRateLimit(guardReq, config.guard);
+            if (!rl.allowed) {
+                sendDenied(res, rl.denied!);
+                return;
+            }
+
+            const replay = await checkReplay(guardReq, config.guard);
+            if (!replay.allowed) {
+                sendDenied(res, replay.denied!);
+                return;
+            }
+            if (replay.release) {
+                const release = replay.release;
+                res.on('finish', () => {
+                    if (res.statusCode < 200 || res.statusCode >= 300) release();
+                });
+            }
+        }
+
         try {
             if (!cached) {
                 await preflight();
@@ -1502,6 +1538,9 @@ export function x402Serve(config: X402ServeConfig): any {
 // (unlike a bundler) needs the real extension to find the compiled file.
 export { x402Metrics } from './metrics';
 export type { X402MetricsResult, MetricsSnapshot } from './metrics';
+export type { X402GuardStore, X402GuardConfig, GuardRequest, GuardDenied } from './x402-guard';
+export { createUpstashX402GuardStore } from './x402-guard-upstash';
+export type { UpstashX402GuardStoreOptions } from './x402-guard-upstash';
 
 export default Agent;
 export {
