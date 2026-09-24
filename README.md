@@ -52,6 +52,12 @@ app.use('/premium', x402Serve({
 
 Any AI agent can now pay for your endpoint in USDC: no account, no card, no subscription, no human awake.
 
+> **Known limitation:** `x402Serve()` verifies and settles the payment; it does
+> not deduplicate a payment proof across requests or rate-limit callers on its
+> own. Add your own protection if you need either (see
+> [issue #91](https://github.com/nirium-protocol/nirium/issues/91) for what's
+> missing and why, and for a real production reference implementation).
+
 See [`docs/`](./docs) for full quickstarts, including [**"Charge AI agents in 5 minutes"**](./docs/quickstart-x402.md), and [`examples/`](./examples) for runnable Express, Next.js, [LangChain x402](./examples/langchain-x402-agent), and [non-custodial treasury vault](./examples/treasury-vault-quickstart) integrations. For real production findings (not marketing copy), see the [**devlog**](./docs/devlog.md).
 
 ## Networks
