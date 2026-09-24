@@ -1,6 +1,6 @@
 {
   "name": "nirium",
-  "version": "0.14.1",
+  "version": "0.15.0",
   "description": "Autonomous treasury and agentic-payments infrastructure for Stellar (x402 + MPP)",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -24,6 +24,7 @@
   ],
   "scripts": {
     "build": "tsc",
+    "prepublishOnly": "npm run build",
     "dev": "tsc --watch",
     "lint": "eslint src/",
     "test": "jest --passWithNoTests && node --experimental-strip-types --test test/*.test.ts"
