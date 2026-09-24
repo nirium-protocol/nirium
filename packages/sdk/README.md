@@ -121,6 +121,8 @@ app.use('/premium', x402Serve({
 
 Runs on **your own server**, not Nirium's — `x402Serve()` is a client-side function you call from your own code; Nirium doesn't operate, host, or route through anything here, is never in the payment path, and never sees your end users' requests.
 
+**Known limitation:** `x402Serve()` verifies and settles the payment; it does not deduplicate a payment proof across requests or rate-limit callers on its own. Add your own protection if you need either - see [issue #91](https://github.com/nirium-protocol/nirium/issues/91) for what's missing, why, and a real production reference implementation.
+
 **Usage telemetry — opt-in, off by default:** set `NIRIUM_X402SERVE_TELEMETRY=true` to send a small, non-blocking usage ping to Nirium — your `payTo` address, a SHA-256 hash of your `facilitatorApiKey` (never the key itself), network, route/request counts, and this SDK's version. It never blocks, delays, or fails a payment if the ping fails, times out, or isn't sent at all. Disabled by default since v0.14.0 — it's the only channel that would otherwise connect Nirium to how a specific integrator is using this locally-run function, and that isn't a decision this package should make for you.
 
 **Compliance is yours.** `x402Serve()` is a general-purpose library, not a service Nirium provides to your end users. You choose what to charge for, who your `payTo` is, and which jurisdiction you operate in — you remain solely responsible for complying with the financial, tax, and consumer-protection laws that apply to your own use of it.
