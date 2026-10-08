@@ -203,25 +203,36 @@ test('a 200 and a 402 without a decodable header fail the challenge', async () =
 });
 
 test('missing or ill-formed accepts fields fail on their own', async () => {
-    const missing = byName(JSON.parse((await run(['doctor', '--seller', sellerUrl('missing-fields'), '--json'])).stdout));
+    const missingRun = await run(['doctor', '--seller', sellerUrl('missing-fields'), '--json']);
+    assert.notEqual(missingRun.code, 0);
+    const missing = byName(JSON.parse(missingRun.stdout));
+    assert.equal(JSON.parse(missingRun.stdout).ok, false);
     for (const name of ['network', 'asset', 'amount', 'payTo']) {
         assert.equal(missing[name].status, 'fail', name);
     }
     assert.equal(missing.challenge.status, 'pass');
 
-    const secret = byName(JSON.parse((await run(['doctor', '--seller', sellerUrl('secret-payto'), '--json'])).stdout));
+    const secretRun = await run(['doctor', '--seller', sellerUrl('secret-payto'), '--json']);
+    assert.notEqual(secretRun.code, 0);
+    const secret = byName(JSON.parse(secretRun.stdout));
     assert.equal(secret.payTo.status, 'fail');
     assert.match(secret.payTo.message, /secret key/);
     assert.doesNotMatch(secret.payTo.detail || '', /SAAAA/);
 
-    const network = byName(JSON.parse((await run(['doctor', '--seller', sellerUrl('bad-network'), '--json'])).stdout));
+    const networkRun = await run(['doctor', '--seller', sellerUrl('bad-network'), '--json']);
+    assert.notEqual(networkRun.code, 0);
+    const network = byName(JSON.parse(networkRun.stdout));
     assert.equal(network.network.status, 'fail');
     assert.match(network.network.message, /stellar:mainnet/);
 
-    const amount = byName(JSON.parse((await run(['doctor', '--seller', sellerUrl('bad-amount'), '--json'])).stdout));
+    const amountRun = await run(['doctor', '--seller', sellerUrl('bad-amount'), '--json']);
+    assert.notEqual(amountRun.code, 0);
+    const amount = byName(JSON.parse(amountRun.stdout));
     assert.equal(amount.amount.status, 'fail');
 
-    const asset = byName(JSON.parse((await run(['doctor', '--seller', sellerUrl('bad-asset'), '--json'])).stdout));
+    const assetRun = await run(['doctor', '--seller', sellerUrl('bad-asset'), '--json']);
+    assert.notEqual(assetRun.code, 0);
+    const asset = byName(JSON.parse(assetRun.stdout));
     assert.equal(asset.asset.status, 'fail');
     assert.match(asset.asset.fix, /contract/);
 });
@@ -242,7 +253,10 @@ test('a preflight 500 fails closed and does not hide the challenge', async () =>
     assert.match(text.stdout, /✔ \[CHALLENGE\]/);
     assert.match(text.stdout, /❌ \[CORS-ALLOW\]/);
 
-    const report = JSON.parse((await run(['doctor', '--seller', sellerUrl('cors-500'), '--json'])).stdout);
+    const json = await run(['doctor', '--seller', sellerUrl('cors-500'), '--json']);
+    assert.notEqual(json.code, 0);
+    const report = JSON.parse(json.stdout);
+    assert.equal(report.ok, false);
     const checks = byName(report);
     assert.equal(checks['cors-preflight'].status, 'fail');
     assert.equal(checks['cors-expose'].status, 'pass');
@@ -250,13 +264,20 @@ test('a preflight 500 fails closed and does not hide the challenge', async () =>
 });
 
 test('missing expose and allow headers fail independently', async () => {
-    const expose = byName(JSON.parse((await run(['doctor', '--seller', sellerUrl('cors-no-expose'), '--json'])).stdout));
+    const exposeRun = await run(['doctor', '--seller', sellerUrl('cors-no-expose'), '--json']);
+    assert.notEqual(exposeRun.code, 0);
+    const exposeReport = JSON.parse(exposeRun.stdout);
+    assert.equal(exposeReport.ok, false);
+    assert.ok(exposeReport.checks.every((check) => check.status === 'pass' || check.status === 'fail'));
+    const expose = byName(exposeReport);
     assert.equal(expose['cors-expose'].status, 'fail');
     assert.match(expose['cors-expose'].fix, /Access-Control-Expose-Headers/);
     assert.equal(expose['cors-allow'].status, 'pass');
     assert.equal(expose['cors-preflight'].status, 'pass');
 
-    const allow = byName(JSON.parse((await run(['doctor', '--seller', sellerUrl('cors-no-allow'), '--json'])).stdout));
+    const allowRun = await run(['doctor', '--seller', sellerUrl('cors-no-allow'), '--json']);
+    assert.notEqual(allowRun.code, 0);
+    const allow = byName(JSON.parse(allowRun.stdout));
     assert.equal(allow['cors-allow'].status, 'fail');
     assert.match(allow['cors-allow'].message, /PAYMENT-SIGNATURE/);
     assert.equal(allow['cors-expose'].status, 'pass');
