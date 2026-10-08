@@ -120,12 +120,15 @@ program
 // --- COMMAND: doctor ---
 program
     .command('doctor')
-    .description('CLI preflight diagnostics for x402/MPP misconfiguration')
+    .description('CLI preflight diagnostics for x402/MPP misconfiguration, or a remote seller with --seller')
     .option('-n, --network <network>', 'Stellar network: testnet or pubnet', 'testnet')
     .option('-c, --config <path>', 'Path to environment or config file')
+    .option('--seller <url>', 'Validate a remote x402 seller at this URL without paying')
     .option('--json', 'Output results as JSON for CI integration')
     .action(async (options) => {
-        const report = await runDoctorDiagnostics(options);
+        const report = options.seller
+            ? await runDoctorSeller(options.seller)
+            : await runDoctorDiagnostics(options);
         if (options.json) {
             console.log(JSON.stringify(report, null, 2));
         } else {
@@ -852,10 +855,445 @@ async function runDoctorDiagnostics(options) {
     return { ok, network: canonicalNetwork, checks, timestamp: new Date().toISOString() };
 }
 
+// ═══════════════════════════════════════════════════════════════
+// doctor --seller — probe a remote x402 seller without paying
+// ═══════════════════════════════════════════════════════════════
+//
+// The probe URL may be plain http (a local fixture). resource.url inside
+// PAYMENT-REQUIRED may not: browsers and x402 clients follow that URL, and
+// an http:// resource is a real production failure. Nothing here sends
+// PAYMENT-SIGNATURE or X-PAYMENT.
+
+const STELLAR_SELLER_NETWORKS = new Set(['stellar:testnet', 'stellar:pubnet']);
+
+function headerTokens(value) {
+    if (!value || typeof value !== 'string') return [];
+    return value.split(',').map((part) => part.trim()).filter(Boolean);
+}
+
+function tokenListIncludes(value, expected) {
+    const tokens = headerTokens(value).map((token) => token.toLowerCase());
+    return tokens.includes('*') || tokens.includes(expected.toLowerCase());
+}
+
+function missingExposedHeaders(value) {
+    const tokens = headerTokens(value).map((token) => token.toLowerCase());
+    if (tokens.includes('*')) return [];
+    const missing = [];
+    if (!tokens.includes('payment-required')) missing.push('PAYMENT-REQUIRED');
+    if (!tokens.includes('payment-response')) missing.push('PAYMENT-RESPONSE');
+    return missing;
+}
+
+function isPaymentRequiredPayload(value) {
+    return Boolean(value)
+        && typeof value === 'object'
+        && !Array.isArray(value)
+        && (Array.isArray(value.accepts) || (value.resource && typeof value.resource === 'object'));
+}
+
+function decodePaymentRequiredHeader(headerValue) {
+    if (typeof headerValue !== 'string') return null;
+    const trimmed = headerValue.trim();
+    if (!trimmed) return null;
+    const candidates = [];
+    if (trimmed.startsWith('{')) candidates.push(trimmed);
+    candidates.push(Buffer.from(trimmed.replace(/\s+/g, ''), 'base64').toString('utf8'));
+    for (const candidate of candidates) {
+        try {
+            const parsed = JSON.parse(candidate);
+            if (isPaymentRequiredPayload(parsed)) return parsed;
+        } catch {
+            // try the next encoding
+        }
+    }
+    return null;
+}
+
+function isPositiveAtomicAmount(amount) {
+    return typeof amount === 'string' && /^[1-9]\d*$/.test(amount);
+}
+
+function isWellFormedSellerNetwork(network) {
+    if (typeof network !== 'string') return false;
+    if (network.startsWith('stellar:')) return STELLAR_SELLER_NETWORKS.has(network);
+    return /^[a-z0-9]{3,32}:[A-Za-z0-9._-]{1,64}$/.test(network);
+}
+
+function isWellFormedSellerAsset(asset, network) {
+    if (typeof asset !== 'string' || asset.length === 0 || asset.length > 200 || /\s/.test(asset)) return false;
+    if (typeof network === 'string' && network.startsWith('stellar:')) return StrKey.isValidContract(asset);
+    return true;
+}
+
+function payToProblem(payTo, network) {
+    if (typeof payTo !== 'string' || payTo.length === 0) return 'missing';
+    if (payTo.startsWith('S')) return 'secret';
+    const stellar = typeof network === 'string' && network.startsWith('stellar:');
+    if (stellar || payTo.startsWith('G')) {
+        return StrKey.isValidEd25519PublicKey(payTo) ? null : 'invalid';
+    }
+    if (/\s/.test(payTo) || payTo.length < 8 || payTo.length > 200) return 'invalid';
+    return null;
+}
+
+function resourceUrlProblem(resourceUrl) {
+    if (typeof resourceUrl !== 'string' || resourceUrl.length === 0) return 'missing';
+    if (/^http:\/\//i.test(resourceUrl)) return 'http';
+    try {
+        const parsed = new URL(resourceUrl);
+        if (parsed.protocol !== 'https:') return 'not-https';
+    } catch {
+        return 'invalid';
+    }
+    return null;
+}
+
+function sellerCheck(name, status, message, fix, detail) {
+    const check = { name, status, message };
+    if (fix) check.fix = fix;
+    if (detail) check.detail = detail;
+    return check;
+}
+
+function sellerReport(seller, checks, network) {
+    return {
+        ok: checks.every((check) => check.status === 'pass'),
+        seller,
+        network: network || null,
+        checks,
+        timestamp: new Date().toISOString(),
+    };
+}
+
+function unreachableSellerReport(seller, message) {
+    const names = ['challenge', 'network', 'asset', 'amount', 'payTo', 'resource-url', 'cors-preflight', 'cors-expose', 'cors-allow'];
+    return sellerReport(seller, names.map((name) => sellerCheck(
+        name,
+        'fail',
+        message,
+        name === 'challenge' ? 'Pass an absolute http(s) URL, for example https://example.com/premium' : undefined,
+    )), null);
+}
+
+function probeErrorMessage(err) {
+    if (!err) return 'unknown error';
+    if (err.name === 'TimeoutError' || err.name === 'AbortError') return 'request timed out after 10s';
+    return err.message || String(err);
+}
+
+async function probeSeller(url, init) {
+    try {
+        const response = await fetch(url, {
+            ...init,
+            redirect: 'manual',
+            signal: AbortSignal.timeout(10000),
+        });
+        try {
+            await response.body?.cancel();
+        } catch {
+            // headers are already available
+        }
+        return { response };
+    } catch (err) {
+        return { error: err };
+    }
+}
+
+function firstAdvertisedNetwork(payment) {
+    const accepts = payment?.accepts;
+    if (!Array.isArray(accepts)) return null;
+    for (const entry of accepts) {
+        if (entry && typeof entry.network === 'string' && entry.network) return entry.network;
+    }
+    return null;
+}
+
+function fieldFailures(payment, readProblem) {
+    const accepts = payment?.accepts;
+    if (!Array.isArray(accepts) || accepts.length === 0) {
+        return { ok: false, message: 'PAYMENT-REQUIRED accepts[] is missing or empty' };
+    }
+    for (let i = 0; i < accepts.length; i++) {
+        const entry = accepts[i];
+        const problem = readProblem(entry && typeof entry === 'object' ? entry : {});
+        if (problem) return { ok: false, index: i, ...problem };
+    }
+    return { ok: true };
+}
+
+async function runDoctorSeller(sellerUrl) {
+    let parsed;
+    try {
+        parsed = new URL(sellerUrl);
+    } catch {
+        parsed = null;
+    }
+    if (!parsed || (parsed.protocol !== 'http:' && parsed.protocol !== 'https:')) {
+        return unreachableSellerReport(sellerUrl, 'seller URL is not an absolute http(s) URL');
+    }
+
+    // A reserved .invalid origin so the preflight cannot collide with a real
+    // site, and so a seller that 500s on an unknown Origin fails closed.
+    const origin = `https://nirium-doctor-${crypto.randomBytes(8).toString('hex')}.invalid`;
+    const [challenge, preflight] = await Promise.all([
+        probeSeller(sellerUrl, {
+            method: 'GET',
+            headers: {
+                Accept: 'application/json',
+                Origin: origin,
+                'User-Agent': 'nirium-doctor/1.1.4',
+            },
+        }),
+        probeSeller(sellerUrl, {
+            method: 'OPTIONS',
+            headers: {
+                Origin: origin,
+                'Access-Control-Request-Method': 'GET',
+                'Access-Control-Request-Headers': 'PAYMENT-SIGNATURE',
+                'User-Agent': 'nirium-doctor/1.1.4',
+            },
+        }),
+    ]);
+
+    const checks = [];
+    let payment = null;
+    if (challenge.error || !challenge.response) {
+        checks.push(sellerCheck(
+            'challenge',
+            'fail',
+            `seller unreachable: ${probeErrorMessage(challenge.error)}`,
+            'Confirm the URL is reachable. doctor does not retry and does not pay.',
+        ));
+    } else if (challenge.response.status !== 402) {
+        checks.push(sellerCheck(
+            'challenge',
+            'fail',
+            `expected HTTP 402, got HTTP ${challenge.response.status}`,
+            'The seller must answer an unpaid request with 402 and a PAYMENT-REQUIRED header.',
+            `status ${challenge.response.status}`,
+        ));
+    } else {
+        payment = decodePaymentRequiredHeader(challenge.response.headers.get('payment-required'));
+        if (!payment) {
+            checks.push(sellerCheck(
+                'challenge',
+                'fail',
+                'HTTP 402 but PAYMENT-REQUIRED is missing or not decodable',
+                'Serve the x402 v2 challenge as base64 JSON in the PAYMENT-REQUIRED header.',
+            ));
+        } else {
+            checks.push(sellerCheck(
+                'challenge',
+                'pass',
+                'HTTP 402 with a decodable PAYMENT-REQUIRED header',
+                undefined,
+                payment.x402Version != null ? `x402Version ${payment.x402Version}` : undefined,
+            ));
+        }
+    }
+
+    const networkResult = fieldFailures(payment, (entry) => {
+        if (entry.network == null || entry.network === '') {
+            return { message: 'network is missing', fix: 'Set accepts[].network, for example stellar:pubnet or stellar:testnet.' };
+        }
+        if (!isWellFormedSellerNetwork(entry.network)) {
+            const stellarTypo = typeof entry.network === 'string' && entry.network.startsWith('stellar:');
+            return {
+                message: `network "${entry.network}" is not well formed`,
+                fix: stellarTypo
+                    ? 'Stellar sellers must advertise stellar:testnet or stellar:pubnet.'
+                    : 'network must be a CAIP-2 identifier such as stellar:pubnet.',
+                detail: String(entry.network),
+            };
+        }
+        return null;
+    });
+    checks.push(networkResult.ok
+        ? sellerCheck('network', 'pass', 'network is present and well formed', undefined, firstAdvertisedNetwork(payment))
+        : sellerCheck('network', 'fail', networkResult.index != null ? `accepts[${networkResult.index}].${networkResult.message}` : networkResult.message, networkResult.fix, networkResult.detail));
+
+    const assetResult = fieldFailures(payment, (entry) => {
+        if (!isWellFormedSellerAsset(entry.asset, entry.network)) {
+            const stellar = typeof entry.network === 'string' && entry.network.startsWith('stellar:');
+            return {
+                message: entry.asset == null || entry.asset === '' ? 'asset is missing' : 'asset is not well formed',
+                fix: stellar
+                    ? 'Stellar asset must be the SAC contract id (C...), not a symbol.'
+                    : 'Set accepts[].asset to the token the seller settles.',
+                detail: entry.asset == null ? undefined : String(entry.asset).slice(0, 80),
+            };
+        }
+        return null;
+    });
+    checks.push(assetResult.ok
+        ? sellerCheck('asset', 'pass', 'asset is present and well formed')
+        : sellerCheck('asset', 'fail', assetResult.index != null ? `accepts[${assetResult.index}].${assetResult.message}` : assetResult.message, assetResult.fix, assetResult.detail));
+
+    const amountResult = fieldFailures(payment, (entry) => {
+        if (!isPositiveAtomicAmount(entry.amount)) {
+            return {
+                message: entry.amount == null || entry.amount === '' ? 'amount is missing' : 'amount is not a positive integer string',
+                fix: 'Set accepts[].amount to atomic units, for example "1000000". Do not send "$0.02" or "0".',
+                detail: entry.amount == null ? undefined : String(entry.amount).slice(0, 80),
+            };
+        }
+        return null;
+    });
+    checks.push(amountResult.ok
+        ? sellerCheck('amount', 'pass', 'amount is a positive integer string')
+        : sellerCheck('amount', 'fail', amountResult.index != null ? `accepts[${amountResult.index}].${amountResult.message}` : amountResult.message, amountResult.fix, amountResult.detail));
+
+    const payToResult = fieldFailures(payment, (entry) => {
+        const problem = payToProblem(entry.payTo, entry.network);
+        if (!problem) return null;
+        if (problem === 'secret') {
+            return {
+                message: 'payTo is a secret key (S...), not a public key',
+                fix: 'accepts[].payTo must be the public key that receives funds (G... on Stellar). Never publish a secret.',
+                detail: 'value starts with S',
+            };
+        }
+        if (problem === 'missing') {
+            return { message: 'payTo is missing', fix: 'Set accepts[].payTo to the account that receives the payment.' };
+        }
+        return {
+            message: 'payTo is not well formed',
+            fix: 'On Stellar, payTo must be a valid 56-character G... public key.',
+            detail: typeof entry.payTo === 'string' ? `length ${entry.payTo.length}` : undefined,
+        };
+    });
+    checks.push(payToResult.ok
+        ? sellerCheck('payTo', 'pass', 'payTo is present and well formed')
+        : sellerCheck('payTo', 'fail', payToResult.index != null ? `accepts[${payToResult.index}].${payToResult.message}` : payToResult.message, payToResult.fix, payToResult.detail));
+
+    const urlProblem = payment ? resourceUrlProblem(payment.resource?.url) : 'missing';
+    if (!payment) {
+        checks.push(sellerCheck(
+            'resource-url',
+            'fail',
+            'resource.url was not checked because PAYMENT-REQUIRED did not decode',
+            'Fix the 402 challenge first. resource.url must be an https:// URL.',
+        ));
+    } else if (urlProblem === 'http') {
+        checks.push(sellerCheck(
+            'resource-url',
+            'fail',
+            'resource.url uses http://',
+            'Serve resource.url as https://. Browsers and x402 clients will not treat an http resource as the paid URL.',
+            String(payment.resource?.url).slice(0, 120),
+        ));
+    } else if (urlProblem) {
+        checks.push(sellerCheck(
+            'resource-url',
+            'fail',
+            'resource.url is missing or not https://',
+            'Set resource.url to an absolute https:// URL.',
+            payment.resource?.url == null ? undefined : String(payment.resource.url).slice(0, 120),
+        ));
+    } else {
+        checks.push(sellerCheck('resource-url', 'pass', 'resource.url is https://', undefined, payment.resource.url));
+    }
+
+    const preflightResponse = preflight.response;
+    let allowCheck;
+    if (preflight.error || !preflightResponse) {
+        checks.push(sellerCheck(
+            'cors-preflight',
+            'fail',
+            `CORS preflight failed: ${probeErrorMessage(preflight.error)}`,
+            'The seller must answer OPTIONS for an unknown Origin without crashing.',
+        ));
+        allowCheck = sellerCheck(
+            'cors-allow',
+            'fail',
+            'PAYMENT-SIGNATURE was not allowed because the preflight did not complete',
+            'Answer OPTIONS with Access-Control-Allow-Headers including PAYMENT-SIGNATURE.',
+        );
+    } else if (preflightResponse.status >= 500) {
+        checks.push(sellerCheck(
+            'cors-preflight',
+            'fail',
+            `CORS preflight returned HTTP ${preflightResponse.status} for an unknown origin`,
+            'An unknown Origin must not 500. Handle OPTIONS before route auth.',
+            origin,
+        ));
+        allowCheck = sellerCheck(
+            'cors-allow',
+            'fail',
+            'PAYMENT-SIGNATURE was not allowed because the preflight failed',
+            'Answer OPTIONS with 2xx and Access-Control-Allow-Headers: PAYMENT-SIGNATURE.',
+        );
+    } else if (preflightResponse.status < 200 || preflightResponse.status >= 300) {
+        checks.push(sellerCheck(
+            'cors-preflight',
+            'fail',
+            `CORS preflight returned HTTP ${preflightResponse.status}`,
+            'Answer OPTIONS with 204 or another 2xx, including Access-Control-Allow-Origin.',
+            origin,
+        ));
+        allowCheck = sellerCheck(
+            'cors-allow',
+            'fail',
+            'PAYMENT-SIGNATURE was not allowed because the preflight was not successful',
+            'Include PAYMENT-SIGNATURE in Access-Control-Allow-Headers on the OPTIONS response.',
+        );
+    } else {
+        const allowOrigin = preflightResponse.headers.get('access-control-allow-origin') || '';
+        const originAllowed = allowOrigin === '*' || allowOrigin === origin;
+        checks.push(originAllowed
+            ? sellerCheck('cors-preflight', 'pass', `CORS preflight returned HTTP ${preflightResponse.status} for a random origin`, undefined, origin)
+            : sellerCheck(
+                'cors-preflight',
+                'fail',
+                'CORS preflight did not allow the random origin',
+                'Send Access-Control-Allow-Origin: * or echo the request Origin. An unknown origin must not be dropped.',
+                allowOrigin ? `got ${allowOrigin}` : 'Access-Control-Allow-Origin missing',
+            ));
+        const allowed = tokenListIncludes(preflightResponse.headers.get('access-control-allow-headers'), 'PAYMENT-SIGNATURE');
+        allowCheck = allowed
+            ? sellerCheck('cors-allow', 'pass', 'PAYMENT-SIGNATURE is allowed on the preflight')
+            : sellerCheck(
+                'cors-allow',
+                'fail',
+                'PAYMENT-SIGNATURE is not listed in Access-Control-Allow-Headers',
+                'Add PAYMENT-SIGNATURE to Access-Control-Allow-Headers. Browsers drop the payment header otherwise.',
+                preflightResponse.headers.get('access-control-allow-headers') || 'header missing',
+            );
+    }
+
+    const exposeOnChallenge = missingExposedHeaders(challenge.response?.headers.get('access-control-expose-headers'));
+    const exposeOnPreflight = missingExposedHeaders(preflightResponse?.headers.get('access-control-expose-headers'));
+    const exposed = challenge.response
+        ? exposeOnChallenge.length === 0 || exposeOnPreflight.length === 0
+        : exposeOnPreflight.length === 0 && Boolean(preflightResponse);
+    if (exposed && (challenge.response || preflightResponse)) {
+        checks.push(sellerCheck(
+            'cors-expose',
+            'pass',
+            'PAYMENT-REQUIRED and PAYMENT-RESPONSE are exposed to browsers',
+        ));
+    } else {
+        const missing = exposeOnChallenge.length ? exposeOnChallenge : ['PAYMENT-REQUIRED', 'PAYMENT-RESPONSE'];
+        checks.push(sellerCheck(
+            'cors-expose',
+            'fail',
+            `browser clients cannot read ${missing.join(' and ')}`,
+            'Set Access-Control-Expose-Headers: PAYMENT-REQUIRED, PAYMENT-RESPONSE on the 402 response.',
+        ));
+    }
+    checks.push(allowCheck);
+
+    return sellerReport(sellerUrl, checks, payment ? firstAdvertisedNetwork(payment) : null);
+}
+
 function formatDoctorOutput(report) {
     const lines = [];
-    lines.push(`🩺 Nirium Doctor — x402/MPP Diagnostic Report`);
-    lines.push(`Target Network: ${report.network}`);
+    lines.push(report.seller
+        ? `🩺 Nirium Doctor — remote x402 seller`
+        : `🩺 Nirium Doctor — x402/MPP Diagnostic Report`);
+    if (report.seller) lines.push(`Seller:         ${report.seller}`);
+    lines.push(`Target Network: ${report.network || 'n/a'}`);
     lines.push(`Timestamp:      ${report.timestamp}`);
     lines.push(`--------------------------------------------------`);
     for (const check of report.checks) {
