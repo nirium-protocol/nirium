@@ -3,6 +3,7 @@
  */
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
+import fs from 'node:fs';
 import http from 'node:http';
 import path from 'node:path';
 import { once } from 'node:events';
@@ -10,7 +11,10 @@ import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import { Keypair, StrKey } from '@stellar/stellar-sdk';
 
-const cli = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../bin/nirium.js');
+const cliRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const cli = path.join(cliRoot, 'bin/nirium.js');
+const cliVersion = JSON.parse(fs.readFileSync(path.join(cliRoot, 'package.json'), 'utf8')).version;
+const expectedUserAgent = `nirium-doctor/${cliVersion}`;
 const PAY_TO = Keypair.random().publicKey();
 const CONTRACT = StrKey.encodeContract(Buffer.alloc(32, 7));
 const CHECKS = [
@@ -79,13 +83,19 @@ const server = http.createServer((req, res) => {
         res.end('payment header is not allowed on a doctor probe');
         return;
     }
+    if (req.headers['user-agent'] !== expectedUserAgent) {
+        res.writeHead(599, { 'content-type': 'text/plain' });
+        res.end(`unexpected user-agent: ${req.headers['user-agent'] || ''}`);
+        return;
+    }
     if (req.method === 'OPTIONS') {
         if (scenario === 'cors-500') {
             res.writeHead(500, { 'content-type': 'text/plain' });
             res.end('preflight crashed');
             return;
         }
-        res.writeHead(204, corsHeaders(scenario, false));
+        const exposeOnPreflight = scenario === 'cors-expose-on-preflight-only';
+        res.writeHead(204, corsHeaders(scenario, exposeOnPreflight));
         res.end();
         return;
     }
@@ -101,7 +111,7 @@ const server = http.createServer((req, res) => {
     }
     const headers = {
         'content-type': 'application/json',
-        ...corsHeaders(scenario, true),
+        ...corsHeaders(scenario, scenario !== 'cors-expose-on-preflight-only'),
     };
     if (scenario !== 'bad-header') {
         headers['PAYMENT-REQUIRED'] = Buffer.from(JSON.stringify(paymentFor(scenario)), 'utf8').toString('base64');
@@ -282,6 +292,20 @@ test('missing expose and allow headers fail independently', async () => {
     assert.match(allow['cors-allow'].message, /PAYMENT-SIGNATURE/);
     assert.equal(allow['cors-expose'].status, 'pass');
     assert.equal(allow.challenge.status, 'pass');
+});
+
+test('expose headers on the preflight do not satisfy cors-expose', async () => {
+    const result = await run(['doctor', '--seller', sellerUrl('cors-expose-on-preflight-only'), '--json']);
+    assert.notEqual(result.code, 0);
+    const report = JSON.parse(result.stdout);
+    const checks = byName(report);
+    assert.equal(report.ok, false);
+    assert.equal(checks.challenge.status, 'pass');
+    assert.equal(checks['cors-preflight'].status, 'pass');
+    assert.equal(checks['cors-allow'].status, 'pass');
+    assert.equal(checks['cors-expose'].status, 'fail');
+    assert.match(checks['cors-expose'].fix, /402 response/);
+    assert.match(checks['cors-expose'].fix, /preflight does not count/);
 });
 
 test('an unreachable seller and a bad URL fail as JSON without paying', async () => {

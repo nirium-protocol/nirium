@@ -8,8 +8,6 @@
     "nirium": "bin/nirium.js"
   },
   "scripts": {
-    "build": "node --check bin/nirium.js",
-    "lint": "node --check bin/nirium.js && node --check test/doctor-seller.test.js",
     "test": "node --test test/doctor-seller.test.js"
   },
   "keywords": [

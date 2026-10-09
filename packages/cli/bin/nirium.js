@@ -17,9 +17,23 @@ import os from 'os';
 import crypto from 'crypto';
 import readline from 'readline';
 import { execSync } from 'child_process';
+import { fileURLToPath } from 'url';
 import express from 'express';
 import NiriumAgent, { x402Serve } from 'nirium';
 import { Keypair, StrKey } from '@stellar/stellar-sdk';
+
+function readCliVersion() {
+    try {
+        const pkgPath = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'package.json');
+        const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+        if (typeof pkg.version === 'string' && pkg.version.length > 0) return pkg.version;
+    } catch {
+        // bin/nirium.js ships next to package.json. A missing file must not crash doctor.
+    }
+    return '0.0.0';
+}
+
+const doctorUserAgent = `nirium-doctor/${readCliVersion()}`;
 
 const program = new Command();
 
@@ -1042,7 +1056,7 @@ async function runDoctorSeller(sellerUrl) {
             headers: {
                 Accept: 'application/json',
                 Origin: origin,
-                'User-Agent': 'nirium-doctor/1.1.4',
+                'User-Agent': doctorUserAgent,
             },
         }),
         probeSeller(sellerUrl, {
@@ -1051,7 +1065,7 @@ async function runDoctorSeller(sellerUrl) {
                 Origin: origin,
                 'Access-Control-Request-Method': 'GET',
                 'Access-Control-Request-Headers': 'PAYMENT-SIGNATURE',
-                'User-Agent': 'nirium-doctor/1.1.4',
+                'User-Agent': doctorUserAgent,
             },
         }),
     ]);
@@ -1262,24 +1276,22 @@ async function runDoctorSeller(sellerUrl) {
             );
     }
 
-    const exposeOnChallenge = missingExposedHeaders(challenge.response?.headers.get('access-control-expose-headers'));
-    const exposeOnPreflight = missingExposedHeaders(preflightResponse?.headers.get('access-control-expose-headers'));
-    const exposed = challenge.response
-        ? exposeOnChallenge.length === 0 || exposeOnPreflight.length === 0
-        : exposeOnPreflight.length === 0 && Boolean(preflightResponse);
-    if (exposed && (challenge.response || preflightResponse)) {
+    // Browsers only honor Access-Control-Expose-Headers on the actual response.
+    // A preflight that lists the headers does not make the 402 readable.
+    const exposeMissing = missingExposedHeaders(challenge.response?.headers.get('access-control-expose-headers'));
+    if (challenge.response && exposeMissing.length === 0) {
         checks.push(sellerCheck(
             'cors-expose',
             'pass',
-            'PAYMENT-REQUIRED and PAYMENT-RESPONSE are exposed to browsers',
+            'PAYMENT-REQUIRED and PAYMENT-RESPONSE are exposed on the 402 response',
         ));
     } else {
-        const missing = exposeOnChallenge.length ? exposeOnChallenge : ['PAYMENT-REQUIRED', 'PAYMENT-RESPONSE'];
+        const missing = exposeMissing.length ? exposeMissing : ['PAYMENT-REQUIRED', 'PAYMENT-RESPONSE'];
         checks.push(sellerCheck(
             'cors-expose',
             'fail',
             `browser clients cannot read ${missing.join(' and ')}`,
-            'Set Access-Control-Expose-Headers: PAYMENT-REQUIRED, PAYMENT-RESPONSE on the 402 response.',
+            'Set Access-Control-Expose-Headers: PAYMENT-REQUIRED, PAYMENT-RESPONSE on the 402 response. The preflight does not count.',
         ));
     }
     checks.push(allowCheck);

@@ -160,7 +160,7 @@ Each line is pass or fail:
 | `payTo` | present; on Stellar, a valid `G...` public key. A secret (`S...`) fails |
 | `resource-url` | `resource.url` is `https://`. `http://` fails even if you probed `http://127.0.0.1` |
 | `cors-preflight` | `OPTIONS` from a random `*.invalid` origin returns 2xx and allows that origin |
-| `cors-expose` | `PAYMENT-REQUIRED` and `PAYMENT-RESPONSE` are exposed to browsers |
+| `cors-expose` | the 402 response exposes `PAYMENT-REQUIRED` and `PAYMENT-RESPONSE`. Headers listed only on the preflight do not count |
 | `cors-allow` | `PAYMENT-SIGNATURE` is listed in `Access-Control-Allow-Headers` |
 
 `--json` prints the same report (`ok`, `seller`, `network`, `checks`) for CI.
