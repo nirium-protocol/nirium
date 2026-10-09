@@ -15,6 +15,7 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import crypto from 'crypto';
+import readline from 'readline';
 import { execSync } from 'child_process';
 import express from 'express';
 import NiriumAgent, { x402Serve } from 'nirium';
@@ -142,7 +143,6 @@ program
     .argument('<url>', 'URL of the x402-protected endpoint')
     .option('-a, --amount <amount>', 'Payment amount override')
     .option('-n, --network <network>', 'CAIP-2 network ID (stellar:testnet or stellar:pubnet)', 'stellar:testnet')
-    .option('-s, --secret <secret>', 'Stellar secret key (S...) for signing')
     .option('-c, --config <path>', 'Custom path to configuration file or .env')
     .option('--json', 'Output execution result as JSON')
     .action(async (url, options) => {
@@ -373,6 +373,39 @@ function maskSecret(secret) {
     return `${secret.slice(0, 4)}...${secret.slice(-4)}`;
 }
 
+// A secret passed as a CLI argument sits in the shell history file and
+// in `ps`'s full command line for anyone else on the machine to read —
+// true for any process, not just this one. `pay` used to take `--secret`
+// for exactly that reason, so this prompt is the replacement: it reads
+// from the terminal without echoing the input and without it ever
+// becoming a process argument. Only used when neither NIRIUM_SECRET_KEY
+// nor the config store already has a key.
+function promptHiddenSecret(question) {
+    return new Promise((resolve, reject) => {
+        if (!process.stdin.isTTY) {
+            reject(new Error('no interactive terminal to prompt on'));
+            return;
+        }
+        const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+        // readline always echoes keystrokes to `output`; the only hook it
+        // gives you to stop that is overriding the writer it calls internally.
+        const realWrite = rl._writeToOutput;
+        rl._writeToOutput = function (str) {
+            // Pass the prompt text itself through once, then swallow every
+            // character typed after it — nothing from the secret reaches
+            // the terminal, not even asterisks that could leak its length.
+            if (str === question) realWrite.call(rl, str);
+        };
+        rl.question(question, (answer) => {
+            rl.history = rl.history.slice(1); // readline records the answer in its own history buffer
+            rl._writeToOutput = realWrite;
+            rl.close();
+            process.stdout.write('\n');
+            resolve(answer.trim());
+        });
+    });
+}
+
 function executeConfigCommand(action, key, value) {
     const currentConfig = loadConfig();
 
@@ -431,15 +464,33 @@ function executeConfigCommand(action, key, value) {
 
 async function executePayCommand(url, options) {
     const config = loadConfig(options.config);
-    const secretKey = options.secret || process.env.NIRIUM_SECRET_KEY || config.secretKey;
     const network = options.network || process.env.NIRIUM_NETWORK || config.network || 'stellar:testnet';
+
+    let secretKey = process.env.NIRIUM_SECRET_KEY || config.secretKey;
+
+    // `pay` no longer takes the secret as a flag (see #104): a --secret
+    // argument sits in the shell history and in `ps`'s full command line
+    // for anyone else on the box to read. Env var and config store are
+    // both still fine — neither is visible that way. The remaining gap is
+    // a one-off call with nothing configured yet, so prompt for it
+    // instead of failing outright, same as any CLI handling a real secret.
+    if (!secretKey && !options.json && process.stdin.isTTY) {
+        try {
+            secretKey = await promptHiddenSecret('Stellar secret key (S...): ');
+        } catch {
+            // falls through to the same missing-key error below
+        }
+    }
 
     if (!secretKey) {
         const errorMsg = 'Missing secret key for x402 payment authorization.\n'
-            + 'Please provide a secret key using:\n'
-            + '  - `--secret S...` option\n'
+            + 'Provide a secret key using:\n'
             + '  - `NIRIUM_SECRET_KEY` environment variable\n'
-            + '  - `nirium config set secretKey S...`';
+            + '  - `nirium config set secretKey S...`\n'
+            + '  - the interactive prompt (run without --json, in a real terminal)\n'
+            + 'There is no --secret flag: a key passed as a command-line argument '
+            + 'would sit in your shell history and in `ps` output for anyone else '
+            + 'on the machine to read.';
         if (options.json) {
             console.log(JSON.stringify({ status: 'error', error: errorMsg }));
             process.exit(1);
@@ -604,7 +655,7 @@ async function executeServeCommand(options) {
             console.log(`   Pay To:          ${payTo}`);
             console.log(`   Network:         ${network}\n`);
             console.log(`💡 Test this server using:`);
-            console.log(`   nirium pay http://localhost:${port}${routePath} --secret S...\n`);
+            console.log(`   NIRIUM_SECRET_KEY=S... nirium pay http://localhost:${port}${routePath}\n`);
             resolve({ app, server });
         });
         server.on('error', (err) => {

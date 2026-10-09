@@ -60,7 +60,7 @@ signals, which the autonomous loop produces on testnet. Defaults to `https://nir
 ## Pay an x402 endpoint from the terminal
 
 ```bash
-nirium pay https://your-api.example.com/premium/signals --secret S...
+NIRIUM_SECRET_KEY=S... nirium pay https://your-api.example.com/premium/signals
 ```
 
 Signs and settles a real x402 payment against any endpoint that returns a
@@ -68,9 +68,14 @@ Signs and settles a real x402 payment against any endpoint that returns a
 server directly, useful for testing a `nirium serve` instance or someone
 else's paid API without writing a client.
 
+There is no `--secret` flag: a key passed as a command-line argument sits
+in your shell history and in `ps`'s full command line for anyone else on
+the machine to read. Set `NIRIUM_SECRET_KEY`, run `nirium config set
+secretKey S...` once, or leave it unset — a real terminal prompts for it
+without echoing what you type.
+
 | Option | Purpose |
 |---|---|
-| `-s, --secret <secret>` | Stellar secret key (`S...`) that pays. Also read from `NIRIUM_SECRET_KEY` or `nirium config set secretKey S...`, in that order. |
 | `-n, --network <network>` | `stellar:testnet` (default) or `stellar:pubnet` |
 | `-a, --amount <amount>` | Override the price the server advertises |
 | `--json` | Machine-readable result: status, duration, payer, tx hash, response body |
