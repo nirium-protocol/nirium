@@ -132,10 +132,38 @@ consistent. Reads from `.env` in the current directory by default.
 |---|---|
 | `-n, --network <network>` | `testnet` (default) or `pubnet` |
 | `-c, --config <path>` | custom `.env`/config path |
+| `--seller <url>` | validate a remote x402 seller without paying |
 | `--json` | machine-readable report for CI |
 
 Exits non-zero if any check fails, so it's usable as a CI gate ahead of a
 deploy.
+
+### Check a remote seller
+
+```bash
+nirium doctor --seller https://your-api.example.com/premium/signals
+nirium doctor --seller https://your-api.example.com/premium/signals --json
+```
+
+`--seller` does not read `.env` and does not run the local checks above. It
+also does not pay: the probe is a `GET` plus an `OPTIONS` preflight, and it
+never sends `PAYMENT-SIGNATURE`.
+
+Each line is pass or fail:
+
+| Check | Pass means |
+|---|---|
+| `challenge` | HTTP 402 with a decodable `PAYMENT-REQUIRED` header (base64 JSON, or raw JSON) |
+| `network` | every `accepts[]` entry has a well-formed network (`stellar:testnet`, `stellar:pubnet`, or another CAIP-2 id) |
+| `asset` | present; on Stellar, the SAC contract id (`C...`), not a symbol like `USDC` |
+| `amount` | a positive integer string in atomic units (`"1000000"`, not `"$0.02"`) |
+| `payTo` | present; on Stellar, a valid `G...` public key. A secret (`S...`) fails |
+| `resource-url` | `resource.url` is `https://`. `http://` fails even if you probed `http://127.0.0.1` |
+| `cors-preflight` | `OPTIONS` from a random `*.invalid` origin returns 2xx and allows that origin |
+| `cors-expose` | the 402 response exposes `PAYMENT-REQUIRED` and `PAYMENT-RESPONSE`. Headers listed only on the preflight do not count |
+| `cors-allow` | `PAYMENT-SIGNATURE` is listed in `Access-Control-Allow-Headers` |
+
+`--json` prints the same report (`ok`, `seller`, `network`, `checks`) for CI.
 
 ## Verify an audit record
 
