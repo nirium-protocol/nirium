@@ -100,24 +100,24 @@ program
             const response = await fetch(`${options.url}/health`);
             if (response.ok) {
                 const data = await response.json();
-                console.log('âœ” Agent is operational');
+                console.log('ðŸŸ¢ Agent is operational');
                 if (data.service) {
-                    console.log(   Service: ${data.service});
+                    console.log(`   Service: ${data.service}`);
                 }
                 if (data.version !== undefined && data.version !== null) {
-                    console.log(   Version: ${data.version});
+                    console.log(`   Version: ${data.version}`);
                 }
                 if (data.network !== undefined && data.network !== null) {
-                    console.log(   Network: ${data.network});
+                    console.log(`   Network: ${data.network}`);
                 }
                 if (data.uptime !== undefined && data.uptime !== null) {
-                    console.log(   Uptime:  ${data.uptime}s);
+                    console.log(`   Uptime:  ${data.uptime}s`);
                 }
             } else {
-                console.log('🔴 Agent returned error:', response.status);
+                console.log('ðŸ”´ Agent returned error:', response.status);
             }
         } catch {
-            console.log('🔴 Agent unreachable at', options.url);
+            console.log('ðŸ”´ Agent unreachable at', options.url);
         }
     });
 

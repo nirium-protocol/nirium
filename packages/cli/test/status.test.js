@@ -47,7 +47,7 @@ test('status prints service and omits undefined version/network for v3 agent', a
     const { port } = server.address();
 
     try {
-        const { code, stdout } = await runStatus(http://127.0.0.1:${port});
+        const { code, stdout } = await runStatus(`http://127.0.0.1:${port}`);
         assert.equal(code, 0);
         assert.match(stdout, /Agent is operational/);
         assert.match(stdout, /Service:\s+nirium-agent-v3\.0/);
@@ -79,7 +79,7 @@ test('status prints version and network when provided by agent', async () => {
     const { port } = server.address();
 
     try {
-        const { code, stdout } = await runStatus(http://127.0.0.1:${port});
+        const { code, stdout } = await runStatus(`http://127.0.0.1:${port}`);
         assert.equal(code, 0);
         assert.match(stdout, /Agent is operational/);
         assert.match(stdout, /Version:\s+2\.0\.1/);
