@@ -100,7 +100,7 @@ program
             const response = await fetch(`${options.url}/health`);
             if (response.ok) {
                 const data = await response.json();
-                console.log('ðŸŸ¢ Agent is operational');
+                console.log('🟢 Agent is operational');
                 if (data.service) {
                     console.log(`   Service: ${data.service}`);
                 }
@@ -114,10 +114,10 @@ program
                     console.log(`   Uptime:  ${data.uptime}s`);
                 }
             } else {
-                console.log('ðŸ”´ Agent returned error:', response.status);
+                console.log('🔴 Agent returned error:', response.status);
             }
         } catch {
-            console.log('ðŸ”´ Agent unreachable at', options.url);
+            console.log('🔴 Agent unreachable at', options.url);
         }
     });
 
