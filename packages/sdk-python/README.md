@@ -140,7 +140,7 @@ Runnable example: [`examples/langchain-x402-agent`](../../examples/langchain-x40
 - builds a classic Stellar payment, where MPP Charge needs a Soroban SAC transfer;
 - sends its proof in an `X-PAYMENT` header, where MPP uses `Authorization: Payment`.
 
-This is not fixed in the version published today. Use x402 (`init_x402()` / `x402_fetch()`) for paid endpoints. The TypeScript package has an MPP Charge client (experimental, see its README); Nirium's hosted testnet `/api/v1/mpp/*` endpoint also rejected MPP payments when tested on 1 October 2026 (mainnet not tested), so do not rely on the hosted endpoints from any language.
+This is not fixed in the version published today. Use x402 (`init_x402()` / `x402_fetch()`) for paid endpoints. The TypeScript package has an MPP Charge client (experimental, see its README): Nirium's hosted testnet `/api/v1/mpp/*` endpoint accepted its payments on 15 October 2026, in `pull` and `push` mode (mainnet not tested). That does not change this Python version, which still cannot pay.
 
 ### Endpoint Access Model
 
@@ -150,7 +150,7 @@ This is not fixed in the version published today. Use x402 (`init_x402()` / `x40
 | **Protected** (API key) | `execute`, `market`, `loop/start\|stop\|scan`, `subscriptions`, `skills/install`, `webhooks` |
 | **WebSocket** (JWT) | `/ws/signals` — real-time signal stream |
 | **x402 Premium** | `/api/v1/premium/signals` ($0.02 USDC), `/api/v1/premium/market` ($0.05 USDC) |
-| **MPP Charge** | `/api/v1/mpp/signals`, `/api/v1/mpp/market` (testnet endpoint rejected MPP payments when tested, mainnet untested, and `mpp_fetch()` does not work in this version) |
+| **MPP Charge** | `/api/v1/mpp/signals`, `/api/v1/mpp/market` (testnet verified with the TypeScript client on 15 Oct 2026, mainnet untested; `mpp_fetch()` does not work in this version) |
 
 ## Payouts
 
