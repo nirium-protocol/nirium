@@ -118,9 +118,20 @@ program
     .argument('<cid>', 'IPFS Content Identifier (CID) of the audit document')
     .option('-g, --gateway <url>', 'IPFS gateway URL', 'https://gateway.pinata.cloud')
     .option('--json', 'Output result as JSON')
+    .option('--hash <hex>', 'Expected sha-256 of the evidence (hex, optional sha-256: prefix), for hash-only anchors')
+    .option('--evidence <file>', 'Original evidence file; its sha-256 is compared with the anchored hash')
     .description('Independently verify IPFS audit document content hash & agent ed25519 signature')
     .action(async (cid, options) => {
-        const result = await fetchAndVerifyCid(cid, options.gateway);
+        let expectedHash;
+        try {
+            if (options.hash && options.evidence) throw new Error('Use either --hash or --evidence, not both');
+            if (options.hash) expectedHash = normalizeHashInput(options.hash);
+            if (options.evidence) expectedHash = crypto.createHash('sha256').update(fs.readFileSync(options.evidence)).digest('hex');
+        } catch (err) {
+            console.error(`❌ ${err.message}`);
+            process.exit(1);
+        }
+        const result = await fetchAndVerifyCid(cid, options.gateway, globalThis.fetch, { expectedHash });
         if (options.json) {
             console.log(JSON.stringify(result, null, 2));
         } else {
@@ -1399,7 +1410,28 @@ function decodeStellarPublicKey(gAddress) {
     return Buffer.from(StrKey.decodeEd25519PublicKey(gAddress));
 }
 
-function verifyEd25519Signature(pubKeyGAddress, statement, base64Signature) {
+const HEX64 = /^[0-9a-f]{64}$/;
+const SEP53_PREFIX = 'Stellar Signed Message:\n';
+
+// Accepts `<hex>` or `sha-256:<hex>`, any case. Returns lowercase hex or throws.
+function normalizeHashInput(value) {
+    const hex = String(value).trim().replace(/^sha-?256:/i, '').toLowerCase();
+    if (!HEX64.test(hex)) throw new Error(`Invalid sha-256 hash: ${value}`);
+    return hex;
+}
+
+// The node accepts the signature as hex or base64. Returns a 64-byte buffer or null.
+function decodeSignature(signature) {
+    if (typeof signature !== 'string') return null;
+    const s = signature.trim();
+    const buf = /^[0-9a-fA-F]{128}$/.test(s) ? Buffer.from(s, 'hex') : Buffer.from(s, 'base64');
+    return buf.length === 64 ? buf : null;
+}
+
+// Mirrors the node: raw ed25519 over the utf8 statement first, then SEP-53
+// (Freighter signMessage): ed25519 over sha256("Stellar Signed Message:\n" + statement).
+// Returns 'ed25519', 'sep53' or null.
+function verifyEd25519Signature(pubKeyGAddress, statement, signature) {
     try {
         const rawPubKey = decodeStellarPublicKey(pubKeyGAddress);
         const spkiHeader = Buffer.from('302a300506032b6570032100', 'hex');
@@ -1408,42 +1440,60 @@ function verifyEd25519Signature(pubKeyGAddress, statement, base64Signature) {
             format: 'der',
             type: 'spki',
         });
-        const signatureBuf = Buffer.from(base64Signature, 'base64');
-        return crypto.verify(null, Buffer.from(statement), keyObject, signatureBuf);
+        const signatureBuf = decodeSignature(signature);
+        if (!signatureBuf) return null;
+        if (crypto.verify(null, Buffer.from(statement, 'utf8'), keyObject, signatureBuf)) return 'ed25519';
+        const sep53Digest = crypto.createHash('sha256').update(Buffer.from(SEP53_PREFIX + statement, 'utf8')).digest();
+        if (crypto.verify(null, sep53Digest, keyObject, signatureBuf)) return 'sep53';
+        return null;
     } catch {
-        return false;
+        return null;
     }
 }
 
-function verifyAuditDocument(doc, cid) {
-    if (!doc || typeof doc !== 'object') {
-        return { ok: false, cid, hashMatch: false, expectedHash: '', computedHash: '', signatureStatus: 'absent', error: 'Invalid audit document format' };
+function verifyAuditDocument(doc, cid, { expectedHash } = {}) {
+    const fail = (error) => ({ ok: false, cid, hashMatch: false, hashStatus: 'mismatch', expectedHash: '', computedHash: '', signatureStatus: 'absent', error });
+    if (!doc || typeof doc !== 'object') return fail('Invalid audit document format');
+    const anchoredHash = typeof doc.content_sha256 === 'string' ? doc.content_sha256.toLowerCase() : '';
+    if (!HEX64.test(anchoredHash)) return fail('Audit document has no valid content_sha256');
+
+    // record mode: recompute from the embedded record (unchanged behavior).
+    // hash-only mode: the node stores the submitted hash as content_sha256 and
+    // has nothing to recompute it from, so compare against --hash/--evidence
+    // when given, otherwise report the hash as unchecked (not as a mismatch).
+    const mode = doc.record ? 'record' : 'hash-only';
+    let computedHash = '';
+    let hashStatus;
+    if (mode === 'record') {
+        computedHash = crypto.createHash('sha256').update(JSON.stringify(doc.record)).digest('hex');
+        hashStatus = computedHash === anchoredHash ? 'match' : 'mismatch';
+        if (hashStatus === 'match' && expectedHash && expectedHash !== anchoredHash) hashStatus = 'mismatch';
+    } else if (expectedHash) {
+        computedHash = expectedHash;
+        hashStatus = expectedHash === anchoredHash ? 'match' : 'mismatch';
+    } else {
+        hashStatus = 'unchecked';
     }
-    const expectedHash = doc.content_sha256 || '';
-    const recordStr = doc.record ? JSON.stringify(doc.record) : '';
-    const computedHash = crypto.createHash('sha256').update(recordStr).digest('hex');
-    const hashMatch = expectedHash.length > 0 && expectedHash === computedHash;
 
     let signatureStatus = 'absent';
-    let signerKey, statement, declaredStatement, agentId;
+    let signatureScheme, signerKey, statement, declaredStatement, agentId;
     if (doc.agent && doc.agent.key && doc.agent.signature) {
         signerKey = doc.agent.key;
         agentId = doc.agent.id;
-        // Always recompute — never trust the document's own statement field.
-        // The protocol signs `nirium-audit-v1:<content_sha256>`, derived
-        // exclusively from the record hash. Trusting doc.agent.statement
-        // would let an attacker reuse a valid signature after swapping the
-        // record content.
-        statement = `nirium-audit-v1:${computedHash}`;
+        // Never trust the document's own statement field. In record mode the
+        // statement is built from the recomputed record hash; in hash-only mode
+        // from content_sha256 (a swapped content_sha256 breaks the signature).
+        statement = `nirium-audit-v1:${mode === 'record' ? computedHash : anchoredHash}`;
         declaredStatement = doc.agent.statement;
-        signatureStatus = verifyEd25519Signature(signerKey, statement, doc.agent.signature) ? 'valid' : 'invalid';
+        signatureScheme = verifyEd25519Signature(signerKey, statement, doc.agent.signature) || undefined;
+        signatureStatus = signatureScheme ? 'valid' : 'invalid';
     }
 
-    const ok = hashMatch && signatureStatus !== 'invalid';
-    return { ok, cid, hashMatch, expectedHash, computedHash, signatureStatus, signerKey, statement, declaredStatement, agentId };
+    const ok = hashStatus !== 'mismatch' && signatureStatus !== 'invalid';
+    return { ok, cid, mode, hashMatch: hashStatus === 'match', hashStatus, expectedHash: anchoredHash, computedHash, signatureStatus, signatureScheme, signerKey, statement, declaredStatement, agentId };
 }
 
-async function fetchAndVerifyCid(cid, gatewayUrl = 'https://gateway.pinata.cloud', fetchFn = globalThis.fetch) {
+async function fetchAndVerifyCid(cid, gatewayUrl = 'https://gateway.pinata.cloud', fetchFn = globalThis.fetch, opts = {}) {
     const url = `${gatewayUrl.replace(/\/$/, '')}/ipfs/${cid}`;
     try {
         const res = await fetchFn(url);
@@ -1451,7 +1501,7 @@ async function fetchAndVerifyCid(cid, gatewayUrl = 'https://gateway.pinata.cloud
             return { ok: false, cid, hashMatch: false, expectedHash: '', computedHash: '', signatureStatus: 'absent', error: `IPFS gateway returned HTTP ${res.status}` };
         }
         const doc = await res.json();
-        return verifyAuditDocument(doc, cid);
+        return verifyAuditDocument(doc, cid, opts);
     } catch (err) {
         return { ok: false, cid, hashMatch: false, expectedHash: '', computedHash: '', signatureStatus: 'absent', error: `Failed to fetch CID from gateway: ${err?.message || String(err)}` };
     }
@@ -1462,11 +1512,16 @@ function formatVerifyOutput(result) {
     lines.push(`🔍 Nirium Audit Verifier`);
     if (result.cid) lines.push(`CID:            ${result.cid}`);
     lines.push(`--------------------------------------------------`);
-    lines.push(result.hashMatch
-        ? `✔ HASH:        MATCH (${result.computedHash.slice(0, 16)}...)`
-        : `❌ HASH:        MISMATCH (Expected: ${result.expectedHash}, Computed: ${result.computedHash})`);
+    if (result.hashStatus === 'unchecked') {
+        lines.push(`ℹ HASH:        NOT CHECKED (hash-only anchor: ${result.expectedHash.slice(0, 16)}...)`);
+        lines.push(`   Pass --hash <hex> or --evidence <file> to compare it with your original evidence.`);
+    } else if (result.hashMatch) {
+        lines.push(`✔ HASH:        MATCH (${result.expectedHash.slice(0, 16)}...)${result.mode === 'hash-only' ? ' [hash-only]' : ''}`);
+    } else {
+        lines.push(`❌ HASH:        MISMATCH (Anchored: ${result.expectedHash}, Computed: ${result.computedHash})`);
+    }
     if (result.signatureStatus === 'valid') {
-        lines.push(`✔ SIGNATURE:   VALID (Signed by ${result.signerKey})`);
+        lines.push(`✔ SIGNATURE:   VALID${result.signatureScheme === 'sep53' ? ' (SEP-53)' : ''} (Signed by ${result.signerKey})`);
         if (result.statement) lines.push(`   Statement:  ${result.statement}`);
         if (result.agentId) lines.push(`   Agent ID:   ${result.agentId}`);
     } else if (result.signatureStatus === 'invalid') {
