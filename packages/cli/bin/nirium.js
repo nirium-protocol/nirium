@@ -101,9 +101,18 @@ program
             if (response.ok) {
                 const data = await response.json();
                 console.log('🟢 Agent is operational');
-                console.log(`   Version: ${data.version}`);
-                console.log(`   Network: ${data.network}`);
-                console.log(`   Uptime:  ${data.uptime}s`);
+                if (data.service) {
+                    console.log(`   Service: ${data.service}`);
+                }
+                if (data.version !== undefined && data.version !== null) {
+                    console.log(`   Version: ${data.version}`);
+                }
+                if (data.network !== undefined && data.network !== null) {
+                    console.log(`   Network: ${data.network}`);
+                }
+                if (data.uptime !== undefined && data.uptime !== null) {
+                    console.log(`   Uptime:  ${data.uptime}s`);
+                }
             } else {
                 console.log('🔴 Agent returned error:', response.status);
             }
