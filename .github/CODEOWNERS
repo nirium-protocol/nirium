@@ -1,0 +1,4 @@
+# Owners are requested for review automatically on pull requests that touch these paths.
+# This does not block merges: branch protection is not enabled on main.
+
+/packages/cli/ @M0nsxx
