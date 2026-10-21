@@ -1,0 +1,97 @@
+# Dependabot version updates (#145). Review policy: CONTRIBUTING.md, "Dependency updates".
+#
+# Each npm package gets at most one minor/patch PR per week. Majors are separate PRs.
+# @stellar/stellar-sdk, @x402/* and @stellar/mpp must move in step (see the peer-dependency
+# comment in .github/workflows/sdk-test.yml): their minor/patch bumps land in the same weekly
+# PR as everything else, and their majors are grouped into one PR per package instead of
+# one PR per dependency. A dependency joins the first group that matches it, so the
+# stellar-x402 group has to stay above minor-and-patch.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /packages/sdk
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      stellar-x402:
+        patterns:
+          - "@stellar/stellar-sdk"
+          - "@stellar/mpp"
+          - "@x402/*"
+        update-types:
+          - major
+      minor-and-patch:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+
+  - package-ecosystem: npm
+    directory: /packages/cli
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      stellar-x402:
+        patterns:
+          - "@stellar/stellar-sdk"
+          - "@stellar/mpp"
+          - "@x402/*"
+        update-types:
+          - major
+      minor-and-patch:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+
+  - package-ecosystem: npm
+    directory: /packages/mcp
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      stellar-x402:
+        patterns:
+          - "@stellar/stellar-sdk"
+          - "@stellar/mpp"
+          - "@x402/*"
+        update-types:
+          - major
+      minor-and-patch:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+
+  # Covers the `uses:` pins in .github/workflows/ (actions/checkout, actions/setup-node).
+  # All action bumps, majors included, come in one PR per week.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 2
+    commit-message:
+      prefix: chore
+      include: scope
+    groups:
+      github-actions:
+        patterns:
+          - "*"

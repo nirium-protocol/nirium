@@ -82,6 +82,12 @@ We follow [Conventional Commits](https://www.conventionalcommits.org/):
 
 Every commit produced with AI assistance carries a `Co-Authored-By: <model> <noreply@anthropic.com>` trailer, where `<model>` is the model that actually produced that commit (for example `Claude Sonnet 5.5` or `Claude Opus 5.5`), never a fixed name. This is a factual disclosure of how the commit was produced — it is never stripped to make a commit look human-authored, and never added where it doesn't apply to fake the opposite. If you use AI assistance in your own contributions, disclose it the same way.
 
+### Dependency updates
+
+Dependabot (`.github/dependabot.yml`) opens update PRs every Monday for `packages/sdk`, `packages/cli`, `packages/mcp` and the GitHub Actions used in `.github/workflows/`. Each package gets at most one minor/patch PR a week; majors come as separate PRs, and `@stellar/stellar-sdk`, `@x402/*` and `@stellar/mpp` majors are grouped so they move together.
+
+These PRs are reviewed like any other PR: by the code owner of the path (CODEOWNERS requests @M0nsxx for `packages/cli`), and otherwise by a maintainer (@Eras256). Nothing is auto-merged. Before approving, the reviewer checks that the package builds and its tests pass, and, for majors or the Stellar/x402 group, reads the changelog and the peer-dependency note in `.github/workflows/sdk-test.yml`.
+
 ### Code Style
 
 - **TypeScript:** strict mode, explicit types for all public APIs
@@ -106,4 +112,4 @@ By contributing, you agree that your contributions will be licensed under the [A
 
 ---
 
-*Updated August 13, 2026*
+*Updated October 20, 2026*

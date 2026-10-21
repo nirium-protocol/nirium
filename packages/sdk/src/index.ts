@@ -73,6 +73,29 @@ export interface X402Config {
      * x402Fetch behaves exactly as before. See X402PolicyHook.
      */
     policy?: X402PolicyHook;
+    /**
+     * Per-payment cap for x402Fetch (#106), passed to @x402/core as
+     * `spendControls.maxAmountPerPayment`. USD amount as `'$5'`, `'5'` or `5`;
+     * it applies to default assets such as USDC. Defaults to @x402/core's `'$1'`.
+     * Raising it is an explicit choice: a payment above the cap is refused
+     * before anything is signed (`X402SpendCapError`). Must be a positive
+     * amount; `false` (no cap) is deliberately not accepted here.
+     */
+    maxAmountPerPayment?: string | number;
+}
+
+/** Validates and normalizes `maxAmountPerPayment` at initX402 time ("$5" form). */
+function normalizeMaxAmountPerPayment(v: unknown): string | undefined {
+    if (v === undefined) return undefined;
+    const text = typeof v === 'number' ? (Number.isFinite(v) ? String(v) : '') : typeof v === 'string' ? v.trim() : '';
+    const m = /^\$?(\d+(?:\.\d+)?)$/.exec(text);
+    if (!m || !(Number(m[1]) > 0)) {
+        throw new Error(
+            'initX402: `maxAmountPerPayment` must be a positive USD amount such as \'$5\', \'5\' or 5 '
+            + `(got ${JSON.stringify(v)}). Omit it to keep the $1 default.`,
+        );
+    }
+    return `$${m[1]}`;
 }
 
 export interface MppConfig {
@@ -588,7 +611,7 @@ export class Agent {
     private token: string | null = null;
 
     private x402Client: { client: any; scheme: any; baseFetch: typeof fetch } | null = null;
-    private x402Policy: { base: X402BaseSigner; rpcUrl: string; policy: X402PolicyHook } | null = null;
+    private x402Policy: { base: X402BaseSigner; rpcUrl: string; policy: X402PolicyHook; maxAmountPerPayment?: string } | null = null;
     private mppClient: { fetch: typeof fetch } | null = null;
 
     constructor(config: AgentConfig) {
@@ -1178,6 +1201,7 @@ export class Agent {
             );
         }
         if (config.policy !== undefined) assertValidPolicyHook(config.policy);
+        const maxAmountPerPayment = normalizeMaxAmountPerPayment(config.maxAmountPerPayment);
         const signer = config.signer ?? (createEd25519Signer as any)(config.secretKey, network);
         // Pubnet: el SDF NO corre RPC público de mainnet — soroban.stellar.org no
         // existe. Default al RPC público de gateway.fm (mismo default que
@@ -1189,13 +1213,15 @@ export class Agent {
             // Con policy el cliente se arma en cada x402Fetch: el signer de
             // stellar-sdk no recibe la URL, y un closure por llamada ata URL,
             // método y requisitos a ese pago sin estado compartido.
-            this.x402Policy = { base: signer, rpcUrl, policy: config.policy };
+            this.x402Policy = { base: signer, rpcUrl, policy: config.policy, maxAmountPerPayment };
             this.x402Client = null;
             return;
         }
         this.x402Policy = null;
         const scheme = new (ExactStellarScheme as any)(signer, { url: rpcUrl });
         const client = new (X402ClientClass as any)().register('stellar:*', scheme);
+        // Sin la opción no se toca spendControls: @x402/core aplica su $1.
+        if (maxAmountPerPayment) client.setSpendControls({ maxAmountPerPayment });
         // El cliente es uno solo; el fetch envuelto se arma en cada llamada
         // (un closure barato) para que lo capturado de cada 402 sea de esa llamada.
         this.x402Client = { client, scheme, baseFetch: fetch };
@@ -1225,7 +1251,7 @@ export class Agent {
     }
 
     private async x402FetchWithPolicy(
-        cfg: { base: X402BaseSigner; rpcUrl: string; policy: X402PolicyHook },
+        cfg: { base: X402BaseSigner; rpcUrl: string; policy: X402PolicyHook; maxAmountPerPayment?: string },
         url: string, init?: RequestInit,
     ): Promise<Response> {
         const slot: { requirements?: X402PaymentRequirementsView; error?: X402PolicyError } = {};
@@ -1244,6 +1270,7 @@ export class Agent {
                     payTo: r.payTo, amount: r.amount, maxTimeoutSeconds: r.maxTimeoutSeconds,
                 };
             });
+        if (cfg.maxAmountPerPayment) client.setSpendControls({ maxAmountPerPayment: cfg.maxAmountPerPayment });
         // NUNCA registrar onPaymentCreationFailure aquí: puede devolver un
         // payload sin pasar por el signer, y el gate quedaría puenteado.
         try {

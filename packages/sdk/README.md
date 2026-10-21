@@ -109,7 +109,15 @@ try {
 }
 ```
 
-The error carries `url`, `amount` (atomic units, the cheapest offer when the server lists several), `formattedAmount`, `asset`, `network` and `cap`, and `signerCalled` is always `false`: nothing was signed or sent. The cap is enforced by `@x402/core` and cannot be changed from `initX402()` yet. Other `spendControls` rejections (for example a non-default asset) still surface as the original error.
+The error carries `url`, `amount` (atomic units, the cheapest offer when the server lists several), `formattedAmount`, `asset`, `network` and `cap`, and `signerCalled` is always `false`: nothing was signed or sent. The cap is enforced by `@x402/core`. Other `spendControls` rejections (for example a non-default asset) still surface as the original error.
+
+To pay an API priced above $1, raise the cap explicitly with `maxAmountPerPayment` (a USD amount: `'$5'`, `'5'` or `5`; it applies to default assets such as USDC):
+
+```typescript
+agent.initX402({ secretKey: 'S...', network: 'stellar:pubnet', maxAmountPerPayment: '$5' });
+```
+
+Why the default stays at $1: an agent pays whatever a server's 402 asks for, without a human in the loop, so a low cap limits the damage from a mispriced or malicious endpoint. Raising it is a choice the integrator makes on purpose; omitting the option keeps `@x402/core`'s $1. It must be a positive amount, checked when `initX402()` runs; `false` (no cap) is not accepted. The option also applies when a `policy` is set, and a payment above the cap is refused before the policy or the signer is reached.
 
 #### Pre-sign policy hook (experimental)
 
@@ -164,12 +172,12 @@ const response = await agent.mppFetch('https://your-mpp-server.example/resource'
 
 `initMpp()` builds an MPP Charge client: the server answers `402` with a challenge, the client signs a USDC transfer on Stellar, and the server verifies and settles it. The network comes from the server's challenge, so `network` in the config is accepted but unused.
 
-**Do not use it in production, and do not point it at Nirium's hosted endpoints yet.**
+**Testnet: verified. Mainnet: not tested. Still experimental, not for production.**
 
-- The client works against a compliant MPP Charge server. We checked it against Nirium's own MPP middleware running locally against testnet, in `pull` and in `push` mode.
-- When we tested on 1 October 2026, Nirium's hosted **testnet** endpoint (`/api/v1/mpp/*`) rejected MPP payments with `402 Verification Failed`, in `pull` and in `push` mode. We have **not tested the mainnet endpoint** (it would spend real USDC), so we cannot tell you it works there. We have not found the cause yet.
+- On 15 October 2026 (UTC) we paid Nirium's hosted **testnet** endpoint with this client (`nirium@0.16.1`), once in `pull` and once in `push` mode. Both settled on Stellar testnet and the server returned the resource: [`b8c4ed56…`](https://stellar.expert/explorer/testnet/tx/b8c4ed568f6eb41321b97d251d7f3727c57570a226d187e3675a9df03496e3ed) (pull), [`96d43d6f…`](https://stellar.expert/explorer/testnet/tx/96d43d6f4cf38fbd3a4df2c2bb6625e650c0d0509184d86c1e42c7e6ebdf242c) (push). The `402 Verification Failed` we saw on 1 October no longer reproduces.
+- We have **not tested the mainnet endpoint** (it would spend real USDC), so we cannot tell you it works there.
 - In `push` mode the payment settles on-chain before the server verifies it, so a request the server rejects is **not refunded**.
-- Until this is diagnosed, use x402 (`initX402()`) for paid endpoints. The `get_mpp_*` tools of the MCP server have the same limitation.
+- For paid endpoints in production, use x402 (`initX402()`). The `get_mpp_*` tools of the MCP server were not re-tested.
 
 ### x402Serve(): Charging Your Own API
 
@@ -259,7 +267,7 @@ No in-memory store ships with the package, and you do not need Upstash: any stor
 | **Protected** (API key) | `execute`, `market`, `loop/start\|stop\|scan`, `subscriptions`, `skills/install`, `webhooks` |
 | **WebSocket** (JWT) | `/ws/signals` - real-time signal stream |
 | **x402 Premium** | `/api/v1/premium/signals` ($0.02 USDC), `/api/v1/premium/market` ($0.05 USDC). `/premium/signals` only exists on testnet: on mainnet it answers `501` (no signal source there) and does not charge. `/premium/market` is paid on both networks. |
-| **MPP Charge** | `/api/v1/mpp/signals`, `/api/v1/mpp/market` (testnet endpoint rejected MPP payments when tested, mainnet untested, see [MPP Charge](#mpp-charge-experimental)) |
+| **MPP Charge** | `/api/v1/mpp/signals`, `/api/v1/mpp/market` (testnet verified with settled payments on 15 Oct 2026, mainnet untested, see [MPP Charge](#mpp-charge-experimental)) |
 
 ### x402 Metrics: Observability Wrapper
 

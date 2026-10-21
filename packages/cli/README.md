@@ -196,10 +196,20 @@ Stellar public key. Nothing here trusts the document's own claims about
 itself; both the hash and the signed statement are recomputed from the
 raw content, not read off the document.
 
+Hash-only anchors (no `record`, the recommended mode) have nothing to
+recompute: the document's `content_sha256` is the hash you submitted. Pass
+`--hash <hex>` or `--evidence <file>` to compare it with your own evidence;
+without either, the hash is reported as NOT CHECKED (not as a mismatch)
+and the signature is still verified over `nirium-audit-v1:<content_sha256>`.
+Signatures are accepted as base64 or hex, raw ed25519 or SEP-53
+(Freighter `signMessage`), like the anchoring node.
+
 | Option | Purpose | Default |
 |---|---|---|
 | `-g, --gateway <url>` | IPFS gateway to fetch from | `https://gateway.pinata.cloud` |
 | `--json` | machine-readable result | off |
+| `--hash <hex>` | expected evidence hash for a hash-only anchor (`sha-256:` prefix optional) | none |
+| `--evidence <file>` | file whose SHA-256 is compared with the anchored hash | none |
 
 Exits non-zero (and prints which check failed) if the hash doesn't match
 or the signature doesn't verify.

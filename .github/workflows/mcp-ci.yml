@@ -1,0 +1,38 @@
+# packages/mcp (npm: nirium-mcp) had no CI. 0.6.1 reached npm without dist/
+# because nothing checked the tarball before publishing (issue #144). This
+# builds it, packs it, installs the tarball into an empty project and starts
+# the `nirium-mcp` bin with an MCP initialize over stdio. Modeled on the
+# clean-install job in sdk-test.yml. No network beyond npm.
+name: MCP CI
+on:
+  pull_request:
+    paths:
+      - packages/mcp/**
+      - .github/workflows/mcp-ci.yml
+  push:
+    branches:
+      - main
+    paths:
+      - packages/mcp/**
+      - .github/workflows/mcp-ci.yml
+jobs:
+  clean-install:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/mcp
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      # --legacy-peer-deps: @stellar/mpp@0.7.1 peer-requires
+      # @stellar/stellar-sdk@^15.1.0 while this package pins ^14.0.0 - a
+      # pre-existing mismatch tracked in #125, not fixed here. A plain
+      # `npm install` stops with ERESOLVE.
+      - run: npm install --no-audit --no-fund --legacy-peer-deps
+      - run: npm run build
+      # Fails if dist/ (or the bin target) is missing from the tarball, if any
+      # *.test.* file would be published, or if the installed bin does not
+      # answer initialize and exit cleanly.
+      - run: node scripts/clean-install-check.mjs

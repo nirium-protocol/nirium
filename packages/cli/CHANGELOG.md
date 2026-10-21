@@ -4,6 +4,15 @@ All notable changes to the `nirium-cli` package are documented here.
 
 ## Unreleased
 
+### Fixed
+
+- `nirium verify` no longer fails every hash-only anchor ([#139](https://github.com/nirium-protocol/nirium/issues/139)). Without a `record` it compared `content_sha256` against `sha256("")` and built the signed statement from that same empty hash, so both checks always failed. Hash-only documents now verify the agent signature over `nirium-audit-v1:<content_sha256>`, and the hash is reported as not checked unless you pass `--hash <hex>` or `--evidence <file>`. Record documents behave as before.
+- `nirium verify` accepts hex as well as base64 signatures, and SEP-53 signed messages (Freighter `signMessage`) after raw ed25519, matching the anchoring node.
+
+### Added
+
+- `nirium verify --hash <hex>` and `--evidence <file>` to compare a hash-only anchor with your original evidence.
+
 ## 2.0.1 - 2026-10-11
 
 Documentation only. No behavior changes.

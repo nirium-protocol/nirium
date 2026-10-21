@@ -102,6 +102,23 @@ describe('x402Serve guard integration (config.guard)', () => {
   // x402Serve ever reaches preflight()/build() — so none of this needs the
   // @x402/express/@x402/core mocks above. The allowed-path/store behavior
   // itself is covered directly in x402-guard.test.ts.
+  //
+  // #126: calls that get past the guard reach preflight(), which fetches the
+  // facilitator's /supported. Stub that fetch so these tests never touch the
+  // network, and answer 503 so the path after the guard is always the same
+  // (x402Serve's own 503), instead of depending on a third-party service.
+  let facilitatorFetch: jest.SpyInstance;
+  beforeEach(() => {
+    facilitatorFetch = jest.spyOn(globalThis, 'fetch').mockImplementation(async () => new Response(null, { status: 503 }));
+  });
+  afterEach(() => facilitatorFetch.mockRestore());
+
+  function expectStubbedPreflight(res: any) {
+    expect(facilitatorFetch).toHaveBeenCalledWith('https://channels.openzeppelin.com/x402/testnet/supported', expect.anything());
+    expect(res.statusCode).toBe(503);
+    expect(res.body.error).toBe('x402 payments unavailable');
+    expect(res.body.detail).toBe('facilitator returned 503');
+  }
 
   function fakeStore(overrides: Partial<{
     claimOnce: (key: string, ttlMs: number) => Promise<boolean>;
@@ -138,9 +155,8 @@ describe('x402Serve guard integration (config.guard)', () => {
 
     const first = mockReqRes({ 'payment-signature': 'proof-1' });
     await handler(first.req, first.res, () => {});
-    // First call proceeds past the guard (into preflight, which will fail
-    // in this test env with no real facilitator — that's fine, it's not
-    // what this test is checking).
+    // First call proceeds past the guard, into the stubbed preflight.
+    expectStubbedPreflight(first.res);
 
     const second = mockReqRes({ 'payment-signature': 'proof-1' });
     await handler(second.req, second.res, () => {});
@@ -178,10 +194,10 @@ describe('x402Serve guard integration (config.guard)', () => {
     await handler(first.req, first.res, () => {});
     const second = mockReqRes({ 'payment-signature': 'proof-4' }); // same "proof" reused
     await handler(second.req, second.res, () => {});
-    // Neither call was rejected by a guard that doesn't exist - whatever
-    // status they got came from downstream (preflight failing in this test
-    // env), never 409/429, and never our guard's own error bodies.
-    expect(second.res.body?.error).not.toBe('payment_replayed');
-    expect(second.res.statusCode).not.toBe(409);
+    // Neither call was rejected by a guard that doesn't exist: both reached
+    // the stubbed preflight and got its 503, never 409/429.
+    expectStubbedPreflight(first.res);
+    expectStubbedPreflight(second.res);
+    expect(facilitatorFetch).toHaveBeenCalledTimes(2);
   });
 });

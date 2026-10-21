@@ -2,6 +2,12 @@
 
 All notable changes to the `nirium` package are documented here.
 
+## Unreleased
+
+### Added
+
+- `initX402({ maxAmountPerPayment })` ([#106](https://github.com/nirium-protocol/nirium/issues/106)): sets the `@x402/core` 2.28 per-payment cap (`spendControls.maxAmountPerPayment`) so APIs priced above $1 can be paid. Accepts `'$5'`, `'5'` or `5`; validated at `initX402()` time (positive amounts only, `false` is rejected). Without the option, behavior is unchanged: the default stays `$1`. Works with and without `policy`. The `X402SpendCapError` message now points to the option.
+
 ## 0.16.1 - 2026-10-11
 
 Documentation and package metadata only. `dist/` is identical to 0.16.0.

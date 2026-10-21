@@ -22,8 +22,8 @@ jobs:
       run:
         working-directory: packages/sdk
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
       # --legacy-peer-deps: @stellar/mpp@0.7.1 peer-requires
@@ -33,3 +33,21 @@ jobs:
       - run: npm install --no-audit --no-fund --legacy-peer-deps
       - run: npm run build
       - run: npm test
+  # Issue #107: tests above run from the source tree, so they cannot see
+  # packaging bugs (0.10.0 require() in ESM, 0.13.0 ERR_MODULE_NOT_FOUND, the
+  # undeclared dependency fixed in #68). This packs the SDK, installs the
+  # tarball into an empty project and imports it as ESM, CJS and TypeScript,
+  # and fails if any *.test.* file would be published. No network beyond npm.
+  clean-install:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/sdk
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - run: npm install --no-audit --no-fund --legacy-peer-deps
+      - run: npm run build
+      - run: node scripts/clean-install-check.mjs
