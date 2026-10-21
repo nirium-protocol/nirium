@@ -1,0 +1,63 @@
+name: Niriumtober evidence
+description: Send the evidence for a Builder or Mainnet Builder badge.
+title: "Niriumtober evidence: "
+labels: ["niriumtober"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Everything here is public. Never paste a secret key (S...).
+        Mainnet use is with your own funds and at your own risk. We never fund or refund mainnet transactions.
+  - type: input
+    id: project
+    attributes:
+      label: Project
+      description: Name and one line on what it does.
+    validations:
+      required: true
+  - type: input
+    id: repo
+    attributes:
+      label: Repo
+      description: Public URL where the integration lives.
+    validations:
+      required: true
+  - type: checkboxes
+    id: nodes
+    attributes:
+      label: Nodes used
+      options:
+        - label: Audit Trail
+        - label: x402 Market
+        - label: Reporting
+        - label: MPP Charge (testnet)
+        - label: Payouts (testnet)
+        - label: Treasury Rebalance (testnet)
+  - type: dropdown
+    id: network
+    attributes:
+      label: Network
+      options: [testnet, mainnet, both]
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: CID(s) or tx hash(es)
+      description: One per line. For mainnet use on 2+ days, include at least one from each day.
+    validations:
+      required: true
+  - type: input
+    id: pubkey
+    attributes:
+      label: Public key
+      description: The G... address that signed the anchor or paid the x402 call.
+    validations:
+      required: true
+  - type: checkboxes
+    id: rules
+    attributes:
+      label: Rules
+      options:
+        - label: This key is mine and was not funded by the Nirium team.
+          required: true
