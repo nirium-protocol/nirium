@@ -96,3 +96,7 @@ STELLAR_SECRET_KEY=S... AGENT_API_URL=http://localhost:3001 npx tsx src/index.ts
 ## License
 
 Apache-2.0 - see [LICENSE](https://github.com/nirium-protocol/nirium/blob/main/packages/mcp/LICENSE).
+
+### Dependencies & Runtime Setup
+
+`nirium-mcp` ships with `viem` configured as a direct runtime dependency, satisfying `mppx`'s peer requirement out of the box and preventing `ERR_MODULE_NOT_FOUND: viem` crashes during startup.

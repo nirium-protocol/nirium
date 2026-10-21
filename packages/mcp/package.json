@@ -3,42 +3,25 @@
   "version": "0.6.3",
   "description": "Model Context Protocol server for Nirium - exposes market data, autonomous loop control, and x402 paid signals (MPP tools are experimental) to any MCP-compatible AI (Claude, GPT, Cursor, VS Code Copilot).",
   "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "bin": {
     "nirium-mcp": "dist/index.js"
   },
-  "homepage": "https://nirium.xyz",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/nirium-protocol/nirium.git",
-    "directory": "packages/mcp"
-  },
-  "bugs": {
-    "url": "https://github.com/nirium-protocol/nirium/issues",
-    "email": "niriumprotocol@gmail.com"
-  },
-  "author": {
-    "name": "Nirium Protocol",
-    "email": "niriumprotocol@gmail.com",
-    "url": "https://nirium.xyz"
-  },
   "files": [
-    "dist",
-    "README.md"
+    "dist"
   ],
   "scripts": {
-    "prepublishOnly": "npm run build",
     "build": "tsc",
-    "start": "node dist/index.js",
-    "dev": "tsc --watch"
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.27.1",
-    "@stellar/mpp": "^0.7.1",
-    "@stellar/stellar-sdk": "^14.0.0",
+    "@modelcontextprotocol/sdk": "^1.6.0",
+    "@stellar/stellar-sdk": "^13.1.0",
     "@x402/core": "^2.17.0",
     "@x402/fetch": "^2.17.0",
     "@x402/stellar": "^2.17.0",
     "mppx": "^0.6.31",
+    "viem": "^2.55.19",
     "zod": "^3.25.0"
   },
   "devDependencies": {
