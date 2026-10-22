@@ -54,6 +54,13 @@ body:
       description: The G... address that signed the anchor or paid the x402 call.
     validations:
       required: true
+  - type: input
+    id: heard
+    attributes:
+      label: How did you hear about Niriumtober?
+      description: Optional. Filled in for you when you come from a shared link.
+    validations:
+      required: false
   - type: checkboxes
     id: rules
     attributes:
