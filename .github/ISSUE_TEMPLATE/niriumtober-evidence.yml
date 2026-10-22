@@ -19,9 +19,9 @@ body:
     id: repo
     attributes:
       label: Repo
-      description: Public URL where the integration lives.
+      description: Public URL where the integration lives. Optional for Builder. Required for Mainnet Builder and Champion.
     validations:
-      required: true
+      required: false
   - type: checkboxes
     id: nodes
     attributes:
