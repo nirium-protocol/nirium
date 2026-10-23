@@ -24,9 +24,10 @@
   "dependencies": {
     "axios": "^1.20.0",
     "commander": "^11.0.0",
-    "nirium": "^0.16.0",
+    "nirium": "^0.16.1",
     "express": "^5.1.0",
-    "@stellar/stellar-sdk": "^14.5.0"
+    "@stellar/stellar-sdk": "^16.3.0",
+    "@x402/express": "^2.28.0"
   },
   "overrides": {
     "@stellar/stellar-sdk": {
@@ -51,6 +52,6 @@
   },
   "homepage": "https://nirium.xyz",
   "engines": {
-    "node": ">=18"
+    "node": ">=22.12.0"
   }
 }

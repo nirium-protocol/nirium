@@ -45,7 +45,7 @@ network, the number of routes or requests, the SDK version, and a short hash
 of your `X402_FACILITATOR_API_KEY` (the first 16 characters of its SHA-256,
 never the key itself). The ping never blocks, delays or fails a charge, and
 it does not authorize or gate anything. Leave the variable unset and nothing
-is sent. (Checked against the code of `nirium` 0.16.0.)
+is sent. (Checked against the code of `nirium` 0.16.1; `dist/` is identical to 0.16.0.)
 
 ## Listen to protocol signals
 
