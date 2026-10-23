@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: nirium-protocol/nirium-sdk/actions/verify-audit-cid@main
+      - uses: nirium-protocol/nirium/actions/verify-audit-cid@main
         id: audit
         with:
           cid: QmSSZdtt3dQ8BqUm62zrKQ85E4BUHYiVfvDgZmHfJsqU1U
