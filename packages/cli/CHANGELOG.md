@@ -6,6 +6,7 @@ All notable changes to the `nirium-cli` package are documented here.
 
 ### Fixed
 
+- `nirium pay` no longer fails with `NiriumAgent is not a constructor` on a clean install ([#147](https://github.com/nirium-protocol/nirium/issues/147)). `nirium` ships as CommonJS, so the default import was the whole exports object, not the `Agent` class. Fixed to import the named `Agent` export.
 - `nirium verify` no longer fails every hash-only anchor ([#139](https://github.com/nirium-protocol/nirium/issues/139)). Without a `record` it compared `content_sha256` against `sha256("")` and built the signed statement from that same empty hash, so both checks always failed. Hash-only documents now verify the agent signature over `nirium-audit-v1:<content_sha256>`, and the hash is reported as not checked unless you pass `--hash <hex>` or `--evidence <file>`. Record documents behave as before.
 - `nirium verify` accepts hex as well as base64 signatures, and SEP-53 signed messages (Freighter `signMessage`) after raw ed25519, matching the anchoring node.
 
