@@ -135,10 +135,20 @@ Calls the `/health` endpoint of an agent and prints whether it is running
 and for how long. It also prints a version and a network line, but they only
 carry a value when the agent reports one: the Nirium testnet agent's
 `/health` returns just `status`, `service` and `uptime` today, so those two
-lines show `undefined`. `--url` points to the agent you want to check; `https://nirium-agent.fly.dev` is the Nirium testnet agent.
-Without `--url` it looks for an agent on your own machine at
+lines are omitted rather than shown as `undefined`. `--url` points to the
+agent you want to check; `https://nirium-agent.fly.dev` is the Nirium
+testnet agent. Without `--url` it looks for an agent on your own machine at
 `http://localhost:3001`, so it reports "unreachable" if you are not running
 one.
+
+Exits 0 only when `/health` answers 2xx; exits 1 if the agent is
+unreachable, times out, or answers with anything else.
+
+| Option | Purpose | Default |
+|---|---|---|
+| `-u, --url <url>` | Agent to check | `http://localhost:3001` |
+| `--json` | The raw `/health` fields plus `ok` | off |
+| `--timeout <ms>` | Give up after this many milliseconds instead of hanging | `5000` |
 
 ## Diagnose your x402 setup
 

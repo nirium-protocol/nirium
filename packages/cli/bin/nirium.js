@@ -95,29 +95,66 @@ program
     .command('status')
     .description('Check agent connection status')
     .option('-u, --url <url>', 'Agent URL', 'http://localhost:3001')
+    .option('--json', 'Output the raw /health fields plus ok, as JSON')
+    .option('--timeout <ms>', 'Give up after this many milliseconds', '5000')
     .action(async (options) => {
-        try {
-            const response = await fetch(`${options.url}/health`);
-            if (response.ok) {
-                const data = await response.json();
-                console.log('🟢 Agent is operational');
-                if (data.service) {
-                    console.log(`   Service: ${data.service}`);
-                }
-                if (data.version !== undefined && data.version !== null) {
-                    console.log(`   Version: ${data.version}`);
-                }
-                if (data.network !== undefined && data.network !== null) {
-                    console.log(`   Network: ${data.network}`);
-                }
-                if (data.uptime !== undefined && data.uptime !== null) {
-                    console.log(`   Uptime:  ${data.uptime}s`);
-                }
-            } else {
-                console.log('🔴 Agent returned error:', response.status);
+        const timeoutMs = Number(options.timeout);
+        if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
+            const msg = `Invalid --timeout '${options.timeout}': must be a positive number of milliseconds.`;
+            if (options.json) {
+                console.log(JSON.stringify({ ok: false, error: msg }));
+                process.exit(1);
             }
-        } catch {
-            console.log('🔴 Agent unreachable at', options.url);
+            console.error(`❌ Error: ${msg}`);
+            process.exit(1);
+        }
+
+        let response;
+        try {
+            response = await fetch(`${options.url}/health`, { signal: AbortSignal.timeout(timeoutMs) });
+        } catch (err) {
+            const networkError = (err?.name === 'TimeoutError' || err?.name === 'AbortError')
+                ? `Timed out after ${timeoutMs}ms waiting for ${options.url}/health`
+                : `Agent unreachable at ${options.url}`;
+            if (options.json) {
+                console.log(JSON.stringify({ ok: false, error: networkError }, null, 2));
+                process.exit(1);
+            }
+            console.log(`🔴 ${networkError}`);
+            process.exit(1);
+        }
+
+        // A non-2xx body can still carry JSON worth showing; an unreadable
+        // body is not the same failure as being unreachable, so it is its
+        // own `data: null` instead of falling into the catch above.
+        let data = null;
+        try {
+            data = await response.json();
+        } catch { /* empty or non-JSON body */ }
+
+        if (options.json) {
+            console.log(JSON.stringify({ ...(data || {}), ok: response.ok }, null, 2));
+            if (!response.ok) process.exit(1);
+            return;
+        }
+
+        if (response.ok) {
+            console.log('🟢 Agent is operational');
+            if (data?.service) {
+                console.log(`   Service: ${data.service}`);
+            }
+            if (data?.version !== undefined && data.version !== null) {
+                console.log(`   Version: ${data.version}`);
+            }
+            if (data?.network !== undefined && data.network !== null) {
+                console.log(`   Network: ${data.network}`);
+            }
+            if (data?.uptime !== undefined && data.uptime !== null) {
+                console.log(`   Uptime:  ${data.uptime}s`);
+            }
+        } else {
+            console.log('🔴 Agent returned error:', response.status);
+            process.exit(1);
         }
     });
 
