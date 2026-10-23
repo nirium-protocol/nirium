@@ -178,7 +178,7 @@ program
     .command('pay')
     .description('💳 Pay an x402-protected endpoint straight from the terminal with Stellar auth entry signing')
     .argument('<url>', 'URL of the x402-protected endpoint')
-    .option('-a, --amount <amount>', 'Payment amount override')
+    .option('--max-amount <usd>', 'Refuse to pay more than this, e.g. 5 or $0.50 (default: no cap beyond the SDK default)')
     .option('-n, --network <network>', 'CAIP-2 network ID (stellar:testnet or stellar:pubnet)', 'stellar:testnet')
     .option('-c, --config <path>', 'Custom path to configuration file or .env')
     .option('--json', 'Output execution result as JSON')
@@ -412,6 +412,19 @@ function maskSecret(secret) {
     return `${secret.slice(0, 4)}...${secret.slice(-4)}`;
 }
 
+// `--max-amount` is a USD figure ("5", "$5", "0.50"), not atomic units.
+// Rejects 0, negative and non-numeric so a typo fails before any network
+// call instead of silently capping at $0 or NaN (which compares false to
+// everything and would let every payment through).
+function parseMaxAmountUsd(raw) {
+    const stripped = raw.startsWith('$') ? raw.slice(1) : raw;
+    const usd = Number(stripped);
+    if (!Number.isFinite(usd) || usd <= 0) {
+        throw new Error(`Invalid --max-amount '${raw}': must be a positive USD amount, e.g. --max-amount 5 or --max-amount '$0.50'.`);
+    }
+    return usd;
+}
+
 // A secret passed as a CLI argument sits in the shell history file and
 // in `ps`'s full command line for anyone else on the machine to read —
 // true for any process, not just this one. `pay` used to take `--secret`
@@ -565,6 +578,20 @@ async function executePayCommand(url, options) {
     const config = loadConfig(options.config);
     const network = options.network || process.env.NIRIUM_NETWORK || config.network || 'stellar:testnet';
 
+    let maxAmountUsd;
+    if (options.maxAmount !== undefined) {
+        try {
+            maxAmountUsd = parseMaxAmountUsd(options.maxAmount);
+        } catch (err) {
+            if (options.json) {
+                console.log(JSON.stringify({ status: 'error', error: err.message }));
+                process.exit(1);
+            }
+            console.error(`❌ Error: ${err.message}`);
+            process.exit(1);
+        }
+    }
+
     let secretKey = process.env.NIRIUM_SECRET_KEY || config.secretKey;
 
     // `pay` no longer takes the secret as a flag (see #104): a --secret
@@ -621,7 +648,31 @@ async function executePayCommand(url, options) {
 
     try {
         const agent = new NiriumAgent({ apiKey: 'nirium-cli-pay' });
-        agent.initX402({ secretKey, network });
+        if (maxAmountUsd !== undefined) {
+            // `initX402({ maxAmountPerPayment })` does not exist in any published
+            // `nirium` version yet (it is unreleased SDK source as of this PR), so
+            // --max-amount is enforced with the pre-sign policy hook instead, which
+            // IS published (0.16.0+) and runs before anything is signed. Stellar
+            // amounts are always int64 scaled by 1e7 regardless of asset, so the
+            // USD figure maps directly to atomic units without an asset lookup.
+            const capAtomic = BigInt(Math.round(maxAmountUsd * 1e7));
+            agent.initX402({
+                secretKey, network,
+                policy: {
+                    evaluate: async (ctx) => {
+                        if (BigInt(ctx.authorization.amount) <= capAtomic) {
+                            return { decision: 'ALLOW', contextHash: ctx.contextHash };
+                        }
+                        return {
+                            decision: 'DENY',
+                            reason: `payment of ${ctx.authorization.amount} atomic units exceeds --max-amount ($${maxAmountUsd})`,
+                        };
+                    },
+                },
+            });
+        } else {
+            agent.initX402({ secretKey, network });
+        }
 
         const startTime = Date.now();
         const response = await agent.x402Fetch(url, {
@@ -672,10 +723,15 @@ async function executePayCommand(url, options) {
                 headers: responseHeaders,
                 data: responseBody,
             }, null, 2));
+            if (!response.ok) process.exit(1);
             return;
         }
 
-        console.log(`✅ Payment Negotiated & Request Completed (${response.status} ${response.statusText})`);
+        if (response.ok) {
+            console.log(`✅ Payment Negotiated & Request Completed (${response.status} ${response.statusText})`);
+        } else {
+            console.log(`❌ Request Failed After Payment (${response.status} ${response.statusText})`);
+        }
         console.log(`   Response Time: ${durationMs}ms`);
         if (txHash) {
             console.log(`   Tx Reference:  ${txHash}`);
@@ -683,6 +739,7 @@ async function executePayCommand(url, options) {
         }
         console.log(`\n--- Response Payload ---`);
         console.log(typeof responseBody === 'object' ? JSON.stringify(responseBody, null, 2) : responseBody);
+        if (!response.ok) process.exit(1);
     } catch (err) {
         const errorDetail = err?.message || String(err);
         if (options.json) {

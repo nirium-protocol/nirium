@@ -69,6 +69,11 @@ Signs and settles a real x402 payment against any endpoint that returns a
 server directly, useful for testing a `nirium serve` instance or someone
 else's paid API without writing a client.
 
+Exits 0 only when the request after payment succeeds (`response.ok`); a
+4xx or 5xx is printed and reported as a failure, in text and `--json`, and
+exits 1. The response payload is still printed either way, so you can see
+what the server said.
+
 There is no `--secret` flag: a key passed as a command-line argument sits
 in your shell history and in `ps`'s full command line for anyone else on
 the machine to read. There are three safe ways to give
@@ -81,8 +86,13 @@ on the command line is refused and nothing is saved.
 | Option | Purpose |
 |---|---|
 | `-n, --network <network>` | `stellar:testnet` (default) or `stellar:pubnet` |
-| `-a, --amount <amount>` | Override the price the server advertises |
+| `--max-amount <usd>` | Refuse to pay more than this, e.g. `5` or `$0.50`. Rejects zero, negative and non-numeric values before any network call |
 | `--json` | Machine-readable result: status, duration, payer, tx hash, response body |
+
+`--max-amount` is compared in the units of whatever asset the server asks
+for, not converted. `"$5"` is 5 dollars only when the payment is in a
+dollar-pegged asset such as USDC, which is what Nirium's own endpoints
+charge in.
 
 The secret key never leaves your machine except as a signature: the CLI
 signs locally and sends the signed payment, not the key itself. Missing a
