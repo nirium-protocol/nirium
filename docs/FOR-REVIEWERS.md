@@ -29,13 +29,14 @@ Three things you can check on Stellar Expert directly:
 - Autonomous invest, **the agent signs** - this is the one that matters: the agent moved funds it doesn't own, and the contract gave it no way to take them out. [`82d73f53…6b3d4`](https://stellar.expert/explorer/public/tx/82d73f537e907140367f9343f63a36704c74a5286aced7a938cee8fffb56b3d4)
 - The vault contract itself, roles readable on-chain: [`CAMDXG6L…K57MH`](https://stellar.expert/explorer/public/contract/CAMDXG6L4LXLXXV675KZSHM3BMSETZ4NVMC7JYIQCZ2JTG54OMSK57MH)
 
-The underlying vault strategy (Etherfuse CETES on Blend v2) was audited by
-OtterSec, March 2025 - 16 findings, all 13 vulnerabilities resolved. Full
-writeup with the same links: [this repo's own README, "Networks"
+The DeFindex vault and its Blend v2 strategy code were audited by OtterSec
+(March 2025: 16 findings, 13 of them vulnerabilities, all resolved). The
+Etherfuse CETES pool itself is outside that audit. Full writeup with the
+same links: [this repo's own README, "Networks"
 section](../README.md#networks), and the identical evidence is
-cross-referenced in the full [Eras256/Nirium
-mirror](https://github.com/Eras256/Nirium) - two independent places
-citing the same verifiable transactions, not two different claims.
+cross-referenced in the full [nirium-core
+mirror](https://github.com/nirium-protocol/nirium-core) - both our repos
+cite the same transactions; the chain is the independent source.
 
 ## 3. A real partner integration, not a listed logo
 
@@ -54,7 +55,7 @@ The demo-app integration itself,
 
 **Another real integration, publicly thanked by the protocol, not just a logo.** [Trustless-Work/agentic-escrow-research](https://github.com/Trustless-Work/agentic-escrow-research): 4 PRs merged on 21-sep-2026 ([#1](https://github.com/Trustless-Work/agentic-escrow-research/pull/1), [#2](https://github.com/Trustless-Work/agentic-escrow-research/pull/2), [#3](https://github.com/Trustless-Work/agentic-escrow-research/pull/3), [#4](https://github.com/Trustless-Work/agentic-escrow-research/pull/4)), thanked by name by Trustless Work's official account.
 
-**A real escrow cycle, liquidated with real money, not a description of one.** Beyond the 4 merged PRs above, Nirium ran Trustless Work's own Multi-Release escrow contract end to end on mainnet, 3-sep-2026: deploy → fund → approve → release, a real 0.50 USDC, self-directed (one key holding every role, proving the mechanism, not a decision to open this flow to Payouts production - that stays behind legal review). Four confirmed transactions, receiver balance moved by exactly 0.4985 USDC (0.50 minus Trustless Work's fixed 0.3% fee): [`4110dd16…12aefe84`](https://stellar.expert/explorer/public/tx/4110dd16df6c7cdaf50d89f7402e3e51de0ac4f63255f6601e800e3912aefe84) → [`7b181a13…451c09c`](https://stellar.expert/explorer/public/tx/7b181a13160d6d7170f78ba9a4e15309cc0a8f6e20a1db01adfcdb667451c09c) → [`a3aa35a2…4096ca5`](https://stellar.expert/explorer/public/tx/a3aa35a272774547d3ca4ce5a32e361641daac6cf829ecf8951b83a194096ca5) → [`0c533088…a8192b`](https://stellar.expert/explorer/public/tx/0c533088ab6326a78b9f79c197b7636ca4662a0d72562968ddea37f370a8192b). Full detail, including the deploy-path timing evidence, in the [Eras256/Nirium mirror's README](https://github.com/Eras256/Nirium#readme).
+**A real escrow cycle, liquidated with real money, not a description of one.** Beyond the 4 merged PRs above, Nirium ran Trustless Work's own Multi-Release escrow contract end to end on mainnet, 3-sep-2026: deploy → fund → approve → release, a real 0.50 USDC, self-directed (one key holding every role, proving the mechanism, not a decision to open this flow to Payouts production - that stays behind legal review). Four confirmed transactions, receiver balance moved by exactly 0.4985 USDC (0.50 minus Trustless Work's fixed 0.3% fee): [`4110dd16…12aefe84`](https://stellar.expert/explorer/public/tx/4110dd16df6c7cdaf50d89f7402e3e51de0ac4f63255f6601e800e3912aefe84) → [`7b181a13…451c09c`](https://stellar.expert/explorer/public/tx/7b181a13160d6d7170f78ba9a4e15309cc0a8f6e20a1db01adfcdb667451c09c) → [`a3aa35a2…4096ca5`](https://stellar.expert/explorer/public/tx/a3aa35a272774547d3ca4ce5a32e361641daac6cf829ecf8951b83a194096ca5) → [`0c533088…a8192b`](https://stellar.expert/explorer/public/tx/0c533088ab6326a78b9f79c197b7636ca4662a0d72562968ddea37f370a8192b). Full detail, including the deploy-path timing evidence, in the [nirium-core mirror's README](https://github.com/nirium-protocol/nirium-core#readme).
 
 ## 4. Upstream contributions - bugs fixed in code we don't control
 
@@ -116,4 +117,4 @@ omit it - caught 2026-09-28 re-verifying this page.
 
 *Every number and link on this page was checked live against its source
 (Horizon, GitHub's API, the running API itself) before being written down
-- not copied from an internal doc or an earlier draft. Last verified: 28 Sep 2026.*
+- not copied from an internal doc or an earlier draft. Last verified: 23 Oct 2026.*

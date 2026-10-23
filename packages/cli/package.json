@@ -36,7 +36,16 @@
     "follow-redirects": ">=1.16.1",
     "proxy-addr": ">=2.0.8",
     "toml": ">=5.0.1",
-    "qs": ">=6.16.0"
+    "qs": ">=6.16.0",
+    "mppx": {
+      "zod": "^4.6.6"
+    },
+    "@stellar/mpp": {
+      "zod": "^4.6.6"
+    },
+    "viem": {
+      "zod": "^4.6.6"
+    }
   },
   "devDependencies": {
     "@types/node": "^20.19.30",

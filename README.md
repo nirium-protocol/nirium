@@ -44,6 +44,10 @@ console.log(market);
 
 The other side of the counter. Wiring x402 by hand is ~25 lines of facilitator client, per-method auth headers, per-network scheme registration and a route table whose shape you have to reverse-engineer. This is the same thing with the defaults that already run in production:
 
+```bash
+npm install nirium @x402/express @x402/core @x402/stellar
+```
+
 ```ts
 import { x402Serve } from 'nirium';
 

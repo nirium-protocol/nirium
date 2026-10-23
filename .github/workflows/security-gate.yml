@@ -18,23 +18,62 @@ jobs:
         with:
           node-version: '22'
 
+      # GHSA-mrhx-c7xc-m3w5 (zod < 4.6.6, high, memory exhaustion on
+      # oversized array validation): two separate paths resolved to it
+      # in each package below.
+      #
+      # @stellar/mpp > mppx > viem/abitype/incur > zod was fixed for
+      # real, in sdk and cli, via a nested override (package.json's
+      # "overrides": { "mppx": { "zod": "^4.6.6" }, "@stellar/mpp": {...},
+      # "viem": {...} }) — every package on that path already accepts
+      # zod ^4.x, so this bumps it to a patched version rather than
+      # forcing anything. Verified 2026-10-23: `npm ls zod` shows that
+      # whole subtree resolving to 4.6.7/4.6.2→4.6.7 in both packages;
+      # both still build clean; a live test (temporarily installing a
+      # real unrelated critical advisory, GHSA-xvch-5gv4-984h via
+      # minimist@1.2.0) confirmed the allowlist below does NOT swallow
+      # it — the gate still failed on that one while passing on this
+      # GHSA, proving the allowlist is scoped to exactly this advisory,
+      # not a blanket pass.
+      #
+      # mcp does NOT get the same override — tried it, and it produces
+      # a real `npm error code ELSPROBLEMS: invalid: zod@3.25.76`
+      # (mcp's own direct "zod": "^3.25.0" dependency conflicts with
+      # @modelcontextprotocol/sdk wanting ^4.6.6 once the override is
+      # applied; npm's flatter resolution here doesn't give the same
+      # per-branch isolation pnpm gives the equivalent case in
+      # nirium-core). Reverted; mcp keeps the allowlist-only fix.
+      # (Separately, confirmed on a pristine clone of this repo's
+      # unmodified main: mcp's built server currently can't boot at all
+      # - `Cannot find package 'viem'` from mppx/dist/evm/client -
+      # pre-existing, unrelated to this fix, not touched here.)
+      #
+      # @x402/core (resolved in all three packages, 2.28.0) still
+      # requires zod ^3.24.2, which cannot resolve to 4.x even with the
+      # override — confirmed against the latest published @x402/core,
+      # same range. No patched 3.x release of zod exists either. That
+      # instance is what's allowlisted below in all three packages -
+      # the only path left reaching this GHSA in sdk/cli after the
+      # override, and the only mechanism available for mcp. Every other
+      # high finding still blocks the build. Revisit when @x402/core
+      # moves to zod 4 (no issue filed upstream yet as of this date).
       - name: SDK — npm audit (high+ — blocks build)
         working-directory: packages/sdk
         run: |
           npm install --legacy-peer-deps
-          npm audit --audit-level=high
+          npx audit-ci@7 --high --allowlist GHSA-mrhx-c7xc-m3w5
 
       - name: CLI — npm audit (high+ — blocks build)
         working-directory: packages/cli
         run: |
           npm install --legacy-peer-deps
-          npm audit --audit-level=high
+          npx audit-ci@7 --high --allowlist GHSA-mrhx-c7xc-m3w5
 
       - name: MCP — npm audit (high+ — blocks build)
         working-directory: packages/mcp
         run: |
           npm install --legacy-peer-deps
-          npm audit --audit-level=high
+          npx audit-ci@7 --high --allowlist GHSA-mrhx-c7xc-m3w5
 
   python-audit:
     name: Python Supply Chain Audit
