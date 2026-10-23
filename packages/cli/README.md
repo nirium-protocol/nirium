@@ -45,7 +45,7 @@ network, the number of routes or requests, the SDK version, and a short hash
 of your `X402_FACILITATOR_API_KEY` (the first 16 characters of its SHA-256,
 never the key itself). The ping never blocks, delays or fails a charge, and
 it does not authorize or gate anything. Leave the variable unset and nothing
-is sent. (Checked against the code of `nirium` 0.16.0.)
+is sent. (Checked against the code of `nirium` 0.16.1; `dist/` is identical to 0.16.0.)
 
 ## Listen to protocol signals
 
@@ -69,6 +69,11 @@ Signs and settles a real x402 payment against any endpoint that returns a
 server directly, useful for testing a `nirium serve` instance or someone
 else's paid API without writing a client.
 
+Exits 0 only when the request after payment succeeds (`response.ok`); a
+4xx or 5xx is printed and reported as a failure, in text and `--json`, and
+exits 1. The response payload is still printed either way, so you can see
+what the server said.
+
 There is no `--secret` flag: a key passed as a command-line argument sits
 in your shell history and in `ps`'s full command line for anyone else on
 the machine to read. There are three safe ways to give
@@ -81,8 +86,13 @@ on the command line is refused and nothing is saved.
 | Option | Purpose |
 |---|---|
 | `-n, --network <network>` | `stellar:testnet` (default) or `stellar:pubnet` |
-| `-a, --amount <amount>` | Override the price the server advertises |
+| `--max-amount <usd>` | Refuse to pay more than this, e.g. `5` or `$0.50`. Rejects zero, negative and non-numeric values before any network call |
 | `--json` | Machine-readable result: status, duration, payer, tx hash, response body |
+
+`--max-amount` is compared in the units of whatever asset the server asks
+for, not converted. `"$5"` is 5 dollars only when the payment is in a
+dollar-pegged asset such as USDC, which is what Nirium's own endpoints
+charge in.
 
 The secret key never leaves your machine except as a signature: the CLI
 signs locally and sends the signed payment, not the key itself. Missing a
@@ -125,10 +135,20 @@ Calls the `/health` endpoint of an agent and prints whether it is running
 and for how long. It also prints a version and a network line, but they only
 carry a value when the agent reports one: the Nirium testnet agent's
 `/health` returns just `status`, `service` and `uptime` today, so those two
-lines show `undefined`. `--url` points to the agent you want to check; `https://nirium-agent.fly.dev` is the Nirium testnet agent.
-Without `--url` it looks for an agent on your own machine at
+lines are omitted rather than shown as `undefined`. `--url` points to the
+agent you want to check; `https://nirium-agent.fly.dev` is the Nirium
+testnet agent. Without `--url` it looks for an agent on your own machine at
 `http://localhost:3001`, so it reports "unreachable" if you are not running
 one.
+
+Exits 0 only when `/health` answers 2xx; exits 1 if the agent is
+unreachable, times out, or answers with anything else.
+
+| Option | Purpose | Default |
+|---|---|---|
+| `-u, --url <url>` | Agent to check | `http://localhost:3001` |
+| `--json` | The raw `/health` fields plus `ok` | off |
+| `--timeout <ms>` | Give up after this many milliseconds instead of hanging | `5000` |
 
 ## Diagnose your x402 setup
 
@@ -212,7 +232,12 @@ Signatures are accepted as base64 or hex, raw ed25519 or SEP-53
 | `--evidence <file>` | file whose SHA-256 is compared with the anchored hash | none |
 
 Exits non-zero (and prints which check failed) if the hash doesn't match
-or the signature doesn't verify.
+or the signature doesn't verify. A pass also requires that at least one
+of the two checks actually ran and succeeded, a matching `--hash`/
+`--evidence`, a valid agent signature, or both. If both were skipped
+(an unsigned hash-only anchor with no `--hash` or `--evidence`), nothing
+was verified, so `verify` prints `NOTHING VERIFIED`, exits non-zero, and
+sets `verified: false` in `--json`, instead of reporting a pass.
 
 ## Manage stored credentials
 

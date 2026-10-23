@@ -19,7 +19,7 @@ import readline from 'readline';
 import { execSync } from 'child_process';
 import { fileURLToPath } from 'url';
 import express from 'express';
-import NiriumAgent, { x402Serve } from 'nirium';
+import { Agent as NiriumAgent, x402Serve } from 'nirium';
 import { Keypair, StrKey } from '@stellar/stellar-sdk';
 
 function readCliVersion() {
@@ -40,7 +40,7 @@ const program = new Command();
 program
     .name('nirium')
     .description('Nirium protocol development tool')
-    .version('2.0.1');
+    .version(readCliVersion());
 
 // --- COMMAND: create bot ---
 program
@@ -95,29 +95,66 @@ program
     .command('status')
     .description('Check agent connection status')
     .option('-u, --url <url>', 'Agent URL', 'http://localhost:3001')
+    .option('--json', 'Output the raw /health fields plus ok, as JSON')
+    .option('--timeout <ms>', 'Give up after this many milliseconds', '5000')
     .action(async (options) => {
-        try {
-            const response = await fetch(`${options.url}/health`);
-            if (response.ok) {
-                const data = await response.json();
-                console.log('🟢 Agent is operational');
-                if (data.service) {
-                    console.log(`   Service: ${data.service}`);
-                }
-                if (data.version !== undefined && data.version !== null) {
-                    console.log(`   Version: ${data.version}`);
-                }
-                if (data.network !== undefined && data.network !== null) {
-                    console.log(`   Network: ${data.network}`);
-                }
-                if (data.uptime !== undefined && data.uptime !== null) {
-                    console.log(`   Uptime:  ${data.uptime}s`);
-                }
-            } else {
-                console.log('🔴 Agent returned error:', response.status);
+        const timeoutMs = Number(options.timeout);
+        if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
+            const msg = `Invalid --timeout '${options.timeout}': must be a positive number of milliseconds.`;
+            if (options.json) {
+                console.log(JSON.stringify({ ok: false, error: msg }));
+                process.exit(1);
             }
-        } catch {
-            console.log('🔴 Agent unreachable at', options.url);
+            console.error(`❌ Error: ${msg}`);
+            process.exit(1);
+        }
+
+        let response;
+        try {
+            response = await fetch(`${options.url}/health`, { signal: AbortSignal.timeout(timeoutMs) });
+        } catch (err) {
+            const networkError = (err?.name === 'TimeoutError' || err?.name === 'AbortError')
+                ? `Timed out after ${timeoutMs}ms waiting for ${options.url}/health`
+                : `Agent unreachable at ${options.url}`;
+            if (options.json) {
+                console.log(JSON.stringify({ ok: false, error: networkError }, null, 2));
+                process.exit(1);
+            }
+            console.log(`🔴 ${networkError}`);
+            process.exit(1);
+        }
+
+        // A non-2xx body can still carry JSON worth showing; an unreadable
+        // body is not the same failure as being unreachable, so it is its
+        // own `data: null` instead of falling into the catch above.
+        let data = null;
+        try {
+            data = await response.json();
+        } catch { /* empty or non-JSON body */ }
+
+        if (options.json) {
+            console.log(JSON.stringify({ ...(data || {}), ok: response.ok }, null, 2));
+            if (!response.ok) process.exit(1);
+            return;
+        }
+
+        if (response.ok) {
+            console.log('🟢 Agent is operational');
+            if (data?.service) {
+                console.log(`   Service: ${data.service}`);
+            }
+            if (data?.version !== undefined && data.version !== null) {
+                console.log(`   Version: ${data.version}`);
+            }
+            if (data?.network !== undefined && data.network !== null) {
+                console.log(`   Network: ${data.network}`);
+            }
+            if (data?.uptime !== undefined && data.uptime !== null) {
+                console.log(`   Uptime:  ${data.uptime}s`);
+            }
+        } else {
+            console.log('🔴 Agent returned error:', response.status);
+            process.exit(1);
         }
     });
 
@@ -178,7 +215,7 @@ program
     .command('pay')
     .description('💳 Pay an x402-protected endpoint straight from the terminal with Stellar auth entry signing')
     .argument('<url>', 'URL of the x402-protected endpoint')
-    .option('-a, --amount <amount>', 'Payment amount override')
+    .option('--max-amount <usd>', 'Refuse to pay more than this, e.g. 5 or $0.50 (default: no cap beyond the SDK default)')
     .option('-n, --network <network>', 'CAIP-2 network ID (stellar:testnet or stellar:pubnet)', 'stellar:testnet')
     .option('-c, --config <path>', 'Custom path to configuration file or .env')
     .option('--json', 'Output execution result as JSON')
@@ -412,6 +449,19 @@ function maskSecret(secret) {
     return `${secret.slice(0, 4)}...${secret.slice(-4)}`;
 }
 
+// `--max-amount` is a USD figure ("5", "$5", "0.50"), not atomic units.
+// Rejects 0, negative and non-numeric so a typo fails before any network
+// call instead of silently capping at $0 or NaN (which compares false to
+// everything and would let every payment through).
+function parseMaxAmountUsd(raw) {
+    const stripped = raw.startsWith('$') ? raw.slice(1) : raw;
+    const usd = Number(stripped);
+    if (!Number.isFinite(usd) || usd <= 0) {
+        throw new Error(`Invalid --max-amount '${raw}': must be a positive USD amount, e.g. --max-amount 5 or --max-amount '$0.50'.`);
+    }
+    return usd;
+}
+
 // A secret passed as a CLI argument sits in the shell history file and
 // in `ps`'s full command line for anyone else on the machine to read —
 // true for any process, not just this one. `pay` used to take `--secret`
@@ -565,6 +615,20 @@ async function executePayCommand(url, options) {
     const config = loadConfig(options.config);
     const network = options.network || process.env.NIRIUM_NETWORK || config.network || 'stellar:testnet';
 
+    let maxAmountUsd;
+    if (options.maxAmount !== undefined) {
+        try {
+            maxAmountUsd = parseMaxAmountUsd(options.maxAmount);
+        } catch (err) {
+            if (options.json) {
+                console.log(JSON.stringify({ status: 'error', error: err.message }));
+                process.exit(1);
+            }
+            console.error(`❌ Error: ${err.message}`);
+            process.exit(1);
+        }
+    }
+
     let secretKey = process.env.NIRIUM_SECRET_KEY || config.secretKey;
 
     // `pay` no longer takes the secret as a flag (see #104): a --secret
@@ -621,7 +685,31 @@ async function executePayCommand(url, options) {
 
     try {
         const agent = new NiriumAgent({ apiKey: 'nirium-cli-pay' });
-        agent.initX402({ secretKey, network });
+        if (maxAmountUsd !== undefined) {
+            // `initX402({ maxAmountPerPayment })` does not exist in any published
+            // `nirium` version yet (it is unreleased SDK source as of this PR), so
+            // --max-amount is enforced with the pre-sign policy hook instead, which
+            // IS published (0.16.0+) and runs before anything is signed. Stellar
+            // amounts are always int64 scaled by 1e7 regardless of asset, so the
+            // USD figure maps directly to atomic units without an asset lookup.
+            const capAtomic = BigInt(Math.round(maxAmountUsd * 1e7));
+            agent.initX402({
+                secretKey, network,
+                policy: {
+                    evaluate: async (ctx) => {
+                        if (BigInt(ctx.authorization.amount) <= capAtomic) {
+                            return { decision: 'ALLOW', contextHash: ctx.contextHash };
+                        }
+                        return {
+                            decision: 'DENY',
+                            reason: `payment of ${ctx.authorization.amount} atomic units exceeds --max-amount ($${maxAmountUsd})`,
+                        };
+                    },
+                },
+            });
+        } else {
+            agent.initX402({ secretKey, network });
+        }
 
         const startTime = Date.now();
         const response = await agent.x402Fetch(url, {
@@ -672,10 +760,15 @@ async function executePayCommand(url, options) {
                 headers: responseHeaders,
                 data: responseBody,
             }, null, 2));
+            if (!response.ok) process.exit(1);
             return;
         }
 
-        console.log(`✅ Payment Negotiated & Request Completed (${response.status} ${response.statusText})`);
+        if (response.ok) {
+            console.log(`✅ Payment Negotiated & Request Completed (${response.status} ${response.statusText})`);
+        } else {
+            console.log(`❌ Request Failed After Payment (${response.status} ${response.statusText})`);
+        }
         console.log(`   Response Time: ${durationMs}ms`);
         if (txHash) {
             console.log(`   Tx Reference:  ${txHash}`);
@@ -683,6 +776,7 @@ async function executePayCommand(url, options) {
         }
         console.log(`\n--- Response Payload ---`);
         console.log(typeof responseBody === 'object' ? JSON.stringify(responseBody, null, 2) : responseBody);
+        if (!response.ok) process.exit(1);
     } catch (err) {
         const errorDetail = err?.message || String(err);
         if (options.json) {
@@ -1461,7 +1555,7 @@ function verifyEd25519Signature(pubKeyGAddress, statement, signature) {
 }
 
 function verifyAuditDocument(doc, cid, { expectedHash } = {}) {
-    const fail = (error) => ({ ok: false, cid, hashMatch: false, hashStatus: 'mismatch', expectedHash: '', computedHash: '', signatureStatus: 'absent', error });
+    const fail = (error) => ({ ok: false, verified: false, cid, hashMatch: false, hashStatus: 'mismatch', expectedHash: '', computedHash: '', signatureStatus: 'absent', error });
     if (!doc || typeof doc !== 'object') return fail('Invalid audit document format');
     const anchoredHash = typeof doc.content_sha256 === 'string' ? doc.content_sha256.toLowerCase() : '';
     if (!HEX64.test(anchoredHash)) return fail('Audit document has no valid content_sha256');
@@ -1498,8 +1592,13 @@ function verifyAuditDocument(doc, cid, { expectedHash } = {}) {
         signatureStatus = signatureScheme ? 'valid' : 'invalid';
     }
 
-    const ok = hashStatus !== 'mismatch' && signatureStatus !== 'invalid';
-    return { ok, cid, mode, hashMatch: hashStatus === 'match', hashStatus, expectedHash: anchoredHash, computedHash, signatureStatus, signatureScheme, signerKey, statement, declaredStatement, agentId };
+    // A pass requires at least one check to have actually run and succeeded.
+    // "No check failed" alone is true when both were skipped (hash unchecked,
+    // signature absent), which is not the same as the evidence being verified.
+    const anyFailed = hashStatus === 'mismatch' || signatureStatus === 'invalid';
+    const anyPassed = hashStatus === 'match' || signatureStatus === 'valid';
+    const ok = !anyFailed && anyPassed;
+    return { ok, verified: ok, cid, mode, hashMatch: hashStatus === 'match', hashStatus, expectedHash: anchoredHash, computedHash, signatureStatus, signatureScheme, signerKey, statement, declaredStatement, agentId };
 }
 
 async function fetchAndVerifyCid(cid, gatewayUrl = 'https://gateway.pinata.cloud', fetchFn = globalThis.fetch, opts = {}) {
@@ -1507,12 +1606,12 @@ async function fetchAndVerifyCid(cid, gatewayUrl = 'https://gateway.pinata.cloud
     try {
         const res = await fetchFn(url);
         if (!res.ok) {
-            return { ok: false, cid, hashMatch: false, expectedHash: '', computedHash: '', signatureStatus: 'absent', error: `IPFS gateway returned HTTP ${res.status}` };
+            return { ok: false, verified: false, cid, hashMatch: false, expectedHash: '', computedHash: '', signatureStatus: 'absent', error: `IPFS gateway returned HTTP ${res.status}` };
         }
         const doc = await res.json();
         return verifyAuditDocument(doc, cid, opts);
     } catch (err) {
-        return { ok: false, cid, hashMatch: false, expectedHash: '', computedHash: '', signatureStatus: 'absent', error: `Failed to fetch CID from gateway: ${err?.message || String(err)}` };
+        return { ok: false, verified: false, cid, hashMatch: false, expectedHash: '', computedHash: '', signatureStatus: 'absent', error: `Failed to fetch CID from gateway: ${err?.message || String(err)}` };
     }
 }
 
@@ -1541,8 +1640,12 @@ function formatVerifyOutput(result) {
     lines.push(`--------------------------------------------------`);
     if (result.error) {
         lines.push(`❌ ERROR:       ${result.error}`);
+    } else if (result.ok) {
+        lines.push(`✅ VERIFICATION PASSED`);
+    } else if (result.hashStatus === 'unchecked' && result.signatureStatus === 'absent') {
+        lines.push(`❌ NOTHING VERIFIED (pass --hash, --evidence, or anchor with an agent signature)`);
     } else {
-        lines.push(result.ok ? `✅ VERIFICATION PASSED` : `❌ VERIFICATION FAILED`);
+        lines.push(`❌ VERIFICATION FAILED`);
     }
     return lines.join('\n');
 }
