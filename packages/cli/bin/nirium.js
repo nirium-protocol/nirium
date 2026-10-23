@@ -19,7 +19,7 @@ import readline from 'readline';
 import { execSync } from 'child_process';
 import { fileURLToPath } from 'url';
 import express from 'express';
-import NiriumAgent, { x402Serve } from 'nirium';
+import { Agent as NiriumAgent, x402Serve } from 'nirium';
 import { Keypair, StrKey } from '@stellar/stellar-sdk';
 
 function readCliVersion() {
