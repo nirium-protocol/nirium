@@ -212,7 +212,12 @@ Signatures are accepted as base64 or hex, raw ed25519 or SEP-53
 | `--evidence <file>` | file whose SHA-256 is compared with the anchored hash | none |
 
 Exits non-zero (and prints which check failed) if the hash doesn't match
-or the signature doesn't verify.
+or the signature doesn't verify. A pass also requires that at least one
+of the two checks actually ran and succeeded, a matching `--hash`/
+`--evidence`, a valid agent signature, or both. If both were skipped
+(an unsigned hash-only anchor with no `--hash` or `--evidence`), nothing
+was verified, so `verify` prints `NOTHING VERIFIED`, exits non-zero, and
+sets `verified: false` in `--json`, instead of reporting a pass.
 
 ## Manage stored credentials
 

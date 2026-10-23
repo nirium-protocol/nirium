@@ -1461,7 +1461,7 @@ function verifyEd25519Signature(pubKeyGAddress, statement, signature) {
 }
 
 function verifyAuditDocument(doc, cid, { expectedHash } = {}) {
-    const fail = (error) => ({ ok: false, cid, hashMatch: false, hashStatus: 'mismatch', expectedHash: '', computedHash: '', signatureStatus: 'absent', error });
+    const fail = (error) => ({ ok: false, verified: false, cid, hashMatch: false, hashStatus: 'mismatch', expectedHash: '', computedHash: '', signatureStatus: 'absent', error });
     if (!doc || typeof doc !== 'object') return fail('Invalid audit document format');
     const anchoredHash = typeof doc.content_sha256 === 'string' ? doc.content_sha256.toLowerCase() : '';
     if (!HEX64.test(anchoredHash)) return fail('Audit document has no valid content_sha256');
@@ -1498,8 +1498,13 @@ function verifyAuditDocument(doc, cid, { expectedHash } = {}) {
         signatureStatus = signatureScheme ? 'valid' : 'invalid';
     }
 
-    const ok = hashStatus !== 'mismatch' && signatureStatus !== 'invalid';
-    return { ok, cid, mode, hashMatch: hashStatus === 'match', hashStatus, expectedHash: anchoredHash, computedHash, signatureStatus, signatureScheme, signerKey, statement, declaredStatement, agentId };
+    // A pass requires at least one check to have actually run and succeeded.
+    // "No check failed" alone is true when both were skipped (hash unchecked,
+    // signature absent), which is not the same as the evidence being verified.
+    const anyFailed = hashStatus === 'mismatch' || signatureStatus === 'invalid';
+    const anyPassed = hashStatus === 'match' || signatureStatus === 'valid';
+    const ok = !anyFailed && anyPassed;
+    return { ok, verified: ok, cid, mode, hashMatch: hashStatus === 'match', hashStatus, expectedHash: anchoredHash, computedHash, signatureStatus, signatureScheme, signerKey, statement, declaredStatement, agentId };
 }
 
 async function fetchAndVerifyCid(cid, gatewayUrl = 'https://gateway.pinata.cloud', fetchFn = globalThis.fetch, opts = {}) {
@@ -1507,12 +1512,12 @@ async function fetchAndVerifyCid(cid, gatewayUrl = 'https://gateway.pinata.cloud
     try {
         const res = await fetchFn(url);
         if (!res.ok) {
-            return { ok: false, cid, hashMatch: false, expectedHash: '', computedHash: '', signatureStatus: 'absent', error: `IPFS gateway returned HTTP ${res.status}` };
+            return { ok: false, verified: false, cid, hashMatch: false, expectedHash: '', computedHash: '', signatureStatus: 'absent', error: `IPFS gateway returned HTTP ${res.status}` };
         }
         const doc = await res.json();
         return verifyAuditDocument(doc, cid, opts);
     } catch (err) {
-        return { ok: false, cid, hashMatch: false, expectedHash: '', computedHash: '', signatureStatus: 'absent', error: `Failed to fetch CID from gateway: ${err?.message || String(err)}` };
+        return { ok: false, verified: false, cid, hashMatch: false, expectedHash: '', computedHash: '', signatureStatus: 'absent', error: `Failed to fetch CID from gateway: ${err?.message || String(err)}` };
     }
 }
 
@@ -1541,8 +1546,12 @@ function formatVerifyOutput(result) {
     lines.push(`--------------------------------------------------`);
     if (result.error) {
         lines.push(`❌ ERROR:       ${result.error}`);
+    } else if (result.ok) {
+        lines.push(`✅ VERIFICATION PASSED`);
+    } else if (result.hashStatus === 'unchecked' && result.signatureStatus === 'absent') {
+        lines.push(`❌ NOTHING VERIFIED (pass --hash, --evidence, or anchor with an agent signature)`);
     } else {
-        lines.push(result.ok ? `✅ VERIFICATION PASSED` : `❌ VERIFICATION FAILED`);
+        lines.push(`❌ VERIFICATION FAILED`);
     }
     return lines.join('\n');
 }

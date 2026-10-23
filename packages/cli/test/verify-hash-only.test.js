@@ -60,6 +60,8 @@ test('hash-only, no --hash: hash unchecked, signature verified over content_sha2
     assert.equal(r.json.signatureStatus, 'valid');
     assert.equal(r.json.signatureScheme, 'ed25519');
     assert.equal(r.json.statement, `nirium-audit-v1:${HASH}`);
+    assert.equal(r.json.ok, true);
+    assert.equal(r.json.verified, true);
 });
 
 test('hash-only, --hash matches (prefix and uppercase accepted)', async () => {
@@ -117,6 +119,29 @@ test('hash-only, unsigned: signature absent, still not a mismatch', async () => 
     assert.equal(r.code, 0, r.stdout + r.stderr);
     assert.equal(r.json.hashStatus, 'match');
     assert.equal(r.json.signatureStatus, 'absent');
+    assert.equal(r.json.ok, true);
+    assert.equal(r.json.verified, true);
+});
+
+test('hash-only, unsigned, no --hash: nothing was actually checked, so this is not a pass (#149)', async () => {
+    const r = await verify('hash-only-unsigned');
+    assert.equal(r.json.hashStatus, 'unchecked');
+    assert.equal(r.json.signatureStatus, 'absent');
+    assert.equal(r.json.ok, false);
+    assert.equal(r.json.verified, false);
+    assert.notEqual(r.code, 0);
+});
+
+test('human output says NOTHING VERIFIED, not VERIFICATION PASSED, when both checks are skipped (#149)', async () => {
+    const r = await new Promise((resolve) => {
+        const child = spawn(process.execPath, [cli, 'verify', 'hash-only-unsigned', '--gateway', gateway]);
+        let out = '';
+        child.stdout.on('data', (d) => { out += d; });
+        child.on('close', (code) => resolve({ code, out }));
+    });
+    assert.notEqual(r.code, 0);
+    assert.match(r.out, /NOTHING VERIFIED/);
+    assert.doesNotMatch(r.out, /VERIFICATION PASSED/);
 });
 
 test('record mode is unchanged: valid record passes', async () => {
