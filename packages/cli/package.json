@@ -38,7 +38,7 @@
     "qs": ">=6.16.0"
   },
   "devDependencies": {
-    "@types/node": "^20.19.30",
+    "@types/node": "^26.6.5",
     "typescript": "^5.0.0"
   },
   "files": [
