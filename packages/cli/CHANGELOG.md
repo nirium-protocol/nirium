@@ -4,6 +4,13 @@ All notable changes to the `nirium-cli` package are documented here.
 
 ## Unreleased
 
+## 3.0.0 - 2026-10-23
+
+### Breaking changes
+
+- `nirium pay`'s `--amount` flag was removed; it never did anything (`options.amount` was never read). Use `--max-amount <usd>` instead, a per-payment cap enforced before anything is signed.
+- `engines.node` is now `>=22.12.0` (was `>=18`). `@stellar/stellar-sdk` 16 pulls in the ESM-only `@noble/hashes` 2.x, and `require()` of an ES module only works unflagged from Node 22.12.0.
+
 ### Fixed
 
 - `nirium pay` no longer fails with `NiriumAgent is not a constructor` on a clean install ([#147](https://github.com/nirium-protocol/nirium/issues/147)). `nirium` ships as CommonJS, so the default import was the whole exports object, not the `Agent` class. Fixed to import the named `Agent` export.
