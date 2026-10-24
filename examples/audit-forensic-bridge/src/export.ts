@@ -8,7 +8,7 @@ import path from 'node:path';
 dotenv.config();
 
 const NIRIUM_API_KEY = process.env.NIRIUM_API_KEY || 'nrm_test_key';
-const NIRIUM_BASE_URL = process.env.NIRIUM_BASE_URL || 'http://localhost:3001';
+const NIRIUM_BASE_URL = process.env.NIRIUM_BASE_URL || 'http://localhost:3002';
 const IPFS_GATEWAY = process.env.IPFS_GATEWAY || 'https://ipfs.io/ipfs/';
 
 const agent = new Agent({

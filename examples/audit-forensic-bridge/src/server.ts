@@ -11,7 +11,7 @@ app.use(express.json());
 const PORT = Number(process.env.PORT) || 3000;
 const AGENT_SECRET = process.env.STELLAR_SECRET_KEY;
 const NIRIUM_API_KEY = process.env.NIRIUM_API_KEY || 'nrm_test_key';
-const NIRIUM_BASE_URL = process.env.NIRIUM_BASE_URL || 'http://localhost:3001';
+const NIRIUM_BASE_URL = process.env.NIRIUM_BASE_URL || 'http://localhost:3002';
 
 const agentClient = new Agent({
   apiKey: NIRIUM_API_KEY,

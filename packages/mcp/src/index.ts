@@ -20,7 +20,7 @@
 // (Stellar publishes no open mainnet RPC). Free tools need neither.
 //
 // Usage (stdio transport, from source):
-//   STELLAR_SECRET_KEY=S... AGENT_API_URL=http://localhost:3001 npx tsx src/index.ts
+//   STELLAR_SECRET_KEY=S... AGENT_API_URL=http://localhost:3002 npx tsx src/index.ts
 //
 // Claude Desktop config (published package):
 //   {
@@ -49,7 +49,7 @@ import { stellar as mppStellar } from '@stellar/mpp/charge/client';
 
 // ─── Configuration ────────────────────────────────────────────
 
-const API_URL        = process.env.AGENT_API_URL       || 'http://127.0.0.1:3001';
+const API_URL        = process.env.AGENT_API_URL       || 'http://127.0.0.1:3002';
 const STELLAR_KEY    = process.env.STELLAR_SECRET_KEY  || '';
 const NIRIUM_API_KEY = process.env.NIRIUM_API_KEY      || '';
 const IS_MAINNET     = process.env.STELLAR_NETWORK === 'mainnet';

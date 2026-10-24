@@ -577,7 +577,7 @@ function queryString(params?: object): string {
  *
  * const agent = new Agent({
  *   apiKey: 'nrm_your_key_here',
- *   baseUrl: 'http://localhost:3001',
+ *   baseUrl: 'http://localhost:3002',
  * });
  *
  * // Check health
@@ -616,7 +616,7 @@ export class Agent {
 
     constructor(config: AgentConfig) {
         this.apiKey = config.apiKey;
-        this.baseUrl = (config.baseUrl || 'http://localhost:3001').replace(/\/$/, '');
+        this.baseUrl = (config.baseUrl || 'http://localhost:3002').replace(/\/$/, '');
         this.wsUrl = config.wsUrl || this.baseUrl.replace(/^http/, 'ws') + '/ws/signals';
         this.token = config.token || null;
     }
