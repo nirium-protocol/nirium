@@ -10,7 +10,7 @@ Thank you for your interest in contributing. This repository holds the open-sour
 
 ### Prerequisites
 
-- Node.js 20+
+- Node.js >=22.12.0 (`@stellar/stellar-sdk` 16.x requires it)
 - Python 3.10+ (for `packages/sdk-python`)
 - Git
 

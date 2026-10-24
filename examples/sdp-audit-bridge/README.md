@@ -12,7 +12,7 @@ payments, reads an SDP database, or takes custody of funds.
 
 ## Requirements
 
-- Node.js 20 or newer
+- Node.js >=22.12.0 (`@stellar/stellar-sdk` 16.x requires it)
 - A completed batch identified by transaction hashes or a distribution account
   and UTC time window
 - Testnet only

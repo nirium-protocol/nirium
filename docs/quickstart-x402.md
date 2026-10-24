@@ -4,7 +4,7 @@ This quickstart shows how to call a paid Nirium endpoint from a TypeScript scrip
 
 ## What You Need
 
-- Node.js 18 or newer.
+- Node.js >=22.12.0 - `@stellar/stellar-sdk` 16.x (a dependency of `nirium`) requires it; an older Node silently resolves an incompatible older SDK instead of failing.
 - A funded Stellar testnet secret key. Use a throwaway testnet account only.
 - A clean project where you can install `nirium`.
 
