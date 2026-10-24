@@ -35,10 +35,15 @@ npm install nirium
 ```ts
 import { Agent } from 'nirium';
 
-const agent = new Agent({ baseUrl: 'https://nirium-agent.fly.dev' });
+const agent = new Agent({ apiKey: 'sk_inst_your_key_here', baseUrl: 'https://nirium-agent.fly.dev' });
 const market = await agent.getMarket();
 console.log(market);
 ```
+
+> **Update, 2026-10-24 (checked against the live API that day):** this
+> previously showed `getMarket()` with no `apiKey` at all. `GET /api/market`
+> requires auth server-side and returns 401 without one - get a key from
+> `POST /api/auth/keys` or the [`/keys` console](https://nirium.xyz/keys).
 
 ## Quickstart: charge for *your* API
 
@@ -52,12 +57,19 @@ npm install nirium @x402/express @x402/core @x402/stellar
 import { x402Serve } from 'nirium';
 
 app.use('/premium', x402Serve({
-    payTo: 'G...',              // your Stellar address
+    payTo: 'G...',                      // your Stellar address
     routes: { 'GET /signals': '$0.02' },
+    facilitatorApiKey: process.env.X402_FACILITATOR_API_KEY,
 }));
 ```
 
 Any AI agent can now pay for your endpoint in USDC: no account, no card, no subscription, no human awake.
+
+> **Update, 2026-10-24 (checked against the source that day):** this previously
+> omitted `facilitatorApiKey`/`facilitatorUrl`. `x402Serve()` throws on mount
+> without one of the two, since the facilitator rejects unauthenticated
+> requests. Get a key from [OpenZeppelin Channels](https://channels.openzeppelin.com),
+> or point `facilitatorUrl` at your own facilitator instead.
 
 > **Known limitation:** `x402Serve()` verifies and settles the payment; it does
 > not deduplicate a payment proof across requests or rate-limit callers on its
@@ -65,7 +77,7 @@ Any AI agent can now pay for your endpoint in USDC: no account, no card, no subs
 > [issue #91](https://github.com/nirium-protocol/nirium/issues/91) for what's
 > missing and why, and for a real production reference implementation).
 
-See [`docs/`](./docs) for full quickstarts, including [**"Charge AI agents in 5 minutes"**](./docs/quickstart-x402.md), and [`examples/`](./examples) for 12 runnable integrations across 4 languages: [Express](./examples/express-x402) and [Next.js](./examples/nextjs-x402) (TypeScript), [Go](./examples/go-x402), [Rust](./examples/rust-x402), [LangChain x402](./examples/langchain-x402-agent), [non-custodial treasury vault](./examples/treasury-vault-quickstart), [resilient WebSocket signals](./examples/ws-signals-resilient), [one-click Vercel deploy](./examples/deploy-x402-vercel), [Unity/C# game paywall](./examples/unity-game-x402-gate), [RouteDock discovery manifest](./examples/routedock-manifest), [Stellar Disbursement Platform audit bridge](./examples/sdp-audit-bridge), and [audit-forensic-bridge](./examples/audit-forensic-bridge). For real production findings (not marketing copy), see the [**devlog**](./docs/devlog.md).
+See [`docs/`](./docs) for full quickstarts, including [**"Charge AI agents in 5 minutes"**](./docs/quickstart-x402.md), and [`examples/`](./examples) for 13 runnable integrations across 4 languages: [Express](./examples/express-x402) and [Next.js](./examples/nextjs-x402) (TypeScript), [Go](./examples/go-x402), [Rust](./examples/rust-x402), [LangChain x402](./examples/langchain-x402-agent), [non-custodial treasury vault](./examples/treasury-vault-quickstart), [resilient WebSocket signals](./examples/ws-signals-resilient), [one-click Vercel deploy](./examples/deploy-x402-vercel), [Unity/C# game paywall](./examples/unity-game-x402-gate), [RouteDock discovery manifest](./examples/routedock-manifest), [Stellar Disbursement Platform audit bridge](./examples/sdp-audit-bridge), [audit-forensic-bridge](./examples/audit-forensic-bridge), and [per-agent daily spend policy](./examples/x402-policy-daily-budget). For real production findings (not marketing copy), see the [**devlog**](./docs/devlog.md).
 
 ## Networks
 
