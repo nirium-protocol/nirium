@@ -1397,7 +1397,7 @@ export interface X402ServeConfig {
     network?: 'stellar:testnet' | 'stellar:pubnet';
     /** Default: OpenZeppelin Channels, el facilitador canónico de Stellar. */
     facilitatorUrl?: string;
-    /** Mainnet lo exige; testnet no. */
+    /** Las dos redes lo exigen - el facilitador rechaza un servidor sin llave también en testnet. */
     facilitatorApiKey?: string;
     facilitatorAuthHeader?: string;
     appName?: string;
