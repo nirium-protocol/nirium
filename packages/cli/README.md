@@ -138,15 +138,15 @@ carry a value when the agent reports one: the Nirium testnet agent's
 lines are omitted rather than shown as `undefined`. `--url` points to the
 agent you want to check; `https://nirium-agent.fly.dev` is the Nirium
 testnet agent. Without `--url` it looks for an agent on your own machine at
-`http://localhost:3001`, so it reports "unreachable" if you are not running
-one.
+`http://localhost:3002` - the port `pnpm dev` runs the agent API on in this
+monorepo - so it reports "unreachable" if you are not running one there.
 
 Exits 0 only when `/health` answers 2xx; exits 1 if the agent is
 unreachable, times out, or answers with anything else.
 
 | Option | Purpose | Default |
 |---|---|---|
-| `-u, --url <url>` | Agent to check | `http://localhost:3001` |
+| `-u, --url <url>` | Agent to check | `http://localhost:3002` |
 | `--json` | The raw `/health` fields plus `ok` | off |
 | `--timeout <ms>` | Give up after this many milliseconds instead of hanging | `5000` |
 

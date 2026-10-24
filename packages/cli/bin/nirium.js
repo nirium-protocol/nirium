@@ -94,7 +94,7 @@ program
 program
     .command('status')
     .description('Check agent connection status')
-    .option('-u, --url <url>', 'Agent URL', 'http://localhost:3001')
+    .option('-u, --url <url>', 'Agent URL', 'http://localhost:3002')
     .option('--json', 'Output the raw /health fields plus ok, as JSON')
     .option('--timeout <ms>', 'Give up after this many milliseconds', '5000')
     .action(async (options) => {
