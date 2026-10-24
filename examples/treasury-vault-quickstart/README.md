@@ -18,7 +18,7 @@ This issue is deploy + deposit only. It does not call `executeTreasuryRebalance`
 
 ## Prerequisites
 
-- Node.js 20+
+- Node.js >=22.12.0 (`@stellar/stellar-sdk` 16.x requires it)
 - A **funded Stellar testnet** account you control:
   - **XLM** for fees / contract deploy - [Friendbot](https://friendbot.stellar.org) (`https://friendbot.stellar.org?addr=G...`)
   - A small balance of the vault asset. Default is **Blend testnet USDC** (`USDC-GATALTG…`, contract `CAQCFV…`) - not Circle USDC. The script opens that trustline if it is missing; then click Faucet on [testnet.blend.capital](https://testnet.blend.capital). Set `VAULT_ASSET=cetes` if you hold testnet CETES instead.

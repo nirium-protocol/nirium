@@ -8,6 +8,7 @@ Open-source autonomous treasury and agentic payments (x402/MPP) for Stellar/Soro
 This repository contains the TypeScript and Python SDKs, the MCP server, the CLI, examples and quickstarts that let any developer:
 
 - **Get paid by AI agents**: put your own API behind an x402 pay-gate in one call with `x402Serve()`, or pay for someone else's with `initX402()`.
+- **Cap what your own agent can spend**: an experimental pre-sign policy hook (`initX402({ policy })`, shipped in 0.16.0) asks your own ALLOW/DENY policy before any payment is signed - see [`packages/sdk/README.md#pre-sign-policy-hook-experimental`](./packages/sdk/README.md#pre-sign-policy-hook-experimental) for its real scope and what it does not cover.
 - **Automate on-chain treasury**: a Nirium agent moves idle capital into a CETES strategy (tokenized Mexican T-bills via Etherfuse) and back, over a vault **you** own. The agent can propose a rebalance without ever holding a signing key; autonomous execution on mainnet (the agent signs) is invite-only while a legal review closes.
 - **Anchor immutable audit trails**: SHA-256 content hash pinned to IPFS, optionally carrying an ed25519 signature that proves *who* declared the fact, not just that it is unaltered.
 
@@ -83,6 +84,13 @@ See [`docs/`](./docs) for full quickstarts, including [**"Charge AI agents in 5 
 
 Live on **both** Stellar networks. They are not two copies of the same thing.
 
+**Update, 2026-10-24 (checked against the live `/api/v1/mpp/info` on both
+boxes that day):** that applies to x402 and the treasury path below, not to
+**MPP Charge**. MPP is implemented and `charge.enabled: true` on both
+networks, but it has only ever settled on **testnet** (pull and push, 15 Oct
+2026); mainnet is unverified. Don't read "live on both networks" as covering
+MPP - see `packages/sdk/README.md#mpp-charge-experimental`.
+
 > **Settlement note (proposal, not a demand):** because nirium already speaks
 > x402 (`x402Serve()`/`initX402()`), the same exact-scheme flow can also
 > settle **fee-free in Nano (XNO)** - instant finality, no gas, fully
@@ -128,6 +136,8 @@ Real bugs found in code we don't control, in other people's repos, confirmed by 
 **[x402-foundation/x402#3171](https://github.com/x402-foundation/x402/issues/3171)** - `paymentRequirementsMatchAccepted()` in `@x402/core` threw a raw internal `TypeError` instead of a protocol-level error when a payment's `accepted` field was missing or null. We filed it after hitting it live against our own production endpoint. Fixed by an external contributor, [JasonColapietro](https://github.com/JasonColapietro) - not us - in [PR #3180](https://github.com/x402-foundation/x402/pull/3180). Maintainer [phdargen](https://github.com/phdargen) approved and merged it: *"Thanks for the patch @JasonColapietro, LGTM 🚀"* - commit [`ab1a31a`](https://github.com/x402-foundation/x402/commit/ab1a31ab56ef8656908562d5c2b691772c5a85a2), 55/55 tests passing, issue closed automatically as completed.
 
 **[OpenZeppelin/relayer-plugin-x402-facilitator#47](https://github.com/OpenZeppelin/relayer-plugin-x402-facilitator/issues/47)** - a facilitator sponsor account we rely on went silent for 205+ hours. Three independent integrators (us, [AgentLedger](https://agentpayments.fi), and a third party) converged on the same diagnosis across a month of silence on two official OpenZeppelin channels - until a direct tag to maintainers verified as active elsewhere in the org broke it open: *"Apologies for the slow response... looking into it now and will update here shortly"* ([`zeljkoX`](https://github.com/zeljkoX), 9-sep-2026). **Fixed 2026-09-11** - root cause was a stale RPC URL on the hosted pubnet facilitator instance, throwing before it ever evaluated a payload. Verified with a real settlement on our own mainnet box (clean `200`, confirmed on Horizon), then independently repeated by AgentLedger on 2026-09-12 with the same result. Closed by the maintainer 2026-09-14. ~32-day outage, ~2026-08-10 → 2026-09-11.
+
+**Update, 2026-10-24:** at the time of this outage (Aug-Sep 2026), AgentLedger was independent of Nirium, which is what makes the corroboration above worth citing. Since then, Fer - AgentLedger's founder - also joined Nirium part-time (October 2026). Mentioned here for anyone reading this as third-party validation today.
 
 **[stellar/stellar-mpp-sdk#69](https://github.com/stellar/stellar-mpp-sdk/pull/69)** - `@stellar/mpp`'s exported `USDC_SAC_MAINNET` (54 chars) and `XLM_SAC_MAINNET` (55 chars) both fail `StrKey.isValidEd25519PublicKey()` - invalid addresses, present in every version including 0.7.1. Filed with the exact byte counts and correct addresses; PR merged the **same day**. Our own `USDC_SAC_OVERRIDE` workaround (`middleware/mpp.ts`) stays until a release actually ships the fix.
 
