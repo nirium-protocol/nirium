@@ -1,6 +1,6 @@
 {
   "name": "nirium-cli",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "Nirium CLI — scaffold Stellar agent projects and check agent status",
   "main": "bin/nirium.js",
   "type": "module",
