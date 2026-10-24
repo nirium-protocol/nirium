@@ -93,6 +93,20 @@ See [`docs/`](./docs) for full quickstarts, including [**"Charge AI agents in 5 
 
 Live on **both** Stellar networks. They are not two copies of the same thing.
 
+### Status at a glance
+
+| Product | Status |
+|---|---|
+| x402 | Live in production, mainnet |
+| Audit Trail | Live in production, mainnet |
+| Reporting | Live in production, mainnet |
+| Treasury Rebalance | Mainnet, invite-only |
+| Payouts | Mainnet, invite-only |
+| Policy hook (pre-sign `ALLOW`/`DENY`) | Experimental |
+| MPP Charge | Testnet only |
+
+The tables below back each row with a transaction hash or a live endpoint - this one is just the summary.
+
 **Update, 2026-10-24 (checked against the live `/api/v1/mpp/info` on both
 boxes that day):** that applies to x402 and the treasury path below, not to
 **MPP Charge**. MPP is implemented and `charge.enabled: true` on both
