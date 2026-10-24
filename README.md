@@ -51,25 +51,34 @@ console.log(market);
 The other side of the counter. Wiring x402 by hand is ~25 lines of facilitator client, per-method auth headers, per-network scheme registration and a route table whose shape you have to reverse-engineer. This is the same thing with the defaults that already run in production:
 
 ```bash
-npm install nirium @x402/express @x402/core @x402/stellar
+npm install nirium express @x402/express @x402/core @x402/stellar
 ```
 
 ```ts
+import express from 'express';
 import { x402Serve } from 'nirium';
 
+const app = express();
+
+// No `network` set, so this defaults to stellar:testnet - get a free
+// testnet key from channels.openzeppelin.com/testnet/gen. A mainnet key
+// returns 401 against testnet; pass network: 'stellar:pubnet' plus a
+// mainnet key (channels.openzeppelin.com/gen) to charge for real.
 app.use('/premium', x402Serve({
     payTo: 'G...',                      // your Stellar address
     routes: { 'GET /signals': '$0.02' },
     facilitatorApiKey: process.env.X402_FACILITATOR_API_KEY,
 }));
+
+app.listen(3000);
 ```
 
 Any AI agent can now pay for your endpoint in USDC: no account, no card, no subscription, no human awake.
 
 > **Update, 2026-10-24 (checked against the source that day):** this previously
-> omitted `facilitatorApiKey`/`facilitatorUrl`. `x402Serve()` throws on mount
-> without one of the two, since the facilitator rejects unauthenticated
-> requests. Get a key from [OpenZeppelin Channels](https://channels.openzeppelin.com),
+> omitted `facilitatorApiKey`/`facilitatorUrl`, `express`/`app` itself (the
+> snippet called `app.use()` with no `app` ever created), and which network
+> it runs against by default (testnet). Get a key from [OpenZeppelin Channels](https://channels.openzeppelin.com),
 > or point `facilitatorUrl` at your own facilitator instead.
 
 > **Known limitation:** `x402Serve()` verifies and settles the payment; it does
@@ -90,20 +99,6 @@ boxes that day):** that applies to x402 and the treasury path below, not to
 networks, but it has only ever settled on **testnet** (pull and push, 15 Oct
 2026); mainnet is unverified. Don't read "live on both networks" as covering
 MPP - see `packages/sdk/README.md#mpp-charge-experimental`.
-
-> **Settlement note (proposal, not a demand):** because nirium already speaks
-> x402 (`x402Serve()`/`initX402()`), the same exact-scheme flow can also
-> settle **fee-free in Nano (XNO)** - instant finality, no gas, fully
-> self-custodied (no freezeable stablecoin). At agent micropayment prices the
-> settlement cost on an EVM/Stellar rail can rival the call itself. The
-> buyer side already works today (independent, on-chain): an
-> OpenAI-Agents-SDK x402 payer settled a third-party seller in 0.00001292 XNO
-> on 2026-09-18, block
-> `E67FB89426F46E6AE4E0E5750B5F814A699965B8639DA89F38689EA1AFE57FC3`
-> (`confirmed: true`), via a thin adapter on feeless402:
-> https://github.com/PANDeveloper001/openai-agents-nano-x402. If Nano fits
-> your settlement model, a `nano:mainnet`/XNO accept beside your Stellar one
-> could be a one-route pilot; if it does not, this changes nothing.
 
 **Mainnet** (real value). The API box holds **no signing key** by design; a separate process with no HTTP surface signs autonomous rebalances, and clients sign their own fund movements.
 
