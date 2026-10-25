@@ -2,3 +2,4 @@
 # Branch protection on main requires 1 approving review before merge (enabled 22-oct-2026).
 
 /packages/cli/ @M0nsxx
+/packages/sdk/ @M0nsxx
