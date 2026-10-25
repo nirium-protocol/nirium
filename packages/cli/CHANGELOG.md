@@ -4,6 +4,12 @@ All notable changes to the `nirium-cli` package are documented here.
 
 ## Unreleased
 
+## 3.0.1 - 2026-10-24
+
+### Fixed
+
+- `nirium status`'s default `--url` was `http://localhost:3001` - the documented `pnpm dev` quickstart puts the agent on `3002` via `master.ts`; `3001` is only the agent's own standalone fallback, a path the quickstart never tells anyone to take. This was fixed in source on 2026-10-23 but never published - `3.0.0` still shipped with the stale default. Now `3002`.
+
 ## 3.0.0 - 2026-10-23
 
 ### Breaking changes
