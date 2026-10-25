@@ -45,12 +45,12 @@ class Agent:
     Nirium Agent — Full API + WebSocket client for the Nirium autonomous agent.
 
     Usage:
-        agent = Agent(api_url="http://localhost:3001", api_key="nrm_your_key")
+        agent = Agent(api_url="http://localhost:3002", api_key="nrm_your_key")
         market = await agent.get_market()
         print(f"XLM Price: ${market['xlmPrice']:.4f}")
     """
 
-    def __init__(self, api_url: str = "http://localhost:3001", api_key: Optional[str] = None, token: Optional[str] = None):
+    def __init__(self, api_url: str = "http://localhost:3002", api_key: Optional[str] = None, token: Optional[str] = None):
         self.api_url = api_url.rstrip('/')
         self.ws_url = self.api_url.replace("http", "ws") + "/ws/signals"
         self.api_key = api_key
