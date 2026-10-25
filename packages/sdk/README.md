@@ -189,7 +189,7 @@ import { x402Serve } from 'nirium';
 app.use('/premium', x402Serve({
   payTo: 'G...',                 // your Stellar address - where payments land
   routes: { 'GET /signals': '$0.02' },
-  facilitatorApiKey: '...',      // required on mainnet; OpenZeppelin Channels by default
+  facilitatorApiKey: '...',      // required on both networks; OpenZeppelin Channels by default
 }));
 ```
 
