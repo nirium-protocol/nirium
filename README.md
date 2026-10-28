@@ -166,7 +166,7 @@ Nirium received Stellar Community Fund Instaward funding (two awards) via a regi
 
 ## Contributing
 
-Contributions welcome: examples, framework adapters, language bindings, docs and tests. This repo ran a GrantFox bounty campaign with Trustless Work through early September 2026 - that campaign is now closed, so there are currently **no open, assigned-on-request issues**. Watch the [issues page](../../issues) for the next round rather than pinging an old thread; a future campaign, if one runs, will be labeled explicitly.
+Contributions welcome: examples, framework adapters, language bindings, docs and tests. This repo ran a GrantFox bounty campaign with Trustless Work through early September 2026 - that campaign is now closed, so there are currently **no open, assigned-on-request issues** from that program. Separately, a no-cash contribution sprint is running: **[Niriumtober](https://nirium.xyz/build/niriumtober)** (Oct 22 to Nov 2), with open issues labeled [`niriumtober`](../../issues?q=is%3Aissue+is%3Aopen+label%3Aniriumtober). Watch the [issues page](../../issues) for the next GrantFox round rather than pinging an old thread; a future campaign, if one runs, will be labeled explicitly.
 
 Outside of any campaign, PRs are still welcome - examples, framework adapters, bindings, docs, tests - just note in the PR that it isn't tied to a bounty.
 
