@@ -1,36 +1,101 @@
 # Cobra a Agentes de IA en 5 Minutos con x402
 
-Esta guía de inicio rápido muestra cómo llamar un endpoint pagado de Nirium desde un script TypeScript. El SDK maneja la negociación x402, la firma de entradas de autorización de Stellar y el reintento pagado después de que el endpoint devuelve `402 Payment Required`.
+Esta guía de inicio rápido muestra cómo configurar y llamar un endpoint pagado de Nirium desde un script TypeScript. El SDK maneja la negociación x402, la firma de entradas de autorización de Stellar y el reintento pagado después de que el endpoint devuelve `402 Payment Required`.
 
 ## Lo que Necesitas
 
 - Node.js >=22.12.0 - `@stellar/stellar-sdk` 16.x (una dependencia de `nirium`) lo requiere; un Node más antiguo resuelve silenciosamente un SDK incompatible más antiguo en lugar de fallar.
-- Una clave secreta de testnet de Stellar con fondos. Usa solo una cuenta de testnet desechable.
 - Un proyecto limpio donde puedas instalar `nirium`.
 
 No uses una clave secreta de mainnet mientras pruebas este flujo.
 
-## 1. Crear un Proyecto de Script
+## 1. Instalar Dependencias
 
 ```bash
 mkdir nirium-x402-demo
 cd nirium-x402-demo
 npm init -y
-npm install nirium tsx typescript dotenv
+npm install nirium @stellar/stellar-sdk@16 tsx typescript dotenv
 ```
 
-Agrega un archivo de entorno local:
+## 2. Crear y Financiar una Clave Stellar
+
+### Testnet (recomendado para pruebas)
+
+Genera una nueva clave de testnet:
+
+```bash
+node -e "const {Keypair} = require('@stellar/stellar-sdk'); const kp = Keypair.random(); console.log('Secret:', kp.secret()); console.log('Public:', kp.publicKey());"
+```
+
+Guarda la clave secreta (comienza con `S...`) en tu archivo `.env`:
 
 ```bash
 cat > .env <<'EOF'
 STELLAR_SECRET_KEY=SXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-NIRIUM_PREMIUM_URL=https://nirium-agent.fly.dev/api/v1/premium/signals
 EOF
 ```
 
-Reemplaza `STELLAR_SECRET_KEY` con una clave secreta de testnet con fondos.
+Financia la cuenta con XLM para fees de transacción:
 
-## 2. Agregar la Llamada Pagada
+```bash
+curl "https://friendbot.stellar.org?addr=<TU_DIRECCION_G>"
+```
+
+### Agregar Trustline de USDC
+
+Para recibir y enviar pagos en USDC, tu cuenta necesita una trustline al emisor de USDC.
+
+**Testnet USDC** (Circle):
+- Emisor: `GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5`
+
+Crea `add-trustline.ts`:
+
+```ts
+import { Asset, Keypair, Networks, Operation, TransactionBuilder, Horizon } from '@stellar/stellar-sdk';
+import 'dotenv/config';
+
+const server = new Horizon.Server('https://horizon-testnet.stellar.org');
+const keypair = Keypair.fromSecret(process.env.STELLAR_SECRET_KEY!);
+const usdcIssuer = 'GBBD47IF6LWK7P7MDEVSCWR7DPUWV3NY3DTQEVFL4NAT4AQH3ZLLFLA5';
+
+async function addUsdcTrustline() {
+  const account = await server.loadAccount(keypair.publicKey());
+  const usdcAsset = new Asset('USDC', usdcIssuer);
+
+  const transaction = new TransactionBuilder(account, {
+    fee: '100000',
+    networkPassphrase: Networks.TESTNET,
+  })
+    .addOperation(Operation.changeTrust({ asset: usdcAsset }))
+    .setTimeout(180)
+    .build();
+
+  transaction.sign(keypair);
+  const result = await server.submitTransaction(transaction);
+  console.log('✓ Trustline agregada:', result.hash);
+}
+
+addUsdcTrustline().catch(console.error);
+```
+
+Ejecuta:
+
+```bash
+npx tsx add-trustline.ts
+```
+
+Solicita testnet USDC en el faucet de Circle: [https://faucet.circle.com](https://faucet.circle.com) (selecciona "USDC" y "Stellar Testnet").
+
+### Pubnet (producción)
+
+Para mainnet, sigue los mismos pasos pero:
+- **No uses Friendbot** - financia la cuenta con XLM real
+- **Emisor de USDC en pubnet**: `GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN` (Circle oficial)
+- Usa `Networks.PUBLIC` y `https://horizon.stellar.org`
+- Usa `network: 'stellar:pubnet'` en `initX402()`
+
+## 3. Configurar el Cliente x402
 
 Crea `charge-agent.ts`:
 
@@ -39,10 +104,6 @@ import { Agent } from "nirium";
 import "dotenv/config";
 
 const secretKey = process.env.STELLAR_SECRET_KEY;
-const premiumUrl =
-  process.env.NIRIUM_PREMIUM_URL ??
-  "https://nirium-agent.fly.dev/api/v1/premium/signals";
-
 if (!secretKey) {
   throw new Error("Set STELLAR_SECRET_KEY in .env before running this script.");
 }
@@ -51,65 +112,96 @@ const agent = new Agent({
   baseUrl: "https://nirium-agent.fly.dev",
 });
 
+// Inicializa x402 con un spending guard
 agent.initX402({
   secretKey,
   network: "stellar:testnet",
+  maxAmountPerPayment: "$1",  // Límite por pago: rechaza cualquier pago >$1 antes de firmar
 });
 
-const response = await agent.x402Fetch(premiumUrl);
+console.log("✓ Cliente x402 inicializado");
+```
 
-if (!response.ok) {
-  const text = await response.text();
-  throw new Error(`Paid request failed: ${response.status} ${text}`);
+### ¿Qué es `maxAmountPerPayment`?
+
+`maxAmountPerPayment` es un **guardia de gastos** que previene pagos inesperadamente altos. El SDK rechaza cualquier solicitud de pago por encima de este límite **antes** de que algo sea firmado o enviado.
+
+- **Formato**: `"$5"`, `"5"` o `5` (monto USD)
+- **Por defecto**: `"$1"` (aplicado por `@x402/core`)
+- **Debe ser positivo**: `false` (sin límite) no es aceptado deliberadamente
+
+Si un endpoint pide más que tu límite, obtendrás un `X402SpendCapError` con el monto solicitado y tu límite configurado.
+
+## 4. Primera Llamada Pagada
+
+Agrega la llamada pagada a `charge-agent.ts`:
+
+```ts
+// ...código anterior...
+
+const premiumUrl = "https://nirium-agent.fly.dev/api/v1/premium/market";
+
+async function fetchPaidMarket() {
+  console.log(`Llamando a ${premiumUrl} (costo: $0.05 USDC)...`);
+  
+  const response = await agent.x402Fetch(premiumUrl);
+  
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`Paid request failed: ${response.status} ${text}`);
+  }
+
+  const payload = await response.json();
+  console.log("✓ Respuesta pagada recibida:");
+  console.log(JSON.stringify(payload, null, 2));
 }
 
-const payload = await response.json();
-console.log(JSON.stringify(payload, null, 2));
+fetchPaidMarket().catch(console.error);
 ```
 
-Ejecútalo con tu `.env` cargado:
+Ejecuta:
 
 ```bash
 npx tsx charge-agent.ts
 ```
 
-La primera solicitud recibe un desafío `402 Payment Required`. `agent.x402Fetch()` firma la autorización de pago de Stellar, reintenta la solicitud y devuelve la respuesta pagada.
+**Flujo x402:**
+1. Primera solicitud → `402 Payment Required` (challenge)
+2. `agent.x402Fetch()` firma la autorización de pago de Stellar automáticamente
+3. Reintenta con la prueba de pago → `200 OK` con datos pagados
 
-## 3. Verificar el Pago de Testnet
+## 5. Verificar el Pago en Testnet
 
-Después de una llamada exitosa, verifica la transacción en la testnet de Stellar:
+Después de una llamada exitosa:
 
-1. Encuentra el hash de transacción o la referencia de pago devuelta por el endpoint o los registros del facilitador.
-2. Abre `https://stellar.expert/explorer/testnet/tx/<TRANSACTION_HASH>`.
-3. Confirma que la cuenta de origen coincida con tu cuenta de testnet.
-4. Confirma que el destino y la cantidad coincidan con el precio del endpoint.
-5. Guarda el enlace del explorador con tus notas de integración.
+1. Busca el hash de transacción en los logs o en la respuesta del facilitador
+2. Abre `https://stellar.expert/explorer/testnet/tx/<TRANSACTION_HASH>`
+3. Confirma:
+   - Cuenta de origen: tu cuenta
+   - Destino: endpoint del vendedor
+   - Monto: $0.05 USDC para `/api/v1/premium/market`
 
-Si la respuesta no incluye un hash de transacción, verifica los registros del facilitador o del servidor para el registro de pago liquidado. La respuesta pagada aún debe probar que el flujo x402 se completó porque el endpoint solo devuelve datos protegidos después de la autorización de pago.
+## Errores Comunes
 
-## 4. Cambiar el Precio o Endpoint
+| Error | Causa | Solución |
+| --- | --- | --- |
+| `x402 client not initialized` | No llamaste a `initX402()` antes de `x402Fetch()` | Llama a `agent.initX402({ secretKey, network })` primero |
+| `Set STELLAR_SECRET_KEY` | Falta la clave secreta en `.env` | Agrega `STELLAR_SECRET_KEY=S...` a tu archivo `.env` |
+| `402 Payment Required` llega a tu código | Usaste `fetch()` en lugar de `x402Fetch()` | Usa `agent.x402Fetch()` para que el SDK maneje el pago automáticamente |
+| `X402SpendCapError` | El endpoint pide más que tu `maxAmountPerPayment` | Aumenta el límite explícitamente: `initX402({ maxAmountPerPayment: "$5" })` |
+| `Transaction cannot be found` | Usando mainnet en lugar de testnet, o pago rechazado | Verifica que estás en testnet y que la trustline/balance USDC están correctos |
+| `HostError: Error(Contract, #13)` | Trustline de USDC faltante | Ejecuta `add-trustline.ts` primero, luego solicita USDC del faucet |
+| Mainnet funds at risk | Estás probando con una clave de mainnet | **DETENTE** - cambia a `network: "stellar:testnet"` y usa una clave de testnet |
 
-El vendedor controla los precios en el endpoint protegido. Para cobrar una cantidad diferente, actualiza los requisitos de pago x402 del lado del servidor para la ruta que expones a los agentes. Mantén estos valores del lado del cliente alineados con ese endpoint:
+## Endpoints Disponibles
 
-```bash
-NIRIUM_PREMIUM_URL=https://your-api.example.com/paid/agent-signal
-```
+| Endpoint | Precio | Red |
+| --- | --- | --- |
+| `/api/v1/premium/signals` | $0.02 USDC | Testnet solamente |
+| `/api/v1/premium/market` | $0.05 USDC | Testnet y pubnet |
+| `/api/v1/premium/execute` | $0.25 USDC | Testnet solamente |
 
-Luego vuelve a ejecutar:
-
-```bash
-npx tsx charge-agent.ts
-```
-
-## Solución de Problemas
-
-| Problema | Solución |
-| --- | --- |
-| `x402 client not initialized` | Llama a `agent.initX402()` antes de `agent.x402Fetch()`. |
-| `Set STELLAR_SECRET_KEY` | Agrega una clave secreta de testnet con fondos a `.env`. |
-| `402 Payment Required` se devuelve a tu código | Usa `agent.x402Fetch()` en lugar de `fetch()` para que el SDK pueda firmar y reintentar el pago. |
-| No se puede encontrar la transacción | Asegúrate de estar verificando la testnet de Stellar y que el pago no fue rechazado antes de la liquidación. |
-| Fondos de mainnet en riesgo | Detente y vuelve a `network: "stellar:testnet"` con una cuenta de testnet. |
+**Nota**: En mainnet, `/api/v1/premium/signals` devuelve `501` (no hay fuente de señales en mainnet); el agente de mainnet no tiene clave de firma por diseño.
 
 ## Python / LangChain
 
@@ -123,12 +215,13 @@ Consulta [`examples/langchain-x402-agent`](../../examples/langchain-x402-agent) 
 
 ## Próximos Pasos
 
-- Mueve la clave secreta a tu administrador de secretos normal antes de implementar.
+- Mueve la clave secreta a tu administrador de secretos normal antes de implementar en producción.
 - Agrega registro de solicitudes para que cada respuesta pagada esté vinculada a su transacción de testnet.
 - Crea una cuenta de testnet dedicada por entorno para simplificar la reconciliación.
+- Para producción (pubnet), aumenta `maxAmountPerPayment` según tus necesidades reales y monitorea el gasto.
 
 ---
 
 **🇬🇧 English version:** [quickstart-x402.md](../quickstart-x402.md)
 
-*Esta guía fue traducida como parte de Niriumtober 2026. Issue: [nirium-protocol/nirium#174](https://github.com/nirium-protocol/nirium/issues/174)*
+*Esta guía fue escrita como parte de Niriumtober 2026. Issue: [nirium-protocol/nirium#174](https://github.com/nirium-protocol/nirium/issues/174)*
