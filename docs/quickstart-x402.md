@@ -126,3 +126,7 @@ See [`examples/langchain-x402-agent`](../examples/langchain-x402-agent) for a ru
 - Move the secret key into your normal secret manager before deploying.
 - Add request logging so each paid response is tied to its testnet transaction.
 - Create a dedicated testnet account per environment to simplify reconciliation.
+
+---
+
+**🇪🇸 Versión en español:** [docs/es/quickstart-x402.md](./es/quickstart-x402.md)
