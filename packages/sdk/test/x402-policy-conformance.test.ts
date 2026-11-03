@@ -153,4 +153,47 @@ describe('conformance suite has teeth', () => {
         await failing(target(() => { n++; return engine(); }));
         assert.equal(n, ALL.length);
     });
+    // Review on #246: an engine slower than the timeout case's deadline is still correct.
+    for (const ms of [200, 600]) {
+        test(`a correct engine that takes ${ms} ms (e.g. remote HTTP) passes every case`, async () => {
+            const slow = () => engine({}, undefined);
+            const t = target(() => {
+                const e = slow();
+                const inner = e.evaluate;
+                return { ...e, evaluate: async (ctx, o) => { await new Promise((r) => setTimeout(r, ms)); return inner(ctx, o); } };
+            });
+            assert.deepEqual(await failing(t), []);
+        });
+    }
+
+    // Review on #246: class-based engines keep prototype methods and `this`.
+    class ClassEngine implements X402PolicyHook {
+        requireExpiry = true;
+        version = 'v1';
+        answerVersion = 'v1';
+        seen: string[] = [];
+        async currentVersion() { return this.version; }
+        async evaluate(ctx: X402PolicyContext): Promise<X402PolicyDecision> {
+            if (ctx.authorization.to === blocked) return { decision: 'WAIT', reason: 'needs a human' };
+            if (BigInt(ctx.authorization.amount) > 1_000_000n) return { decision: 'DENY', reason: 'over cap' };
+            return { decision: 'ALLOW', contextHash: ctx.contextHash, policyVersion: this.answerVersion, expiresAt: Date.now() + 2_000 };
+        }
+        onDecision(r: { outcome: string }) { this.seen.push(r.outcome); }
+    }
+
+    test('a correct class-based engine passes every case', async () => {
+        assert.deepEqual(await failing(target(() => new ClassEngine())), []);
+    });
+
+    test('a class-based engine whose ALLOW carries a stale policyVersion fails the ALLOW case', async () => {
+        const f = await failing(target(() => { const e = new ClassEngine(); e.answerVersion = 'v0'; return e; }));
+        assert.ok(f.includes(ALLOW_CASE), f.join('; '));
+    });
+
+    test('a class-based onDecision runs with its own `this`', async () => {
+        const e = new ClassEngine();
+        const [allowCase] = policyConformanceCases(target(() => e));
+        await allowCase.run();
+        assert.deepEqual(e.seen, ['ALLOWED', 'SIGNED']);
+    });
 });

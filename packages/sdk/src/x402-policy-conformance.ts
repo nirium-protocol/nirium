@@ -70,7 +70,11 @@ export interface ConformanceOptions {
      * gate that signs when it should not.
      */
     gate?: typeof createPolicyGatedSigner;
-    /** timeoutMs for the timeout case. Default 100. */
+    /**
+     * The gate's deadline in the timeout case. Default 100. The engine's own
+     * answer is awaited outside this deadline, so it does not need to be
+     * faster than this; it only bounds how long that case's gate waits.
+     */
     timeoutMs?: number;
 }
 
@@ -147,17 +151,25 @@ export function policyConformanceCases(
     ): Promise<Attempt> => {
         const seen: Attempt = { signed: false, signerCalls: 0, records: [], engineDecisions: [], contextHashes: [] };
         const engine = await target.createHook();
-        const userOnDecision = engine.onDecision;
+        // Read each field explicitly and call methods on the engine itself:
+        // a spread would drop prototype methods of a class-based engine (so
+        // currentVersion, and with it the stale-version check, would vanish)
+        // and would call them without their `this`.
         let hook: X402PolicyHook = {
-            ...engine,
+            timeoutMs: engine.timeoutMs,
+            requireExpiry: engine.requireExpiry,
             evaluate: async (ctx, opts) => {
                 seen.contextHashes.push(ctx.contextHash);
                 const d = await engine.evaluate(ctx, opts);
                 seen.engineDecisions.push(d);
                 return d;
             },
-            onDecision: (r) => { seen.records.push(r); return userOnDecision?.(r); },
+            onDecision: (r) => { seen.records.push(r); return engine.onDecision?.(r); },
         };
+        if (engine.currentVersion !== undefined) {
+            hook.currentVersion = (ctx, opts) => engine.currentVersion!(ctx, opts);
+        }
+        if (engine.now !== undefined) hook.now = () => engine.now!();
         if (alter) hook = alter(hook, seen);
         const base: X402BaseSigner = {
             address: payer.publicKey(),
@@ -299,19 +311,31 @@ export function policyConformanceCases(
             name: 'an answer after the timeout signs nothing',
             run: async () => {
                 let aborted = false;
+                // The engine is asked outside the gate's deadline, with its own
+                // signal and the budget it would get in real use (its own
+                // timeoutMs, else the gate's default 5000 ms), so a correct
+                // engine slower than this case's timeoutMs (a remote one, say)
+                // still gets to answer. The gate only sees that answer arrive
+                // after its deadline.
+                let engineAnswer: Promise<unknown> = Promise.resolve();
                 const a = await attempt(target.allow, (hook) => ({
                     ...hook,
                     timeoutMs,
-                    evaluate: async (ctx, opts) => {
-                        const d = await hook.evaluate(ctx, opts);
-                        // The engine answered; the answer just never arrives in time.
-                        await new Promise<void>((resolve) => {
-                            const t = setTimeout(resolve, timeoutMs * 20);
-                            opts.signal.addEventListener('abort', () => { aborted = true; clearTimeout(t); resolve(); }, { once: true });
+                    evaluate: (ctx, opts) => {
+                        const own = new AbortController();
+                        const t = setTimeout(() => own.abort(), hook.timeoutMs ?? 5_000);
+                        engineAnswer = hook.evaluate(ctx, { signal: own.signal })
+                            .catch(() => undefined)
+                            .finally(() => clearTimeout(t));
+                        return new Promise<X402PolicyDecision>((resolve) => {
+                            opts.signal.addEventListener('abort', () => {
+                                aborted = true;
+                                void engineAnswer.then((d) => resolve(d as X402PolicyDecision));
+                            }, { once: true });
                         });
-                        return d;
                     },
                 }));
+                await engineAnswer;
                 expectEngineAllowed(a);
                 expectRefused(a, 'TIMEOUT');
                 check(aborted, 'the gate did not abort the engine signal on timeout');

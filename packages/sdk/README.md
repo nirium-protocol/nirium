@@ -177,6 +177,10 @@ runPolicyConformance({
 });
 ```
 
+**What passing means.** Your engine answers correctly (allows what it should, denies what it should, binds its `ALLOW` to the exact `contextHash`) and the gate fails closed around it. It does **not** validate your policy logic: it only checks the two or three payments you give it, and several cases (wrong hash, expired, malformed, timeout) mostly exercise the gate on top of your engine's `ALLOW`. Test the rules themselves with your own tests.
+
+Your hook is used as-is, so a class instance works: its prototype methods (`currentVersion`, `onDecision`) are called on the instance. The timeout case runs the gate with `timeoutMs` 100 (change it with `runPolicyConformance(target, { timeoutMs })`); your engine still gets its own `timeoutMs` (default 5000 ms) to answer, so a slow remote engine does not fail that case.
+
 Each case is a `node:test` test. To use another runner, `policyConformanceCases(target)` returns the cases as `{ name, run }`. [`examples/x402-policy-daily-budget`](../../examples/x402-policy-daily-budget) runs it in CI.
 
 ### MPP Charge (experimental)
