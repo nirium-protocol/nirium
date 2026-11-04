@@ -93,6 +93,8 @@ npm install
 STELLAR_SECRET_KEY=S... AGENT_API_URL=http://localhost:3002 npx tsx src/index.ts
 ```
 
+`viem` is a required (non-optional) peer dependency of `mppx`, which this package depends on - it's listed here as a direct dependency so a plain `npm install` resolves it without an extra manual `npm i viem` step.
+
 ## License
 
 Apache-2.0 - see [LICENSE](https://github.com/nirium-protocol/nirium/blob/main/packages/mcp/LICENSE).
