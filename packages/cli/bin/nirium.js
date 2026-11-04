@@ -229,7 +229,7 @@ program
     .description('🚀 Spin up a local x402-protected demo HTTP server to test payments against')
     .option('-p, --price <price>', 'Price for access (e.g. $0.02)', '$0.02')
     .option('-P, --pay-to <address>', 'Stellar public key (G...) to receive payments')
-    .option('-port, --port <port>', 'Port number to listen on', '3000')
+    .option('--port <port>', 'Port number to listen on', '3000')
     .option('-n, --network <network>', 'CAIP-2 network ID (stellar:testnet or stellar:pubnet)', 'stellar:testnet')
     .option('-r, --route <route>', 'Route path to protect', '/api/v1/data')
     // Kept only to refuse it with a clear message: commander's own
