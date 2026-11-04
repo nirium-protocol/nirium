@@ -104,6 +104,8 @@ Email: **niriumprotocol@gmail.com**
 
 Include: description, reproduction steps, potential impact, and any suggested remediation.
 
+If the **Secret Scan** check fails on your PR, treat the key as leaked: revoke or rotate it, remove it from your branch (amend/rebase so no commit contains it), and push again. If it is a false positive or a public test vector, add a narrow, commented entry to `.gitleaks.toml` instead of disabling the check.
+
 ---
 
 ## License
