@@ -162,6 +162,27 @@ Only an `ALLOW` that echoes this authorization's `contextHash`, and is still val
 
 **What this does not do.** It is a check on the agent side, not account-level enforcement: code in the same process that holds the raw signer can still call it directly (the L02 limit in #96; so can code that replaces its `signAuthEntry`, which is looked up at call time), and nothing on-chain enforces the policy. It does not solve pending-capacity reservation (L01 in #96: concurrent requests that observe the same remaining capacity): two calls evaluated at the same time can each fit a limit that together they exceed, and an aggregate cap has to be held by your policy. Discussed in [#96](https://github.com/nirium-protocol/nirium/issues/96), where @CodeDeityX laid out the agent-side cases this hook is built against.
 
+**Conformance test for your engine.** The SDK ships one shared test any engine can run ([#226](https://github.com/nirium-protocol/nirium/issues/226)). It puts your hook through the real gate and the real `@stellar/stellar-sdk` signing path, with no RPC and no network, and checks seven cases. An `ALLOW` that echoes the exact `contextHash` must sign exactly once. `DENY`, `WAIT`, an `ALLOW` with a wrong `contextHash`, an `ALLOW` past its `expiresAt`, a malformed answer and an answer after the timeout must each sign nothing. You give it one payment your engine allows and one it denies, plus one it answers `WAIT` to if it ever does. The last four cases start from your engine's own `ALLOW` and change it the way each case names. It is experimental like the hook and is not exported from the package index, so import it from `dist`:
+
+```typescript
+// test/conformance.test.ts, run with `node --test` (via tsx for TypeScript)
+import { runPolicyConformance } from 'nirium/dist/x402-policy-conformance.js';
+
+runPolicyConformance({
+  name: 'my engine',
+  createHook: () => myEngine.hook(), // called once per case: return a fresh one
+  allow: { amount: '2500000' },      // base units; payTo, asset, url, method are optional
+  deny: { amount: '50000000' },
+  // wait: { amount: '1', payTo: 'G...' }, // only if your engine answers WAIT
+});
+```
+
+**What passing means.** Your engine answers correctly (allows what it should, denies what it should, binds its `ALLOW` to the exact `contextHash`) and the gate fails closed around it. It does **not** validate your policy logic: it only checks the two or three payments you give it, and several cases (wrong hash, expired, malformed, timeout) mostly exercise the gate on top of your engine's `ALLOW`. Test the rules themselves with your own tests.
+
+Your hook is used as-is, so a class instance works: its prototype methods (`currentVersion`, `onDecision`) are called on the instance. The timeout case runs the gate with `timeoutMs` 100 (change it with `runPolicyConformance(target, { timeoutMs })`); your engine still gets its own `timeoutMs` (default 5000 ms) to answer, so a slow remote engine does not fail that case.
+
+Each case is a `node:test` test. To use another runner, `policyConformanceCases(target)` returns the cases as `{ name, run }`. [`examples/x402-policy-daily-budget`](../../examples/x402-policy-daily-budget) runs it in CI.
+
 ### MPP Charge (experimental)
 
 ```typescript
