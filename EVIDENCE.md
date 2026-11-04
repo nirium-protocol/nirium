@@ -76,4 +76,4 @@ npm: [`nirium-cli@3.0.1`](https://www.npmjs.com/package/nirium-cli), [`nirium@0.
 | Event | What it proves |
 |---|---|
 | **[ETH Cinco de Mayo 2026](https://x.com/ETHCincoDeMayo/status/2077553531834237216)** | Finalist, 10 of 30+ applicants, public tweet 15 Jul 2026 |
-| **[BBVA Open Deal / "The Open Deal Room by Stellar"](https://nirium.xyz/blog/bbva-open-deal-room)** — [pitch video](https://www.youtube.com/watch?v=kpN5YwGz1bk) | 1 of 6 Stellar ecosystem startups invited to pitch investors, 21 May 2026, Torre BBVA CDMX |
+| **[BBVA Open Deal / "The Open Deal Room by Stellar"](https://www.youtube.com/watch?v=kpN5YwGz1bk)** | 1 of 6 Stellar ecosystem startups invited to pitch investors, 21 May 2026, Torre BBVA CDMX |
