@@ -34,7 +34,7 @@ npm run typecheck
 npm start       # offline demo with fake contexts
 ```
 
-The SDK is referenced as `file:../../packages/sdk` and only its types are imported, so build it once (`cd ../../packages/sdk && npm install --legacy-peer-deps && npm run build`, as the SDK CI does; `@stellar/mpp` 0.7.1 still declares a peer of `@stellar/stellar-sdk` ^15) before `typecheck`.
+The SDK is referenced as `file:../../packages/sdk`, so build it once (`cd ../../packages/sdk && npm install --legacy-peer-deps && npm run build`, as the SDK CI does; `@stellar/mpp` 0.7.1 still declares a peer of `@stellar/stellar-sdk` ^15) before `test` and `typecheck`. `test/conformance.test.ts` runs the SDK's shared policy conformance suite (#226) against this engine through the SDK's real pre-sign gate; CI runs it on every PR that touches the SDK or this example.
 
 ## Multi-process: map it to SQL
 
