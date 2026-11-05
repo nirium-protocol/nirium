@@ -4,9 +4,17 @@ All notable changes to the `nirium-mcp` package are documented here.
 
 ## Unreleased
 
+## 0.6.4 - 2026-11-05
+
 ### Fixed
 
-- Descriptions (`package.json`, README, and the `get_reporting_summary` tool text) no longer say "x402/MPP" as if both were settling payments. No MPP payment has ever settled; the MPP tools are described as experimental. Not published yet: it ships with the next release.
+- `npm install nirium-mcp` left the server unable to boot at all on a clean install - `Cannot find package 'viem'` from `mppx`'s own EVM client code (`mppx/dist/evm/client/Charge.js`), a peer dependency `mppx` requires but never declares in `peerDependenciesMeta` ([#118](https://github.com/nirium-protocol/nirium/issues/118)). `viem` is now a direct dependency, so npm installs it automatically.
+- Descriptions (`package.json`, README, and the `get_reporting_summary` tool text) no longer say "x402/MPP" as if both were settling payments. No MPP payment has ever settled; the MPP tools are described as experimental.
+- The local-dev `AGENT_API_URL` default (README and `src/index.ts`'s own usage example) was `http://127.0.0.1:3001` - the documented quickstart runs the agent on `3002` via `master.ts`. Now `3002`.
+
+### Changed
+
+- `@x402/core`/`@x402/fetch`/`@x402/stellar` ^2.28.0 -> ^2.29.0.
 
 ## 0.6.3 - 2026-10-11
 
