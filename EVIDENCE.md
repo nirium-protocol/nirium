@@ -7,7 +7,7 @@ Last verified live: 4 Nov 2026, against Horizon (mainnet/testnet), the Pinata ga
 | Evidence | Network | What it proves |
 |---|---|---|
 | Billing account [`GCLBBPON...KBHP`](https://stellar.expert/explorer/public/account/GCLBBPON256CV7ATEHM5B54BOKNC7GX53MBINJ42MHVXGDMMZ3ZWKBHP) | mainnet | **36 settled x402 payments**, 3 payers, across 10 distinct days, 9 Jul to 29 Sep 2026 |
-| [First tx](https://stellar.expert/explorer/public/tx/18f7dcab48087800cefb319a04c17291376df053805763fe3e952d472e32fb91) to [last tx](https://stellar.expert/explorer/public/tx/b34630f6637d6773ad4f7378dac8690ae6d1809173ff9c9541d22165aeef5788) | mainnet | 10 purchases routed through AgentLedger's (a separate company) policy engine, each settled on Stellar |
+| [First tx](https://stellar.expert/explorer/public/tx/18f7dcab48087800cefb319a04c17291376df053805763fe3e952d472e32fb91) to [last tx](https://stellar.expert/explorer/public/tx/b34630f6637d6773ad4f7378dac8690ae6d1809173ff9c9541d22165aeef5788) | mainnet | 15 purchases routed through AgentLedger's (a separate company) policy engine (4 to `/signals` at 0.02 USDC, 11 to `/market` at 0.05 USDC, 0.63 USDC total), each settled on Stellar |
 | [Escrow release tx](https://stellar.expert/explorer/public/tx/0c533088ab6326a78b9f79c197b7636ca4662a0d72562968ddea37f370a8192b) | mainnet, 3 Sep 2026 | One escrow release (0.4985 USDC), separate from the x402 payments above |
 
 **Honest limit:** the last payment to the billing account was 29 Sep 2026. The AgentLedger batch was an integration test we requested, not organic usage.
