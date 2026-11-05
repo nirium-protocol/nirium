@@ -93,3 +93,12 @@ npm: [`nirium-cli@3.0.1`](https://www.npmjs.com/package/nirium-cli), [`nirium@0.
 | **[BBVA Open Deal / "The Open Deal Room by Stellar"](https://www.youtube.com/watch?v=kpN5YwGz1bk)** | 1 of 6 Stellar ecosystem startups invited to pitch investors, 21 May 2026, Torre BBVA CDMX |
 | **[BAF newsletter](https://bafs-newsletter.beehiiv.com/p/recap-de-la-call-becas-hubs-y-un-summit-en-juego-tu-proyecto-est-listo)** | Nirium featured by the Blockchain Acceleration Foundation, 27 Jun 2026 |
 | **["Código 402: Agentes que pagan"](https://luma.com/ljzvwv35)** | Online bootcamp, 5 sessions plus Demo Day, 10-27 Nov 2026, hosted by the Blockchain Acceleration Foundation with Fernanda Tello (Country Lead Mexico), Gerardo Vela, Giovanny Amador and Monserrat Mendoza. Sessions: first Stellar payment, charging for an API with x402, an agent that pays within a spending limit, and verifying a payment on the network. Nirium appears as one real case among several, up to 15 minutes per session. Scheduled, so this shows the program exists, not its results |
+
+## 11. Stellar Community Fund grants received (Instawards)
+
+| Evidence | Network | What it proves |
+|---|---|---|
+| Instaward #1, [tx](https://stellar.expert/explorer/public/tx/fd0f7469ae78b76ca5c4186cd7e1b24c081c407758a92cff3a56f376d01e91d1) | mainnet, 11 May 2026 | 29,822.71 XLM paid by the Stellar Community Fund |
+| Instaward #2, [tx](https://stellar.expert/explorer/public/tx/7784ad6eb2b27ace75ce2fe4b7290fb1b8241da425331bfbda2e939b47759b7e) | mainnet, 31 Jul 2026 | 29,294.14 XLM paid by the Stellar Community Fund |
+
+**Honest limit:** both grants were delivered and paid before this evidence file existed; verify them independently on Horizon or stellar.expert using the linked transaction hashes.
