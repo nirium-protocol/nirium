@@ -4,9 +4,20 @@ All notable changes to the `nirium` package are documented here.
 
 ## Unreleased
 
+## 0.17.0 - 2026-11-05
+
 ### Added
 
 - `initX402({ maxAmountPerPayment })` ([#106](https://github.com/nirium-protocol/nirium/issues/106)): sets the `@x402/core` 2.28 per-payment cap (`spendControls.maxAmountPerPayment`) so APIs priced above $1 can be paid. Accepts `'$5'`, `'5'` or `5`; validated at `initX402()` time (positive amounts only, `false` is rejected). Without the option, behavior is unchanged: the default stays `$1`. Works with and without `policy`. The `X402SpendCapError` message now points to the option.
+
+### Fixed
+
+- The default `baseUrl` (`Agent` constructor and its JSDoc example) was `http://localhost:3001` - that's only the agent's own standalone fallback, a path the documented `pnpm dev` quickstart never takes (it runs on `3002` via `master.ts`). Now `3002`, matching the quickstart everyone actually follows.
+- The `facilitatorApiKey` JSDoc comment on `X402ServeConfig` said "Mainnet lo exige; testnet no" while the runtime check two lines below throws on both networks ("the facilitator rejects unauthenticated servers on testnet too") - directly contradicting the code it described. Same false claim in the README's quickstart comment. Comment-only; behavior was already correct.
+
+### Security
+
+- `@stellar/mpp` > `mppx` > `viem`/`abitype`/`incur` > `zod` could resolve below 4.6.6 (patched) for `GHSA-mrhx-c7xc-m3w5`, previously only allowlisted rather than fixed. Every package on that chain already declares `zod ^4.x` in its own `peerDependencies` - nothing pinned it low, it just never got bumped. Added a scoped `overrides` entry (`mppx`, `@stellar/mpp`, `viem`) so the whole subtree resolves to a patched version; `@x402/core`'s own `zod ^3.x` is untouched. `@x402/core` itself still requires `zod ^3.24.2`, which cannot resolve to 4.x - no patched 3.x release exists, so that one dependency stays allowlisted via `audit-ci`.
 
 ## 0.16.1 - 2026-10-11
 
