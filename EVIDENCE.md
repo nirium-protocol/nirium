@@ -77,3 +77,4 @@ npm: [`nirium-cli@3.0.1`](https://www.npmjs.com/package/nirium-cli), [`nirium@0.
 |---|---|
 | **[ETH Cinco de Mayo 2026](https://x.com/ETHCincoDeMayo/status/2077553531834237216)** | Finalist, 10 of 30+ applicants, public tweet 15 Jul 2026 |
 | **[BBVA Open Deal / "The Open Deal Room by Stellar"](https://www.youtube.com/watch?v=kpN5YwGz1bk)** | 1 of 6 Stellar ecosystem startups invited to pitch investors, 21 May 2026, Torre BBVA CDMX |
+| **["Código 402: Agentes que pagan"](https://luma.com/ljzvwv35)** | 5-session bootcamp + Demo Day, 10-27 Nov 2026, co-hosted with Blockchain Acceleration Foundation and Stellar ambassador Gerardo Vela. Teaches x402 on Stellar testnet end to end; each session adds to a public repo |
