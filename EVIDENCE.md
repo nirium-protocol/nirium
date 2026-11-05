@@ -33,7 +33,7 @@ Last verified live: 5 Nov 2026, against Horizon (mainnet/testnet), the Pinata ga
 | [CID](https://gateway.pinata.cloud/ipfs/QmboKKkuwck3zvRx2bqnzUdDFkrEtc1VUHo6rrzm9nyBtD) + [tx](https://stellar.expert/explorer/testnet/tx/95717202be514ed0ae6d59d88c5950d79ff94b40dad709a430691ad6c4449b7b) | testnet, 1 Nov 2026 | Our Pollar adapter anchoring a receipt on a payment's success event. Our own self-test, not a feature Pollar has adopted |
 | [Reporting summary](https://nirium-agent-mainnet.fly.dev/api/reporting/summary?network=mainnet) | mainnet, live | 33 anchors as of 5 Nov 2026, including our own tests and demos |
 | [nirium.xyz/verify](https://nirium.xyz/verify) | live | Anyone can paste any CID and verify it independently |
-| [nirium.xyz/keys](https://nirium.xyz/keys) | live | Anyone can generate their own key and anchor their own record |
+| `POST /api/audit/log` on [testnet](https://nirium-agent.fly.dev/api/audit/info) and [mainnet](https://nirium-agent-mainnet.fly.dev/api/audit/info) | live | Anyone can anchor a record with no API key, free and rate-limited during the beta. Signing with your own Stellar key is optional. API keys for the rest of the API are at [nirium.xyz/keys](https://nirium.xyz/keys) |
 
 **Honest limit:** the anchors live on IPFS, not on Stellar itself. TIA confirmed that both wallets in its two payments are its own, so those are integration tests, not customer payments.
 
@@ -44,7 +44,7 @@ Last verified live: 5 Nov 2026, against Horizon (mainnet/testnet), the Pinata ga
 | `angeldavid218`, [CID](https://gateway.pinata.cloud/ipfs/QmP7kpzFAzB5XNZVvsmmV71WCitiqYqTJN72dBrfC8BaAe), [issue #211](https://github.com/nirium-protocol/nirium/issues/211) | testnet, 25 Oct | Independent user, own key |
 | `santy8151`, [CID](https://gateway.pinata.cloud/ipfs/QmdiC1867LKxf8HZt7vEeNNL4fthfjkKGkDMJdfLnkm5xp), [issue #222](https://github.com/nirium-protocol/nirium/issues/222) | testnet, 28 Oct | Independent user, own key |
 | Lucas Cifuentes / AegisOS, [CID](https://gateway.pinata.cloud/ipfs/QmT7rXHMhjbHCcrPWARzjEGUXAYMHjkWRLwwd833qXmDue) + [tx](https://stellar.expert/explorer/testnet/tx/6c2adb922821cb464d03fdf46ae5c7ddb383417cf3f861b4731e48a6348a3f42), [issue #233](https://github.com/nirium-protocol/nirium/issues/233) | testnet, 1 Nov | Independent user, own key |
-| Alx Hernández / CodeDeityX, [CID](https://gateway.pinata.cloud/ipfs/QmbG4hLWWCbzr34UJujVbNGw8gPgVohM9dG2eeBQqLyjRp), [issue #234](https://github.com/nirium-protocol/nirium/issues/234) | testnet, 2 Nov | Independent user, own key |
+| Aldo Hernández / CodeDeityX, [CID](https://gateway.pinata.cloud/ipfs/QmbG4hLWWCbzr34UJujVbNGw8gPgVohM9dG2eeBQqLyjRp), [issue #234](https://github.com/nirium-protocol/nirium/issues/234) | testnet, 2 Nov | Independent user, own key |
 | Pako Méndez (Costa Rica), [workshop CID](https://gateway.pinata.cloud/ipfs/QmS45Gs3KNExpB4jmmkb9pjN81vhwhB3FbF2Z6rrozNstZ), then [unsigned CID](https://gateway.pinata.cloud/ipfs/QmSXQr1MtxtXHmAWpd2mtJPenfkRWRLH4SCLVLV2HEYTsu) and [signed CID](https://gateway.pinata.cloud/ipfs/QmUzKWHGZUc9sNSFuuzWhEk5Sko15w87EBBaNjVVjevcP6), [issue #243](https://github.com/nirium-protocol/nirium/issues/243) | mainnet, 2 Nov, then testnet, 2-3 Nov (UTC) | Independent user, own key at the workshop. Anchored two more records afterward, with two different tools |
 | Brayan / Dynerox, [CID](https://gateway.pinata.cloud/ipfs/QmYsP9hD5CA1PXDu9qqjEGjrvioYn6Fy45ULetKkibxYQZ) | mainnet, 30 Oct | Independent user, own key, workshop attendee |
 
@@ -85,10 +85,11 @@ Four `rebalance()` calls on mainnet, 6 Aug 2026 01:54-02:29 UTC, from RebalanceM
 
 npm: [`nirium-cli@3.0.1`](https://www.npmjs.com/package/nirium-cli), [`nirium@0.16.1`](https://www.npmjs.com/package/nirium), [`nirium-mcp@0.6.3`](https://www.npmjs.com/package/nirium-mcp), [`nirium-pollar-adapter@0.6.0`](https://www.npmjs.com/package/nirium-pollar-adapter). PyPI: [`nirium@0.11.0`](https://pypi.org/project/nirium/). Listed on [skills.stellar.org](https://skills.stellar.org). [nirium.xyz/stats](https://nirium.xyz/stats) is live, our own source, presented as supporting data, not third-party proof.
 
-## 10. Public recognition (verified 3 Nov 2026)
+## 10. Public recognition and community (verified 3 Nov 2026, bootcamp and newsletter 5 Nov)
 
 | Event | What it proves |
 |---|---|
 | **[ETH Cinco de Mayo 2026](https://x.com/ETHCincoDeMayo/status/2077553531834237216)** | Finalist, 10 of 30+ applicants, public tweet 15 Jul 2026 |
 | **[BBVA Open Deal / "The Open Deal Room by Stellar"](https://www.youtube.com/watch?v=kpN5YwGz1bk)** | 1 of 6 Stellar ecosystem startups invited to pitch investors, 21 May 2026, Torre BBVA CDMX |
 | **[BAF newsletter](https://bafs-newsletter.beehiiv.com/p/recap-de-la-call-becas-hubs-y-un-summit-en-juego-tu-proyecto-est-listo)** | Nirium featured by the Blockchain Acceleration Foundation, 27 Jun 2026 |
+| **["Código 402: Agentes que pagan"](https://luma.com/ljzvwv35)** | Online bootcamp, 5 sessions plus Demo Day, 10-27 Nov 2026, hosted by the Blockchain Acceleration Foundation with Fernanda Tello (Country Lead Mexico), Gerardo Vela, Giovanny Amador and Monserrat Mendoza. Sessions: first Stellar payment, charging for an API with x402, an agent that pays within a spending limit, and verifying a payment on the network. Nirium appears as one real case among several, up to 15 minutes per session. Scheduled, so this shows the program exists, not its results |
