@@ -1,6 +1,6 @@
 {
   "name": "nirium-mcp",
-  "version": "0.6.3",
+  "version": "0.6.4",
   "description": "Model Context Protocol server for Nirium - exposes market data, autonomous loop control, and x402 paid signals (MPP tools are experimental) to any MCP-compatible AI (Claude, GPT, Cursor, VS Code Copilot).",
   "main": "dist/index.js",
   "bin": {
