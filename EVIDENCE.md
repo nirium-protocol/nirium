@@ -1,6 +1,6 @@
 # Nirium: Evidence Index
 
-Last verified live: 5 Nov 2026, against Horizon (mainnet/testnet), the Pinata gateway, GitHub API and npm. Every item below links directly to its own evidence. Check any of them independently.
+Last verified live: 6 Nov 2026, against Horizon (mainnet/testnet), the Pinata gateway, GitHub API and npm. Every item below links directly to its own evidence. Check any of them independently.
 
 ## 1. x402 payments on Stellar (mainnet)
 
@@ -29,9 +29,10 @@ Last verified live: 5 Nov 2026, against Horizon (mainnet/testnet), the Pinata ga
 |---|---|---|
 | [CID](https://gateway.pinata.cloud/ipfs/QmVWZM1i9qusiTfNAT9QdSFYJNEwQUXtnWuSkrCqRAnGEu) + [tx](https://stellar.expert/explorer/public/tx/cc5740aebf850194532392a1d216c2af620c70a7c46c8b36a0ea4a06b577808a) | mainnet, 18 Oct 2026 | TIA's receipt, signed with its own key, anchored about 3 seconds after a settled payment. The anchor is hash-only and does not embed the transaction hash |
 | [CID](https://gateway.pinata.cloud/ipfs/QmWnt7mQNYB6RgFW9AUPxHsw1B5GerR6bJPHiCZXQLKdCH) + [tx](https://stellar.expert/explorer/public/tx/9c37b4bc38094b529ff8f05bd8b0734761fed0d92861e27ae35783653a5f756a) | mainnet, 23 Oct 2026 | TIA's second receipt, for a paid quote, anchored about 10 seconds after the payment. Same limit |
+| [CID](https://gateway.pinata.cloud/ipfs/QmXT33ZyUvwxzamEMeGYyUxpAWt86bsPpRkFFu4D1fPkso) | mainnet, 6 Nov 2026 | TIA's third receipt, same key, tag `tia-route`. Signature checked independently. No payment transaction is linked to it |
 | [CID](https://gateway.pinata.cloud/ipfs/QmUoapw3ya1pNkWChZZCLWq1z2yUZffnrEtt5W3LXc2KzM) | testnet, 29 Oct 2026 | Our own workshop dry run: a receipt signed with a Stellar key (`nirium-audit-v1:<sha256>`) |
 | [CID](https://gateway.pinata.cloud/ipfs/QmboKKkuwck3zvRx2bqnzUdDFkrEtc1VUHo6rrzm9nyBtD) + [tx](https://stellar.expert/explorer/testnet/tx/95717202be514ed0ae6d59d88c5950d79ff94b40dad709a430691ad6c4449b7b) | testnet, 1 Nov 2026 | Our Pollar adapter anchoring a receipt on a payment's success event. Our own self-test, not a feature Pollar has adopted |
-| [Reporting summary](https://nirium-agent-mainnet.fly.dev/api/reporting/summary?network=mainnet) | mainnet, live | 33 anchors as of 5 Nov 2026, including our own tests and demos |
+| [Reporting summary](https://nirium-agent-mainnet.fly.dev/api/reporting/summary?network=mainnet) | mainnet, live | 34 anchors as of 6 Nov 2026, including our own tests and demos |
 | [nirium.xyz/verify](https://nirium.xyz/verify) | live | Anyone can paste any CID and verify it independently |
 | `POST /api/audit/log` on [testnet](https://nirium-agent.fly.dev/api/audit/info) and [mainnet](https://nirium-agent-mainnet.fly.dev/api/audit/info) | live | Anyone can anchor a record with no API key, free and rate-limited during the beta. Signing with your own Stellar key is optional. API keys for the rest of the API are at [nirium.xyz/keys](https://nirium.xyz/keys) |
 
@@ -85,14 +86,14 @@ Four `rebalance()` calls on mainnet, 6 Aug 2026 01:54-02:29 UTC, from RebalanceM
 
 npm: [`nirium-cli@3.0.1`](https://www.npmjs.com/package/nirium-cli), [`nirium@0.17.0`](https://www.npmjs.com/package/nirium), [`nirium-mcp@0.6.4`](https://www.npmjs.com/package/nirium-mcp), [`nirium-pollar-adapter@0.6.0`](https://www.npmjs.com/package/nirium-pollar-adapter). PyPI: [`nirium@0.11.1`](https://pypi.org/project/nirium/). Listed on [skills.stellar.org](https://skills.stellar.org). [nirium.xyz/stats](https://nirium.xyz/stats) is live, our own source, presented as supporting data, not third-party proof.
 
-## 10. Public recognition and community (verified 3 Nov 2026, bootcamp and newsletter 5 Nov)
+## 10. Public recognition and community (verified 3 Nov 2026, newsletter 5 Nov, bootcamp 6 Nov)
 
 | Event | What it proves |
 |---|---|
 | **[ETH Cinco de Mayo 2026](https://x.com/ETHCincoDeMayo/status/2077553531834237216)** | Finalist, 10 of 30+ applicants, public tweet 15 Jul 2026 |
 | **[BBVA Open Deal / "The Open Deal Room by Stellar"](https://www.youtube.com/watch?v=kpN5YwGz1bk)** | 1 of 6 Stellar ecosystem startups invited to pitch investors, 21 May 2026, Torre BBVA CDMX |
 | **[BAF newsletter](https://bafs-newsletter.beehiiv.com/p/recap-de-la-call-becas-hubs-y-un-summit-en-juego-tu-proyecto-est-listo)** | Nirium featured by the Blockchain Acceleration Foundation, 27 Jun 2026 |
-| **["Código 402: Agentes que pagan"](https://luma.com/ljzvwv35)** | Online bootcamp, 5 sessions plus Demo Day, 10-27 Nov 2026, hosted by the Blockchain Acceleration Foundation with Fernanda Tello (Country Lead Mexico), Gerardo Vela (Stellar Ambassador), Giovanny Amador and Monserrat Mendoza. Sessions: first Stellar payment, charging for an API with x402, an agent that pays within a spending limit, and verifying a payment on the network. Nirium appears as one real case among several, up to 15 minutes per session. Scheduled, so this shows the program exists, not its results |
+| **["Código 402: Agentes que pagan"](https://luma.com/ljzvwv35)** | Online bootcamp, 5 sessions plus Demo Day, 10-27 Nov 2026, hosted by the Blockchain Acceleration Foundation with Fernanda Tello (Country Lead Mexico), Gerardo Vela (Stellar Ambassador), Giovanny Amador and Monserrat Mendoza. Sessions, per BAF's published program: a first USDC payment on testnet; charging for an API with x402; an agent that pays on its own within a spending limit (Soroban smart accounts); verifying payments with RPC or Horizon, with Nirium as a case study; and a workshop to finish the prototype before Demo Day. [Post](https://nirium.xyz/blog/codigo-402-agentes-que-pagan). Nirium appears as one real case among several, up to 15 minutes per session. Scheduled, so this shows the program exists, not its results |
 
 ## 11. Stellar Community Fund grants received (Instawards)
 
@@ -105,7 +106,7 @@ npm: [`nirium-cli@3.0.1`](https://www.npmjs.com/package/nirium-cli), [`nirium@0.
 
 ## 12. Signed letters of intent
 
-The following companies signed a non-binding letter of intent after testing our integration themselves. Names only; the letters are private documents, available on request.
+The following teams, and one independent researcher, signed a non-binding letter of intent after testing our integration themselves. Names only; the letters are private documents, available on request.
 
 - Pollar
 - Trustless Work
