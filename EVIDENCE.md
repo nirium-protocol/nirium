@@ -35,6 +35,7 @@ Last verified live: 6 Nov 2026, against Horizon (mainnet/testnet), the Pinata ga
 | [Reporting summary](https://nirium-agent-mainnet.fly.dev/api/reporting/summary?network=mainnet) | mainnet, live | 34 anchors as of 6 Nov 2026, including our own tests and demos |
 | [nirium.xyz/verify](https://nirium.xyz/verify) | live | Anyone can paste any CID and verify it independently |
 | `POST /api/audit/log` on [testnet](https://nirium-agent.fly.dev/api/audit/info) and [mainnet](https://nirium-agent-mainnet.fly.dev/api/audit/info) | live | Anyone can anchor a record with no API key, free and rate-limited during the beta. Signing with your own Stellar key is optional. API keys for the rest of the API are at [nirium.xyz/keys](https://nirium.xyz/keys) |
+| [`verify-audit-cid`](https://github.com/nirium-protocol/nirium/tree/main/actions/verify-audit-cid) GitHub Action, [PR #259](https://github.com/nirium-protocol/nirium/pull/259), [PR #260](https://github.com/nirium-protocol/nirium/pull/260) | live, 6 Nov 2026 | No longer depends on one public IPFS gateway. Tries a dedicated gateway first, then two public ones as fallback, and reports which one answered. Also fixed: verification of hash-only receipts (no `record` field), which previously always failed. |
 
 **Honest limit:** the anchors live on IPFS, not on Stellar itself. TIA confirmed that both wallets in its two payments are its own, so those are integration tests, not customer payments.
 
