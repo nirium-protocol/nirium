@@ -82,6 +82,7 @@ async function setOutputs(result: VerifyResult): Promise<void> {
   await Promise.all([
     setOutput('verified', boolOutput(result.ok)),
     setOutput('hash_match', boolOutput(result.hashMatch)),
+    setOutput('hash_only', boolOutput(result.hashOnly)),
     setOutput('signature_valid', statusLabel(result.signatureStatus)),
     setOutput('signer', result.signerKey || ''),
     setOutput('content_sha256', result.computedHash),
@@ -102,6 +103,7 @@ function renderSummary(result: VerifyResult): string {
     ['Fetch URL', result.url || ''],
     ['Verified', boolOutput(result.ok)],
     ['Hash match', boolOutput(result.hashMatch)],
+    ['Hash-only document', boolOutput(result.hashOnly)],
     ['Recomputed SHA-256', result.computedHash || ''],
     ['Declared SHA-256', result.expectedHash || ''],
     ['Agent signer', result.signerKey || 'N/A'],

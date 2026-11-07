@@ -44,10 +44,11 @@ verification even for a perfectly healthy CID.
 | Name | Description |
 | --- | --- |
 | `verified` | `true` when the content hash matches and no embedded agent signature is invalid. |
-| `hash_match` | `true` when the recomputed record hash matches `content_sha256`. |
+| `hash_match` | `true` when the recomputed record hash matches `content_sha256`. For a hash-only document (see `hash_only`) this is trivially true, since there is no `record` to recompute against. |
+| `hash_only` | `true` when the document has no `record` field (anchored by hash alone, e.g. via `/api/audit/log` without a record body). The evidence itself was never sent to Nirium; only the signature check (below) proves the signer attested to the declared hash. |
 | `signature_valid` | `valid`, `invalid`, or `absent`. |
 | `signer` | Stellar `G...` public key from the agent block, when present. |
-| `content_sha256` | Recomputed SHA-256 hash of `doc.record`. |
+| `content_sha256` | Recomputed SHA-256 hash of `doc.record`, or the document's own declared hash when `hash_only` is `true`. |
 | `cid` | Echo of the `cid` input. |
 | `gateway` | Gateway used for the fetch. |
 | `error` | Error detail when fetch or verification fails. |
@@ -58,3 +59,15 @@ The action intentionally reconstructs the signed statement from the recomputed
 record hash. It does not trust embedded `valid` or `agent.statement` fields,
 which prevents statement-substitution attacks where a valid old signature is
 reused after the audit record is changed.
+
+**Hash-only documents** (no `record` field, produced by `/api/audit/log`
+without a record body) have nothing to recompute a hash against - the
+caller's evidence never touches Nirium, only its hash does. For these, the
+action verifies the signature directly over the document's own declared
+`content_sha256`, and reports `hash_only: true` so callers can tell the two
+cases apart. The CID's own content-addressing already guarantees the JSON
+document itself was not altered after anchoring; the signature proves the
+signer attested to that exact hash. What this action cannot verify, in
+either mode, is whether the declared hash matches evidence you have not
+shown it - that comparison only the holder of the original evidence can
+make, by hashing it themselves and comparing.

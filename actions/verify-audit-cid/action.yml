@@ -33,7 +33,9 @@ outputs:
   verified:
     description: "true when the document hash matches and no embedded agent signature is invalid."
   hash_match:
-    description: "true when SHA-256(JSON.stringify(record)) matches content_sha256."
+    description: "true when SHA-256(JSON.stringify(record)) matches content_sha256. For a hash-only document (no `record` field), this is trivially true since there is nothing to recompute against; see `hash_only`."
+  hash_only:
+    description: "true when the document has no `record` field (anchored by hash alone, e.g. via /api/audit/log without a record body). The evidence itself was never sent to Nirium; only the signature check proves the signer attested to the declared hash."
   signature_valid:
     description: "valid, invalid, or absent."
   signer:

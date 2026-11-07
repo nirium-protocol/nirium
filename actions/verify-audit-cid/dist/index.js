@@ -60530,6 +60530,7 @@ function verifyAuditDocument(doc, cid) {
             ok: false,
             cid,
             hashMatch: false,
+            hashOnly: false,
             expectedHash: '',
             computedHash: '',
             signatureStatus: 'absent',
@@ -60537,7 +60538,15 @@ function verifyAuditDocument(doc, cid) {
         };
     }
     const expectedHash = doc.content_sha256 || '';
-    const computedHash = computeRecordHash(doc.record);
+    const hashOnly = doc.record === undefined;
+    // Full-record documents: recompute the hash from the embedded record and
+    // compare. Hash-only documents (produced by /api/audit/log without a
+    // `record` body) never send the original evidence to Nirium, so there is
+    // nothing here to recompute against - the CID's own content-addressing
+    // already guarantees this exact JSON was not altered after anchoring;
+    // the signature check below, over the declared hash, is what proves the
+    // signer actually attested to it.
+    const computedHash = hashOnly ? expectedHash : computeRecordHash(doc.record);
     const hashMatch = expectedHash.length > 0 && expectedHash === computedHash;
     let signatureStatus = 'absent';
     let signerKey;
@@ -60557,6 +60566,7 @@ function verifyAuditDocument(doc, cid) {
         ok,
         cid,
         hashMatch,
+        hashOnly,
         expectedHash,
         computedHash,
         signatureStatus,
@@ -60629,6 +60639,7 @@ async function fetchAndVerifyCid(cid, options = {}) {
         gateway: lastGateway,
         url: lastUrl,
         hashMatch: false,
+        hashOnly: false,
         expectedHash: '',
         computedHash: '',
         signatureStatus: 'absent',
@@ -60712,6 +60723,7 @@ async function setOutputs(result) {
     await Promise.all([
         setOutput('verified', boolOutput(result.ok)),
         setOutput('hash_match', boolOutput(result.hashMatch)),
+        setOutput('hash_only', boolOutput(result.hashOnly)),
         setOutput('signature_valid', statusLabel(result.signatureStatus)),
         setOutput('signer', result.signerKey || ''),
         setOutput('content_sha256', result.computedHash),
@@ -60730,6 +60742,7 @@ function renderSummary(result) {
         ['Fetch URL', result.url || ''],
         ['Verified', boolOutput(result.ok)],
         ['Hash match', boolOutput(result.hashMatch)],
+        ['Hash-only document', boolOutput(result.hashOnly)],
         ['Recomputed SHA-256', result.computedHash || ''],
         ['Declared SHA-256', result.expectedHash || ''],
         ['Agent signer', result.signerKey || 'N/A'],

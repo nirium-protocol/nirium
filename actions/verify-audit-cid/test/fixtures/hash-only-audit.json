@@ -1,0 +1,15 @@
+{
+  "version": "1.1.0",
+  "node": "audit-external",
+  "content_sha256": "1501ad782f7007699152dd5ab8fce4b3e86c38511d8af8ab69d0f9d6d8c34ec8",
+  "agent": {
+    "id": "test-hash-only-agent",
+    "key": "GD5SEUGEEXDSWRF4ZZPSD4OYLDKNUINGRBDZ56DLIUBKQLK36FCQLWFS",
+    "alg": "ed25519",
+    "statement": "nirium-audit-v1:1501ad782f7007699152dd5ab8fce4b3e86c38511d8af8ab69d0f9d6d8c34ec8",
+    "signature": "I6vWxZESTx5xFFhEbhxeYexA2AODQ3jr/6M9QGR053dJL8GretLVs15LfuEprtG2ZHdOx411nKH04g7vzFR0Cg=="
+  },
+  "network": "stellar:testnet",
+  "tag": "hash-only-fixture",
+  "anchoredAt": "2026-11-07T00:00:00.000Z"
+}

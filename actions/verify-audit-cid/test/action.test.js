@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import validFixture from './fixtures/valid-audit.json' with { type: 'json' };
+import hashOnlyFixture from './fixtures/hash-only-audit.json' with { type: 'json' };
 import {
   DEFAULT_GATEWAYS,
   fetchAndVerifyCid,
@@ -181,4 +182,32 @@ test('an explicit single gateway input is not treated as a fallback list', async
   assert.deepEqual(calledUrls, ['https://gateway.example/ipfs/QmCID']);
   assert.equal(result.ok, false);
   assert.equal(result.gateway, 'https://gateway.example/ipfs/');
+});
+
+test('offline verify: a hash-only document (no record field) verifies against its declared hash', () => {
+  const result = verifyAuditDocument(hashOnlyFixture, 'QmHashOnly');
+
+  assert.equal(result.hashOnly, true);
+  assert.equal(result.hashMatch, true);
+  assert.equal(result.signatureStatus, 'valid');
+  assert.equal(result.ok, true);
+  assert.equal(result.computedHash, hashOnlyFixture.content_sha256);
+});
+
+test('offline verify: a hash-only document with a forged signature is rejected', () => {
+  const tampered = structuredClone(hashOnlyFixture);
+  tampered.agent.signature = `INVALID${tampered.agent.signature.slice(7)}`;
+
+  const result = verifyAuditDocument(tampered, 'QmHashOnly');
+
+  assert.equal(result.hashOnly, true);
+  assert.equal(result.signatureStatus, 'invalid');
+  assert.equal(result.ok, false);
+});
+
+test('offline verify: a full-record document is still hashOnly=false and verifies as before', () => {
+  const result = verifyAuditDocument(validFixture, 'QmSSZdtt3dQ8BqUm62zrKQ85E4BUHYiVfvDgZmHfJsqU1U');
+
+  assert.equal(result.hashOnly, false);
+  assert.equal(result.ok, true);
 });
