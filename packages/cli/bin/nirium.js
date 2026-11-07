@@ -188,6 +188,21 @@ program
         }
     });
 
+// --- COMMAND: anchor ---
+program
+    .command('anchor')
+    .description('Anchor a sha-256 hash (or a small JSON record) to IPFS via an Audit Trail node')
+    .option('--file <path>', 'Anchor the sha-256 of this file - the file itself is never uploaded')
+    .option('--hash <hex>', 'sha-256 hex of your evidence (64 chars, optional sha-256: prefix)')
+    .option('--record <json>', 'Small JSON object (max 8KB) to anchor verbatim, e.g. \'{"order":"A-12"}\'')
+    .option('--tx <hash>', 'Transaction hash to associate with this anchor')
+    .option('--tag <tag>', 'Free-form label for this anchor')
+    .option('-u, --url <url>', 'Agent URL', 'http://localhost:3002')
+    .option('--json', 'Output result as JSON')
+    .action(async (options) => {
+        await executeAnchorCommand(options);
+    });
+
 // --- COMMAND: doctor ---
 program
     .command('doctor')
@@ -1648,6 +1663,131 @@ function formatVerifyOutput(result) {
         lines.push(`❌ VERIFICATION FAILED`);
     }
     return lines.join('\n');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// anchor — anchor a hash or small record to IPFS via the Audit Trail node
+// ═══════════════════════════════════════════════════════════════
+
+const ANCHOR_MAX_RECORD_BYTES = 8 * 1024;
+
+// `nirium anchor` deliberately has no `--network` flag: the agent box
+// decides its own network (STELLAR_NETWORK) and the server already
+// rejects a `network` field in the body. A client-side flag here would
+// only ever be ignored, which is worse than not having it.
+async function executeAnchorCommand(options) {
+    const fail = (error, hint) => {
+        if (options.json) {
+            console.log(JSON.stringify({ ok: false, error, ...(hint ? { hint } : {}) }));
+        } else {
+            console.error(`❌ Error: ${error}${hint ? `\n   ${hint}` : ''}`);
+        }
+        process.exit(1);
+    };
+
+    const given = ['file', 'hash', 'record'].filter((k) => options[k] !== undefined);
+    if (given.length === 0) {
+        fail('Provide exactly one of --file, --hash, or --record.');
+        return;
+    }
+    if (given.length > 1) {
+        fail(`--${given[0]} and --${given[1]} were both given - use exactly one.`);
+        return;
+    }
+
+    const body = {};
+    if (options.file !== undefined) {
+        let fileBuf;
+        try {
+            fileBuf = fs.readFileSync(options.file);
+        } catch (err) {
+            fail(`Could not read --file '${options.file}': ${err?.message || String(err)}`);
+            return;
+        }
+        body.hash = crypto.createHash('sha256').update(fileBuf).digest('hex');
+    } else if (options.hash !== undefined) {
+        try {
+            body.hash = normalizeHashInput(options.hash);
+        } catch (err) {
+            fail(err.message);
+            return;
+        }
+    } else {
+        let record;
+        try {
+            record = JSON.parse(options.record);
+        } catch (err) {
+            fail(`--record is not valid JSON: ${err?.message || String(err)}`);
+            return;
+        }
+        if (typeof record !== 'object' || record === null || Array.isArray(record)) {
+            fail('--record must be a JSON object, e.g. \'{"order":"A-12"}\'');
+            return;
+        }
+        // Mirrors the server's own 8KB limit (MAX_RECORD_BYTES in
+        // auditRoutes.ts) so an oversized record fails locally, before any
+        // network call, instead of round-tripping for a 413.
+        const raw = JSON.stringify(record);
+        if (Buffer.byteLength(raw, 'utf8') > ANCHOR_MAX_RECORD_BYTES) {
+            fail(`--record exceeds ${ANCHOR_MAX_RECORD_BYTES / 1024}KB - anchor a sha-256 hash instead (--hash or --file).`);
+            return;
+        }
+        body.record = record;
+    }
+
+    if (options.tx !== undefined) body.txHash = options.tx;
+    if (options.tag !== undefined) body.tag = options.tag;
+
+    const agentAttestation = await maybeBuildAgentAttestation(options, body, fail);
+    if (agentAttestation === 'failed') return; // fail() already called and exited
+    if (agentAttestation) body.agent = agentAttestation;
+
+    let response;
+    try {
+        response = await fetch(`${options.url}/api/audit/log`, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify(body),
+            signal: AbortSignal.timeout(20_000),
+        });
+    } catch (err) {
+        const msg = (err?.name === 'TimeoutError' || err?.name === 'AbortError')
+            ? `Timed out waiting for ${options.url}/api/audit/log`
+            : `Agent unreachable at ${options.url}: ${err?.message || String(err)}`;
+        fail(msg);
+        return;
+    }
+
+    let data = null;
+    try {
+        data = await response.json();
+    } catch { /* empty or non-JSON body */ }
+
+    if (!response.ok) {
+        fail(data?.error || `Agent returned HTTP ${response.status}`, data?.sign ? `Sign this statement instead: ${data.sign}` : undefined);
+        return;
+    }
+
+    if (options.json) {
+        console.log(JSON.stringify({ ok: true, ...data }, null, 2));
+        return;
+    }
+
+    console.log('✅ Anchored to IPFS');
+    console.log(`   CID:            ${data.cid}`);
+    console.log(`   Content sha256: ${data.content_sha256}`);
+    if (data.gatewayUrl) console.log(`   Gateway URL:    ${data.gatewayUrl}`);
+    if (data.attestedBy) console.log(`   Attested by:    ${data.attestedBy}`);
+    console.log(`   Anchored at:    ${data.anchoredAt}`);
+    console.log(`\n   Verify independently: nirium verify ${data.cid}`);
+}
+
+// Returns the `agent` object for the request body, `undefined` when
+// `--sign` was not passed, or the string 'failed' when fail() already
+// ran (caller must return without doing anything else — placeholder for
+// #134, which adds `--sign`/`--key-env` on top of this command).
+async function maybeBuildAgentAttestation(_options, _body, _fail) {
+    return undefined;
 }
 
 program.parse();
