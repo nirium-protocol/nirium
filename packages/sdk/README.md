@@ -218,6 +218,28 @@ Runs on **your own server**, not Nirium's - `x402Serve()` is a client-side funct
 
 **Known limitation:** by default `x402Serve()` does not protect against replay and does not rate-limit callers. It is turned on by passing `guard` (see below).
 
+#### Getting listed in an x402 Bazaar (optional)
+
+Add `input`, `inputSchema`, and/or `output` to a route to declare its discovery metadata ([`@x402/extensions/bazaar`](https://www.npmjs.com/package/@x402/extensions)'s `declareDiscoveryExtension()`). A facilitator that reads the Bazaar extension (for example [Rail402](https://docs.rail402.dev/bazaar/discovery) on Stellar testnet) catalogs the route the first time a payment for it settles, so agents can discover it by searching instead of needing the URL hardcoded:
+
+```typescript
+app.use('/premium', x402Serve({
+  payTo: 'G...',
+  routes: {
+    'GET /signals': {
+      price: '$0.02',
+      description: 'Nirium arbitrage signals',
+      input: { count: 20 },
+      inputSchema: { properties: { count: { type: 'integer', maximum: 100 } } },
+      output: { example: { signals: [{ pair: 'XLM/USDC', confidence: 0.85 }] } },
+    },
+  },
+  facilitatorApiKey: '...',
+}));
+```
+
+Without `input`/`inputSchema`/`output`, a route behaves exactly as before - no `extensions` key, no new required dependency (`@x402/extensions` is only ever loaded if at least one route uses them).
+
 #### Replay and rate-limit guard (optional)
 
 Without `guard`, `x402Serve()` verifies and settles the payment and does nothing else. It does not stop the same signed payment from being sent twice, and it does not limit how often one caller can hit a route. Pass `guard` to get both:
