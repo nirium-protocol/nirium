@@ -4,6 +4,10 @@ All notable changes to the `nirium-cli` package are documented here.
 
 ## Unreleased
 
+### Added
+
+- `nirium verify --gateway` is now repeatable, tried in order as fallbacks, with `--retries`/`--timeout` ([#135](https://github.com/nirium-protocol/nirium/issues/135)). A `404` retries the *same* gateway with backoff (a fresh pin can take a moment to propagate); any other failure moves straight to the next gateway. When every gateway 404s, that's reported as `availability: "not_yet_available"`, distinct from a real hash mismatch - nothing was fetched to compare in the first place.
+
 ## 3.0.1 - 2026-10-24
 
 ### Fixed
