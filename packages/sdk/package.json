@@ -1,6 +1,6 @@
 {
   "name": "nirium",
-  "version": "0.17.0",
+  "version": "0.18.0",
   "description": "Autonomous treasury and agentic-payments infrastructure for Stellar (x402)",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
