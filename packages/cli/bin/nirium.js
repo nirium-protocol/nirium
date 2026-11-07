@@ -197,6 +197,8 @@ program
     .option('--record <json>', 'Small JSON object (max 8KB) to anchor verbatim, e.g. \'{"order":"A-12"}\'')
     .option('--tx <hash>', 'Transaction hash to associate with this anchor')
     .option('--tag <tag>', 'Free-form label for this anchor')
+    .option('--sign', 'Attach an ed25519 attestation of which key produced this anchor')
+    .option('--key-env <VAR>', 'Environment variable holding the Stellar secret key to sign with (--sign only; default: the config store\'s secretKey)')
     .option('-u, --url <url>', 'Agent URL', 'http://localhost:3002')
     .option('--json', 'Output result as JSON')
     .action(async (options) => {
@@ -1784,10 +1786,49 @@ async function executeAnchorCommand(options) {
 
 // Returns the `agent` object for the request body, `undefined` when
 // `--sign` was not passed, or the string 'failed' when fail() already
-// ran (caller must return without doing anything else — placeholder for
-// #134, which adds `--sign`/`--key-env` on top of this command).
-async function maybeBuildAgentAttestation(_options, _body, _fail) {
-    return undefined;
+// ran (caller must return without doing anything else).
+//
+// Signs locally and never sends the secret key anywhere - only the
+// resulting signature and the derived public key leave this process.
+// The statement signed, `nirium-audit-v1:<content_sha256>`, must match
+// exactly what the server itself computes as contentSha before it
+// verifies: the hash as-is for `--hash`/`--file` (already normalized to
+// lowercase hex at this point), or sha-256 of the record's JSON text for
+// `--record` - never the file's own content, which the server never sees.
+async function maybeBuildAgentAttestation(options, body, fail) {
+    if (!options.sign) return undefined;
+
+    let secretKey;
+    if (options.keyEnv !== undefined) {
+        secretKey = process.env[options.keyEnv];
+        if (!secretKey) {
+            fail(`--key-env ${options.keyEnv} is not set (or is empty) in the environment.`);
+            return 'failed';
+        }
+    } else {
+        secretKey = loadConfig().secretKey;
+        if (!secretKey) {
+            fail('--sign needs a key: run `nirium config set secretKey`, or pass --key-env <VAR> '
+                + 'with the secret key in that environment variable.');
+            return 'failed';
+        }
+    }
+
+    let keypair;
+    try {
+        keypair = Keypair.fromSecret(secretKey);
+    } catch (err) {
+        fail(`--sign: invalid Stellar secret key - ${err?.message || String(err)}`);
+        return 'failed';
+    }
+
+    const contentSha = body.hash
+        ? body.hash
+        : crypto.createHash('sha256').update(JSON.stringify(body.record)).digest('hex');
+    const statement = `nirium-audit-v1:${contentSha}`;
+    const signature = Buffer.from(keypair.sign(Buffer.from(statement, 'utf8'))).toString('base64');
+
+    return { key: keypair.publicKey(), signature };
 }
 
 program.parse();
