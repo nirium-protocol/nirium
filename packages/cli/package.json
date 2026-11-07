@@ -9,7 +9,7 @@
   },
   "scripts": {
     "prepublishOnly": "node --check bin/nirium.js",
-    "test": "node --test test/doctor-seller.test.js test/config-secret.test.js test/serve-api-key.test.js test/verify-hash-only.test.js test/verify-retry-gateway.test.js test/pay-agent-construction.test.js test/pay-status-and-cap.test.js test/status.test.js test/anchor.test.js test/report.test.js"
+    "test": "node --test test/doctor-seller.test.js test/config-secret.test.js test/serve-api-key.test.js test/verify-hash-only.test.js test/verify-retry-gateway.test.js test/pay-agent-construction.test.js test/pay-status-and-cap.test.js test/status.test.js test/anchor.test.js test/anchor-sign.test.js test/report.test.js"
   },
   "keywords": [
     "stellar",
