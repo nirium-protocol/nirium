@@ -26,6 +26,12 @@ export interface VerifyResult {
   gateway?: string;
   url?: string;
   hashMatch: boolean;
+  // true when the document has no `record` field (the self-serve
+  // /api/audit/log hash-only mode: the caller's evidence never touches
+  // Nirium, only its hash does). hashMatch is then trivially true - there
+  // is no record here to recompute against - and the real guarantee comes
+  // from the signature check below, over the declared hash.
+  hashOnly: boolean;
   expectedHash: string;
   computedHash: string;
   signatureStatus: SignatureStatus;
@@ -103,6 +109,7 @@ export function verifyAuditDocument(doc: AuditDocument, cid?: string): VerifyRes
       ok: false,
       cid,
       hashMatch: false,
+      hashOnly: false,
       expectedHash: '',
       computedHash: '',
       signatureStatus: 'absent',
@@ -111,7 +118,15 @@ export function verifyAuditDocument(doc: AuditDocument, cid?: string): VerifyRes
   }
 
   const expectedHash = doc.content_sha256 || '';
-  const computedHash = computeRecordHash(doc.record);
+  const hashOnly = doc.record === undefined;
+  // Full-record documents: recompute the hash from the embedded record and
+  // compare. Hash-only documents (produced by /api/audit/log without a
+  // `record` body) never send the original evidence to Nirium, so there is
+  // nothing here to recompute against - the CID's own content-addressing
+  // already guarantees this exact JSON was not altered after anchoring;
+  // the signature check below, over the declared hash, is what proves the
+  // signer actually attested to it.
+  const computedHash = hashOnly ? expectedHash : computeRecordHash(doc.record);
   const hashMatch = expectedHash.length > 0 && expectedHash === computedHash;
 
   let signatureStatus: SignatureStatus = 'absent';
@@ -136,6 +151,7 @@ export function verifyAuditDocument(doc: AuditDocument, cid?: string): VerifyRes
     ok,
     cid,
     hashMatch,
+    hashOnly,
     expectedHash,
     computedHash,
     signatureStatus,
@@ -220,6 +236,7 @@ export async function fetchAndVerifyCid(
     gateway: lastGateway,
     url: lastUrl,
     hashMatch: false,
+    hashOnly: false,
     expectedHash: '',
     computedHash: '',
     signatureStatus: 'absent',
