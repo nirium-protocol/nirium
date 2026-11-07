@@ -4,6 +4,10 @@ All notable changes to the `nirium-cli` package are documented here.
 
 ## Unreleased
 
+### Added
+
+- `nirium anchor` ([#133](https://github.com/nirium-protocol/nirium/issues/133)): anchors a sha-256 hash (`--hash`), a file's sha-256 (`--file`, the file itself is never uploaded), or a small JSON record (`--record`, max 8KB, enforced client-side) to IPFS via an Audit Trail node's `POST /api/audit/log`. Optional `--tx`/`--tag`; no `--network` flag by design - the agent box decides its own network. Prints the CID, content hash, gateway URL, and a `nirium verify` suggestion.
+
 ## 3.0.1 - 2026-10-24
 
 ### Fixed
