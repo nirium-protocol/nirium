@@ -7,9 +7,23 @@ inputs:
     description: IPFS CID for the Nirium audit document.
     required: true
   gateway:
-    description: IPFS gateway base URL. Values ending in /ipfs or /ipfs/ are used directly.
+    description: >-
+      Single IPFS gateway base URL to use, overriding the default fallback
+      list below. Values ending in /ipfs or /ipfs/ are used directly. Leave
+      unset to use the default fallback chain, or set `gateways` for a
+      custom one.
     required: false
-    default: https://ipfs.io/ipfs/
+    default: ""
+  gateways:
+    description: >-
+      Comma- or newline-separated list of IPFS gateway base URLs to try in
+      order, falling back to the next on any failure (HTTP error or
+      timeout). Ignored if `gateway` is set. Defaults to Filebase's
+      dedicated gateway, then ipfs.io, then dweb.link - in that order,
+      because ipfs.io and dweb.link rate-limit their shared public
+      gateways (HTTP 429) under load, while a dedicated gateway does not.
+    required: false
+    default: ""
   fail-on-error:
     description: Fail the workflow step when verification fails.
     required: false
@@ -29,7 +43,7 @@ outputs:
   cid:
     description: Echo of the CID input.
   gateway:
-    description: Gateway URL used for the fetch.
+    description: The gateway URL that actually answered (first one that worked, or the last one tried if all failed).
   error:
     description: Error detail when verification or fetch fails.
 

@@ -131,10 +131,20 @@ async function writeSummary(result: VerifyResult): Promise<void> {
 
 export async function run(): Promise<void> {
   const cid = getInput('cid', true);
-  const gateway = getInput('gateway') || 'https://ipfs.io/ipfs/';
+  const gateway = getInput('gateway');
+  const gatewaysRaw = getInput('gateways');
+  const gateways = gatewaysRaw
+    ? gatewaysRaw
+        .split(/[,\n]/)
+        .map((g) => g.trim())
+        .filter(Boolean)
+    : undefined;
   const failOnError = parseBooleanInput(getInput('fail-on-error') || 'true');
 
-  const result = await fetchAndVerifyCid(cid, { gateway });
+  const result = await fetchAndVerifyCid(cid, {
+    gateway: gateway || undefined,
+    gateways,
+  });
   await setOutputs(result);
   await writeSummary(result);
 
