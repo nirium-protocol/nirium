@@ -235,12 +235,31 @@ client-supplied network field is rejected server-side anyway.
 | `--record <json>` | anchor this small JSON object verbatim | none |
 | `--tx <hash>` | associate a transaction hash | none |
 | `--tag <label>` | free-form label | none |
+| `--sign` | attach an ed25519 attestation of which key produced this anchor | off |
+| `--key-env <VAR>` | env var holding the secret key to sign with (`--sign` only) | config store's `secretKey` |
 | `-u, --url <url>` | agent URL | `http://localhost:3002` |
 | `--json` | machine-readable result | off |
 
 On success, prints the CID, the content hash, the gateway URL, and a
 `nirium verify <cid>` suggestion so the anchor can be independently
 re-checked right away.
+
+### Attesting who produced an anchor
+
+```bash
+nirium config set secretKey          # hidden prompt, stored in ~/.niriumrc.json
+nirium anchor --hash <64-hex> --sign
+# or, without touching the config store:
+NIRIUM_KEY=S... nirium anchor --hash <64-hex> --sign --key-env NIRIUM_KEY
+```
+
+The CID alone proves the anchored fact wasn't altered; `--sign` proves
+*who* declared it. The secret key signs `nirium-audit-v1:<content_sha256>`
+locally with ed25519 - only the resulting signature and the derived
+public key (`G...`) ever leave this process, never the secret itself. If
+the node rejects the signature, nothing is anchored (`400`, exit non-zero).
+`nirium verify <cid>` independently re-checks it afterward and reports
+`SIGNATURE: VALID` against the same public key.
 
 ## Verify an audit record
 
