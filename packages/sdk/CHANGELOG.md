@@ -4,6 +4,8 @@ All notable changes to the `nirium` package are documented here.
 
 ## Unreleased
 
+## 0.18.0 - 2026-11-07
+
 ### Added
 
 - `x402Serve()` routes can declare `input`, `inputSchema`, and/or `output` ([#217](https://github.com/nirium-protocol/nirium/issues/217)): when any is present, the route is announced via `@x402/extensions/bazaar`'s `declareDiscoveryExtension()` as that route's `extensions`, letting a Bazaar (Rail402 on Stellar testnet, Coinbase's CDP Bazaar where applicable) catalog it once a payment for it settles. Without those fields, a route behaves exactly as before - no `extensions` key, no new required dependency (`@x402/extensions` is dynamically loaded only when at least one route opts in). Verified end to end against Rail402's hosted testnet facilitator: a settled payment against a public `x402Serve()`-protected route got the resource listed at `GET https://testnet.rail402.dev/discovery/resources`, trust `origin_verified`.
