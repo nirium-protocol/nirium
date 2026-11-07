@@ -8,6 +8,7 @@ All notable changes to the `nirium-cli` package are documented here.
 
 - `nirium anchor` ([#133](https://github.com/nirium-protocol/nirium/issues/133)): anchors a sha-256 hash (`--hash`), a file's sha-256 (`--file`, the file itself is never uploaded), or a small JSON record (`--record`, max 8KB, enforced client-side) to IPFS via an Audit Trail node's `POST /api/audit/log`. Optional `--tx`/`--tag`; no `--network` flag by design - the agent box decides its own network. Prints the CID, content hash, gateway URL, and a `nirium verify` suggestion.
 - `nirium verify --gateway` is now repeatable, tried in order as fallbacks, with `--retries`/`--timeout` ([#135](https://github.com/nirium-protocol/nirium/issues/135)). A `404` retries the *same* gateway with backoff (a fresh pin can take a moment to propagate); any other failure moves straight to the next gateway. When every gateway 404s, that's reported as `availability: "not_yet_available"`, distinct from a real hash mismatch - nothing was fetched to compare in the first place.
+- `nirium report summary` and `nirium report export anchors|payments|payroll` ([#136](https://github.com/nirium-protocol/nirium/issues/136)): thin client for the Reporting node. `export anchors` prints exactly one CID per line on stdout (nothing else), pipeable straight into `nirium verify`; the row count and the "not certified regulatory reporting" disclaimer print to stderr so they never land in that pipe. `--csv <file>` writes the server's CSV instead; `--json` prints the full response.
 
 ## 3.0.1 - 2026-10-24
 

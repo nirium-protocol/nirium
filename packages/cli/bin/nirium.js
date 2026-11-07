@@ -281,6 +281,38 @@ program
         await executeConfigCommand(action, key, value);
     });
 
+// --- COMMAND: report ---
+const reportCommand = program
+    .command('report')
+    .description('📊 Institutional-format summaries and exports from the Reporting node - not certified regulatory reporting');
+
+reportCommand
+    .command('summary')
+    .description('Aggregate payroll, payments, and anchors for a period')
+    .option('--from <date>', 'ISO date, start of period (default: a 30-day window)')
+    .option('--to <date>', 'ISO date, end of period')
+    .option('--network <network>', 'testnet or mainnet (default: all)')
+    .option('-u, --url <url>', 'Agent URL', 'http://localhost:3002')
+    .option('--json', 'Output as JSON')
+    .action(async (options) => {
+        await executeReportSummaryCommand(options);
+    });
+
+reportCommand
+    .command('export')
+    .argument('<type>', 'anchors, payments, or payroll')
+    .description('Export rows for a period - "export anchors" prints one CID per line, pipeable to `nirium verify`')
+    .option('--from <date>', 'ISO date, start of period (default: a 30-day window)')
+    .option('--to <date>', 'ISO date, end of period')
+    .option('--limit <n>', 'Max rows (server caps at 1000)')
+    .option('--network <network>', 'testnet or mainnet (default: all)')
+    .option('--csv <file>', 'Write the CSV export to this file instead of printing rows')
+    .option('-u, --url <url>', 'Agent URL', 'http://localhost:3002')
+    .option('--json', 'Output the full JSON response instead of one row per line')
+    .action(async (type, options) => {
+        await executeReportExportCommand(type, options);
+    });
+
 // Un servidor que COBRA, no uno que escucha. Es el camino corto de
 // "instalé algo" a "me pagaron": levantas esto, le pegas con un cliente
 // x402 y el pago se liquida on-chain antes de que salga la respuesta.
@@ -1867,6 +1899,153 @@ async function executeAnchorCommand(options) {
 // #134, which adds `--sign`/`--key-env` on top of this command).
 async function maybeBuildAgentAttestation(_options, _body, _fail) {
     return undefined;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// report — summaries and exports from the Reporting node
+// ═══════════════════════════════════════════════════════════════
+
+function buildQueryString(params) {
+    const qs = new URLSearchParams();
+    for (const [k, v] of Object.entries(params)) {
+        if (v !== undefined && v !== null && v !== '') qs.set(k, String(v));
+    }
+    const str = qs.toString();
+    return str ? `?${str}` : '';
+}
+
+async function fetchReportJson(url, fail) {
+    let response;
+    try {
+        response = await fetch(url, { signal: AbortSignal.timeout(20_000) });
+    } catch (err) {
+        const msg = (err?.name === 'TimeoutError' || err?.name === 'AbortError')
+            ? `Timed out waiting for ${url}`
+            : `Agent unreachable: ${err?.message || String(err)}`;
+        fail(msg);
+        return null;
+    }
+    let data = null;
+    try {
+        data = await response.json();
+    } catch { /* empty or non-JSON body */ }
+    if (!response.ok) {
+        fail(data?.error || `Agent returned HTTP ${response.status}`);
+        return null;
+    }
+    return data;
+}
+
+async function executeReportSummaryCommand(options) {
+    const fail = (error) => {
+        if (options.json) {
+            console.log(JSON.stringify({ ok: false, error }));
+        } else {
+            console.error(`❌ Error: ${error}`);
+        }
+        process.exit(1);
+    };
+
+    const qs = buildQueryString({ from: options.from, to: options.to, network: options.network });
+    const data = await fetchReportJson(`${options.url}/api/reporting/summary${qs}`, fail);
+    if (!data) return; // fail() already exited
+
+    if (options.json) {
+        console.log(JSON.stringify(data, null, 2));
+        return;
+    }
+
+    console.log('📊 Nirium Reporting Summary');
+    console.log(`   Network:  ${data.network}`);
+    console.log(`   Period:   ${data.period?.from || '(default window)'} -> ${data.period?.to || 'now'}`);
+    console.log(`   Payroll:  ${data.payroll?.settledRuns ?? 0} settled run(s), ${data.payroll?.recipientsPaid ?? 0} recipient(s) paid`);
+    for (const [asset, amount] of Object.entries(data.payroll?.totalsByAsset || {})) {
+        console.log(`             ${asset}: ${amount}`);
+    }
+    console.log(`   Payments: ${data.payments?.count ?? 0} receipt(s), ${data.payments?.totalUsdc ?? '0'} USDC total`);
+    console.log(`   Anchors:  ${data.anchors?.count ?? 0} (latest: ${data.anchors?.latestCid || 'none'})`);
+    if (Array.isArray(data.warnings) && data.warnings.length > 0) {
+        console.log('   ⚠ Warnings:');
+        for (const w of data.warnings) console.log(`      - ${w}`);
+    }
+    console.log(`\n   ${data.disclaimer || ''}`);
+}
+
+const REPORT_EXPORT_TYPES = new Set(['payroll', 'payments', 'anchors']);
+
+async function executeReportExportCommand(type, options) {
+    const fail = (error) => {
+        if (options.json) {
+            console.log(JSON.stringify({ ok: false, error }));
+        } else {
+            console.error(`❌ Error: ${error}`);
+        }
+        process.exit(1);
+    };
+
+    if (!REPORT_EXPORT_TYPES.has(type)) {
+        fail('`type` must be one of: payroll | payments | anchors');
+        return;
+    }
+    if (options.csv && options.json) {
+        fail('--csv and --json are mutually exclusive - --csv writes a file, --json prints the response.');
+        return;
+    }
+    if (options.limit !== undefined) {
+        const n = Number(options.limit);
+        if (!Number.isInteger(n) || n <= 0) {
+            fail(`Invalid --limit '${options.limit}': must be a positive integer.`);
+            return;
+        }
+    }
+
+    const format = options.csv ? 'csv' : 'json';
+    const qs = buildQueryString({
+        type, format, from: options.from, to: options.to, limit: options.limit, network: options.network,
+    });
+    const url = `${options.url}/api/reporting/export${qs}`;
+
+    if (format === 'csv') {
+        let response;
+        try {
+            response = await fetch(url, { signal: AbortSignal.timeout(30_000) });
+        } catch (err) {
+            fail(`Agent unreachable: ${err?.message || String(err)}`);
+            return;
+        }
+        if (!response.ok) {
+            let data = null;
+            try { data = await response.json(); } catch { /* non-JSON error body */ }
+            fail(data?.error || `Agent returned HTTP ${response.status}`);
+            return;
+        }
+        const text = await response.text();
+        try {
+            fs.writeFileSync(options.csv, text);
+        } catch (err) {
+            fail(`Could not write --csv '${options.csv}': ${err?.message || String(err)}`);
+            return;
+        }
+        console.log(`✅ Wrote ${options.csv}`);
+        return;
+    }
+
+    const data = await fetchReportJson(url, fail);
+    if (!data) return; // fail() already exited
+
+    if (options.json) {
+        console.log(JSON.stringify(data, null, 2));
+        return;
+    }
+
+    // `export anchors` prints exactly one CID per line on stdout - nothing
+    // else - so it pipes straight into `nirium verify` (xargs -n1 or a
+    // while-read loop). Row count and the disclaimer go to stderr instead
+    // of stdout for the same reason: stdout must stay pure for piping.
+    for (const row of data.rows || []) {
+        console.log(type === 'anchors' ? (row.cid || '') : JSON.stringify(row));
+    }
+    console.error(`# ${data.rowCount ?? (data.rows || []).length} row(s). ${data.disclaimer || ''}`);
 }
 
 program.parse();
