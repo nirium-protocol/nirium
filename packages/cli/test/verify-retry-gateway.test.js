@@ -161,3 +161,15 @@ test('--timeout rejects a non-positive value', async () => {
     assert.equal(r.code, 1);
     assert.match(r.stderr, /Invalid --timeout/);
 });
+
+test('no --gateway given: tries the default chain in order (Filebase, Pinata, ipfs.io, dweb.link)', async () => {
+    // 1ms timeout aborts every request before it reaches the network, so this
+    // checks only the order of the default list, never a real gateway's answer.
+    const r = await run(['--timeout', '1', '--retries', '0']);
+    assert.equal(r.code, 1);
+    const json = JSON.parse(r.stdout);
+    assert.deepEqual(
+        json.attempts.map((a) => a.gateway),
+        ['https://nirium.myfilebase.com', 'https://gateway.pinata.cloud', 'https://ipfs.io', 'https://dweb.link'],
+    );
+});

@@ -158,11 +158,22 @@ program
         }
     });
 
+// Tried in order when no --gateway is given. ipfs.io and dweb.link answer 429
+// for healthy CIDs under load (#185), and Pinata serves our pins but often
+// takes 5-7s, so a dedicated gateway goes first. Same chain as the
+// verify-audit-cid Action (#259), plus Pinata.
+const DEFAULT_GATEWAYS = [
+    'https://nirium.myfilebase.com',
+    'https://gateway.pinata.cloud',
+    'https://ipfs.io',
+    'https://dweb.link',
+];
+
 // --- COMMAND: verify ---
 program
     .command('verify')
     .argument('<cid>', 'IPFS Content Identifier (CID) of the audit document')
-    .option('-g, --gateway <url>', 'IPFS gateway URL - repeatable, tried in order as fallbacks', (val, prev) => [...(prev || []), val], [])
+    .option('-g, --gateway <url>', 'IPFS gateway URL - repeatable, tried in order as fallbacks (default: Filebase, Pinata, ipfs.io, dweb.link)', (val, prev) => [...(prev || []), val], [])
     .option('--retries <n>', 'Retries per gateway on a 404 (content may not be propagated yet), with backoff', '2')
     .option('--timeout <ms>', 'Per-request timeout in milliseconds', '8000')
     .option('--json', 'Output result as JSON')
@@ -191,7 +202,7 @@ program
             process.exit(1);
         }
 
-        const gateways = options.gateway.length > 0 ? options.gateway : ['https://gateway.pinata.cloud'];
+        const gateways = options.gateway.length > 0 ? options.gateway : DEFAULT_GATEWAYS;
         const result = await fetchAndVerifyCid(cid, gateways, globalThis.fetch, { expectedHash, retries, timeoutMs });
         if (options.json) {
             console.log(JSON.stringify(result, null, 2));
