@@ -4,6 +4,10 @@ All notable changes to the `nirium-cli` package are documented here.
 
 ## Unreleased
 
+### Added
+
+- `nirium report summary` and `nirium report export anchors|payments|payroll` ([#136](https://github.com/nirium-protocol/nirium/issues/136)): thin client for the Reporting node. `export anchors` prints exactly one CID per line on stdout (nothing else), pipeable straight into `nirium verify`; the row count and the "not certified regulatory reporting" disclaimer print to stderr so they never land in that pipe. `--csv <file>` writes the server's CSV instead; `--json` prints the full response.
+
 ## 3.0.1 - 2026-10-24
 
 ### Fixed

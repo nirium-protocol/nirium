@@ -239,6 +239,53 @@ of the two checks actually ran and succeeded, a matching `--hash`/
 was verified, so `verify` prints `NOTHING VERIFIED`, exits non-zero, and
 sets `verified: false` in `--json`, instead of reporting a pass.
 
+## Reporting: summaries and exports
+
+```bash
+nirium report summary [--from <date>] [--to <date>] [--network <testnet|mainnet>] [--json]
+nirium report export anchors|payments|payroll [--from <date>] [--to <date>] [--limit <n>] [--csv out.csv] [--json]
+```
+
+Thin client for the Reporting node's `GET /api/reporting/summary` and
+`GET /api/reporting/export` - an aggregation layer over what the
+protocol has already anchored (payroll runs, x402/MPP receipts, IPFS
+anchors). **This is institutional-format output, not certified
+regulatory reporting** - anything filed with an authority remains the
+caller's own responsibility (the server's own disclaimer is reprinted in
+both commands' output).
+
+`report summary` prints settled payroll runs and totals, payment
+receipts by gateway, and anchor counts for the period. `report export
+<type>` pulls the underlying rows:
+
+- Without `--csv`, rows print one per line on stdout. For `export
+  anchors` specifically, that line is **just the CID** - nothing else -
+  so it pipes straight into `nirium verify`:
+
+  ```bash
+  nirium report export anchors --from 2026-10-01 | xargs -n1 nirium verify
+  ```
+
+  The row count and disclaimer print to **stderr**, not stdout, so they
+  never end up in that pipe.
+- With `--csv <file>`, the server's CSV is written to that file instead
+  (nothing on stdout but a confirmation).
+- `--json` prints the full response (`type`, `period`, `rowCount`,
+  `rows`, `disclaimer`) instead of one row per line; mutually exclusive
+  with `--csv`.
+
+| Option (both subcommands) | Purpose | Default |
+|---|---|---|
+| `--from <date>` / `--to <date>` | ISO date period | 30-day window |
+| `--network <testnet\|mainnet>` | restrict to one network | all |
+| `-u, --url <url>` | agent URL | `http://localhost:3002` |
+| `--json` | machine-readable full response | off |
+
+| Option (`export` only) | Purpose | Default |
+|---|---|---|
+| `--limit <n>` | max rows (server caps at 1000) | server default |
+| `--csv <file>` | write the CSV export here instead of printing rows | off |
+
 ## Manage stored credentials
 
 ```bash
