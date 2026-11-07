@@ -264,12 +264,31 @@ and the signature is still verified over `nirium-audit-v1:<content_sha256>`.
 Signatures are accepted as base64 or hex, raw ed25519 or SEP-53
 (Freighter `signMessage`), like the anchoring node.
 
+`-g, --gateway <url>` is repeatable and tried in order as fallbacks. A
+`404` is retried on the *same* gateway up to `--retries` times with a
+short backoff first - a fresh pin can take a moment to propagate, so a
+404 there doesn't mean the CID is wrong, just not there *yet*. Any other
+failure (a real error, or a timed-out request) moves straight to the
+next gateway instead, since retrying the same one won't help:
+
+```bash
+nirium verify <cid> --gateway https://gateway.pinata.cloud --gateway https://ipfs.io --retries 3
+```
+
 | Option | Purpose | Default |
 |---|---|---|
-| `-g, --gateway <url>` | IPFS gateway to fetch from | `https://gateway.pinata.cloud` |
+| `-g, --gateway <url>` | IPFS gateway to fetch from - repeat for fallbacks | `https://gateway.pinata.cloud` |
+| `--retries <n>` | retries per gateway on a 404, with backoff | `2` |
+| `--timeout <ms>` | per-request timeout | `8000` |
 | `--json` | machine-readable result | off |
 | `--hash <hex>` | expected evidence hash for a hash-only anchor (`sha-256:` prefix optional) | none |
 | `--evidence <file>` | file whose SHA-256 is compared with the anchored hash | none |
+
+If every gateway comes back 404 after exhausting retries, that's
+reported as **NOT YET AVAILABLE** (`availability: "not_yet_available"`
+in `--json`) - distinct from a hash mismatch, because nothing was
+actually fetched to compare. A mix of real errors across gateways is
+reported as a gateway error instead. Both exit non-zero, same as before.
 
 Exits non-zero (and prints which check failed) if the hash doesn't match
 or the signature doesn't verify. A pass also requires that at least one

@@ -162,7 +162,9 @@ program
 program
     .command('verify')
     .argument('<cid>', 'IPFS Content Identifier (CID) of the audit document')
-    .option('-g, --gateway <url>', 'IPFS gateway URL', 'https://gateway.pinata.cloud')
+    .option('-g, --gateway <url>', 'IPFS gateway URL - repeatable, tried in order as fallbacks', (val, prev) => [...(prev || []), val], [])
+    .option('--retries <n>', 'Retries per gateway on a 404 (content may not be propagated yet), with backoff', '2')
+    .option('--timeout <ms>', 'Per-request timeout in milliseconds', '8000')
     .option('--json', 'Output result as JSON')
     .option('--hash <hex>', 'Expected sha-256 of the evidence (hex, optional sha-256: prefix), for hash-only anchors')
     .option('--evidence <file>', 'Original evidence file; its sha-256 is compared with the anchored hash')
@@ -177,7 +179,20 @@ program
             console.error(`❌ ${err.message}`);
             process.exit(1);
         }
-        const result = await fetchAndVerifyCid(cid, options.gateway, globalThis.fetch, { expectedHash });
+
+        const retries = Number(options.retries);
+        const timeoutMs = Number(options.timeout);
+        if (!Number.isInteger(retries) || retries < 0) {
+            console.error(`❌ Error: Invalid --retries '${options.retries}': must be a non-negative integer.`);
+            process.exit(1);
+        }
+        if (!Number.isFinite(timeoutMs) || timeoutMs <= 0) {
+            console.error(`❌ Error: Invalid --timeout '${options.timeout}': must be a positive number of milliseconds.`);
+            process.exit(1);
+        }
+
+        const gateways = options.gateway.length > 0 ? options.gateway : ['https://gateway.pinata.cloud'];
+        const result = await fetchAndVerifyCid(cid, gateways, globalThis.fetch, { expectedHash, retries, timeoutMs });
         if (options.json) {
             console.log(JSON.stringify(result, null, 2));
         } else {
@@ -1648,18 +1663,58 @@ function verifyAuditDocument(doc, cid, { expectedHash } = {}) {
     return { ok, verified: ok, cid, mode, hashMatch: hashStatus === 'match', hashStatus, expectedHash: anchoredHash, computedHash, signatureStatus, signatureScheme, signerKey, statement, declaredStatement, agentId };
 }
 
-async function fetchAndVerifyCid(cid, gatewayUrl = 'https://gateway.pinata.cloud', fetchFn = globalThis.fetch, opts = {}) {
-    const url = `${gatewayUrl.replace(/\/$/, '')}/ipfs/${cid}`;
-    try {
-        const res = await fetchFn(url);
-        if (!res.ok) {
-            return { ok: false, verified: false, cid, hashMatch: false, expectedHash: '', computedHash: '', signatureStatus: 'absent', error: `IPFS gateway returned HTTP ${res.status}` };
+// `gateways` may be a single URL string (back-compat for direct callers)
+// or an array tried in order. On a 404, the SAME gateway is retried up to
+// `retries` times with a flat backoff before moving to the next gateway -
+// a 404 can mean "not propagated to this gateway yet", which a moment's
+// wait often resolves, unlike a real 4xx/5xx or network failure, which
+// moves on immediately since retrying the same gateway won't help.
+// `sleepFn` exists only so tests don't have to sit through real backoff.
+async function fetchAndVerifyCid(cid, gateways = 'https://gateway.pinata.cloud', fetchFn = globalThis.fetch, opts = {}) {
+    const list = Array.isArray(gateways) ? gateways : [gateways];
+    const retries = Number.isInteger(opts.retries) && opts.retries >= 0 ? opts.retries : 2;
+    const timeoutMs = Number.isFinite(opts.timeoutMs) && opts.timeoutMs > 0 ? opts.timeoutMs : 8000;
+    const sleep = opts.sleepFn || ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
+    const BACKOFF_MS = 300;
+
+    const attempts = [];
+    for (const gatewayUrl of list) {
+        const url = `${gatewayUrl.replace(/\/$/, '')}/ipfs/${cid}`;
+        for (let attempt = 0; attempt <= retries; attempt += 1) {
+            if (attempt > 0) await sleep(BACKOFF_MS);
+            try {
+                const res = await fetchFn(url, { signal: AbortSignal.timeout(timeoutMs) });
+                if (res.status === 404) {
+                    attempts.push({ gateway: gatewayUrl, attempt, status: 404 });
+                    continue; // worth retrying THIS gateway: may just not be propagated yet
+                }
+                if (!res.ok) {
+                    attempts.push({ gateway: gatewayUrl, attempt, status: res.status });
+                    break; // a real error from this gateway - try the next one, not more retries here
+                }
+                const doc = await res.json();
+                return { ...verifyAuditDocument(doc, cid, opts), gateway: gatewayUrl, attempts: [...attempts, { gateway: gatewayUrl, attempt, status: 200 }] };
+            } catch (err) {
+                attempts.push({ gateway: gatewayUrl, attempt, error: err?.message || String(err) });
+                break; // network-level failure (unreachable, timeout) - try the next gateway
+            }
         }
-        const doc = await res.json();
-        return verifyAuditDocument(doc, cid, opts);
-    } catch (err) {
-        return { ok: false, verified: false, cid, hashMatch: false, expectedHash: '', computedHash: '', signatureStatus: 'absent', error: `Failed to fetch CID from gateway: ${err?.message || String(err)}` };
     }
+
+    // Every gateway exhausted without a usable (200) response. All-404
+    // means the content plausibly just isn't propagated anywhere yet -
+    // a different situation from a gateway being unreachable or erroring,
+    // which this reports distinctly so a caller doesn't read "not found
+    // anywhere" as "the hash doesn't match" (it was never fetched at all).
+    const allNotFound = attempts.length > 0 && attempts.every((a) => a.status === 404);
+    return {
+        ok: false, verified: false, cid, hashMatch: false, expectedHash: '', computedHash: '', signatureStatus: 'absent',
+        availability: allNotFound ? 'not_yet_available' : 'gateway_error',
+        error: allNotFound
+            ? `CID not found on ${list.length} gateway(s) after ${retries} retr${retries === 1 ? 'y' : 'ies'} each - it may not be propagated yet, not necessarily wrong`
+            : `Could not fetch the CID from any of ${list.length} gateway(s) - see attempts for each failure`,
+        attempts,
+    };
 }
 
 function formatVerifyOutput(result) {
@@ -1667,6 +1722,30 @@ function formatVerifyOutput(result) {
     lines.push(`🔍 Nirium Audit Verifier`);
     if (result.cid) lines.push(`CID:            ${result.cid}`);
     lines.push(`--------------------------------------------------`);
+
+    // The document was never fetched at all (every gateway failed), so
+    // there is no hash or signature to report on - printing those sections
+    // would show a false "MISMATCH" for a CID that was simply never
+    // retrieved. `availability` tells apart "not found anywhere yet"
+    // (may just not be propagated) from an actual gateway/network error.
+    if (result.hashStatus === undefined && result.error) {
+        lines.push(result.availability === 'not_yet_available'
+            ? `ℹ NOT YET AVAILABLE: ${result.error}`
+            : `❌ GATEWAY ERROR:     ${result.error}`);
+        if (Array.isArray(result.attempts) && result.attempts.length > 0) {
+            lines.push(`--------------------------------------------------`);
+            lines.push('Attempts:');
+            for (const a of result.attempts) {
+                lines.push(`   ${a.gateway} (try ${a.attempt + 1}): ${a.error ? a.error : `HTTP ${a.status}`}`);
+            }
+        }
+        lines.push(`--------------------------------------------------`);
+        lines.push(result.availability === 'not_yet_available'
+            ? `❌ NOT YET AVAILABLE (not a hash mismatch - try again shortly, or add --gateway for another source)`
+            : `❌ VERIFICATION FAILED (could not reach the content, not a hash mismatch)`);
+        return lines.join('\n');
+    }
+
     if (result.hashStatus === 'unchecked') {
         lines.push(`ℹ HASH:        NOT CHECKED (hash-only anchor: ${result.expectedHash.slice(0, 16)}...)`);
         lines.push(`   Pass --hash <hex> or --evidence <file> to compare it with your original evidence.`);
