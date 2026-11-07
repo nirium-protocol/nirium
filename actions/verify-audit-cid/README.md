@@ -20,16 +20,23 @@ jobs:
         id: audit
         with:
           cid: QmSSZdtt3dQ8BqUm62zrKQ85E4BUHYiVfvDgZmHfJsqU1U
-          gateway: https://ipfs.io/ipfs/
       - run: test "${{ steps.audit.outputs.verified }}" = "true"
 ```
+
+With no `gateway` or `gateways` input set, the action tries a default
+fallback list in order: Filebase's dedicated gateway, then `ipfs.io`, then
+`dweb.link`, moving to the next one on any HTTP error or timeout. This
+fixes #185: a single shared public gateway (the old sole default,
+`ipfs.io`) rate-limits under load and returns `429`, which failed
+verification even for a perfectly healthy CID.
 
 ## Inputs
 
 | Name | Required | Default | Description |
 | --- | --- | --- | --- |
 | `cid` | yes | | IPFS CID for the Nirium audit JSON document. |
-| `gateway` | no | `https://ipfs.io/ipfs/` | IPFS gateway. Values ending in `/ipfs` or `/ipfs/` are used directly. |
+| `gateway` | no | (unset) | A single IPFS gateway, overriding the default fallback list. Values ending in `/ipfs` or `/ipfs/` are used directly. |
+| `gateways` | no | (unset) | Comma- or newline-separated list of gateways to try in order. Ignored if `gateway` is set. Defaults to `https://nirium.myfilebase.com/ipfs/,https://ipfs.io/ipfs/,https://dweb.link/ipfs/` when both are unset. |
 | `fail-on-error` | no | `true` | When `true`, failed verification marks the step failed. |
 
 ## Outputs

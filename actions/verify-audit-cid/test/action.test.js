@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import validFixture from './fixtures/valid-audit.json' with { type: 'json' };
 import {
+  DEFAULT_GATEWAYS,
   fetchAndVerifyCid,
   normalizeGatewayUrl,
   verifyAuditDocument,
@@ -108,4 +109,76 @@ test('fetchAndVerifyCid reports HTTP gateway failures', async () => {
 
   assert.equal(result.ok, false);
   assert.equal(result.error, 'Failed to fetch CID from gateway: IPFS gateway returned HTTP 404');
+});
+
+test('fetchAndVerifyCid falls back to the next gateway when the first one fails (issue #185)', async () => {
+  const calledUrls = [];
+  const result = await fetchAndVerifyCid('QmCID', {
+    gateways: ['https://down.example/ipfs/', 'https://up.example/ipfs/'],
+    retries: 0,
+    fetchFn: async (url) => {
+      calledUrls.push(String(url));
+      if (String(url).startsWith('https://down.example')) {
+        return new Response('too many requests', { status: 429 });
+      }
+      return new Response(JSON.stringify(validFixture), { status: 200 });
+    },
+  });
+
+  assert.deepEqual(calledUrls, [
+    'https://down.example/ipfs/QmCID',
+    'https://up.example/ipfs/QmCID',
+  ]);
+  assert.equal(result.ok, true);
+  assert.equal(result.gateway, 'https://up.example/ipfs/');
+  assert.equal(result.url, 'https://up.example/ipfs/QmCID');
+});
+
+test('fetchAndVerifyCid reports failure only after every gateway in the list fails', async () => {
+  const result = await fetchAndVerifyCid('QmCID', {
+    gateways: ['https://down1.example/ipfs/', 'https://down2.example/ipfs/'],
+    retries: 0,
+    fetchFn: async () => new Response('bad gateway', { status: 502 }),
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.gateway, 'https://down2.example/ipfs/');
+  assert.match(result.error, /HTTP 502/);
+});
+
+test('with no gateway/gateways input, verification works out of the box via the default fallback list', async () => {
+  const calledUrls = [];
+  const result = await fetchAndVerifyCid('QmCID', {
+    retries: 0,
+    fetchFn: async (url) => {
+      calledUrls.push(String(url));
+      // Simulate today's real failure mode: ipfs.io (the old sole default)
+      // rate-limits, so the first DEFAULT_GATEWAYS entry (Filebase) must be
+      // the one that actually answers.
+      if (String(url).startsWith(DEFAULT_GATEWAYS[0])) {
+        return new Response(JSON.stringify(validFixture), { status: 200 });
+      }
+      return new Response('too many requests', { status: 429 });
+    },
+  });
+
+  assert.equal(calledUrls[0], `${DEFAULT_GATEWAYS[0]}QmCID`);
+  assert.equal(result.ok, true);
+  assert.equal(result.gateway, DEFAULT_GATEWAYS[0]);
+});
+
+test('an explicit single gateway input is not treated as a fallback list', async () => {
+  const calledUrls = [];
+  const result = await fetchAndVerifyCid('QmCID', {
+    gateway: 'https://gateway.example/ipfs/',
+    retries: 0,
+    fetchFn: async (url) => {
+      calledUrls.push(String(url));
+      return new Response('not found', { status: 404 });
+    },
+  });
+
+  assert.deepEqual(calledUrls, ['https://gateway.example/ipfs/QmCID']);
+  assert.equal(result.ok, false);
+  assert.equal(result.gateway, 'https://gateway.example/ipfs/');
 });

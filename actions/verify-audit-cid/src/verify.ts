@@ -38,10 +38,23 @@ export interface VerifyResult {
 
 export interface FetchAndVerifyOptions {
   gateway?: string;
+  gateways?: string[];
   fetchFn?: typeof fetch;
   timeoutMs?: number;
   retries?: number;
 }
+
+// Tried in order until one answers. Filebase's dedicated gateway goes first:
+// it is not shared with other npm/IPFS consumers, so it does not hit the
+// rate limit that ipfs.io and dweb.link apply to their public gateways
+// (confirmed live, 6 Nov 2026: 5/5 requests 200 on Filebase, while ipfs.io
+// has returned 429 for this CID). ipfs.io and dweb.link stay as fallback
+// in case Filebase itself has an outage.
+export const DEFAULT_GATEWAYS: readonly string[] = [
+  'https://nirium.myfilebase.com/ipfs/',
+  'https://ipfs.io/ipfs/',
+  'https://dweb.link/ipfs/',
+];
 
 export function normalizeGatewayUrl(gatewayUrl: string, cid: string): string {
   const trimmed = gatewayUrl.trim().replace(/\/+$/, '');
@@ -160,46 +173,52 @@ export async function fetchAndVerifyCid(
   cid: string,
   options: FetchAndVerifyOptions = {},
 ): Promise<VerifyResult> {
-  const gateway = options.gateway || 'https://ipfs.io/ipfs/';
-  let url = '';
-  try {
-    url = normalizeGatewayUrl(gateway, cid);
-  } catch (err: unknown) {
-    return {
-      ok: false,
-      cid,
-      gateway,
-      hashMatch: false,
-      expectedHash: '',
-      computedHash: '',
-      signatureStatus: 'absent',
-      error: err instanceof Error ? err.message : String(err),
-    };
-  }
+  const gateways =
+    options.gateways && options.gateways.length > 0
+      ? options.gateways
+      : options.gateway
+        ? [options.gateway]
+        : DEFAULT_GATEWAYS;
 
   const fetchFn = options.fetchFn || globalThis.fetch;
   const timeoutMs = options.timeoutMs ?? 15_000;
   const retries = options.retries ?? 1;
-  let lastError = '';
 
-  for (let attempt = 0; attempt <= retries; attempt += 1) {
+  let lastError = '';
+  let lastGateway = gateways[0] ?? '';
+  let lastUrl = '';
+
+  for (const gw of gateways) {
+    let url = '';
     try {
-      const doc = await fetchJsonWithTimeout(url, fetchFn, timeoutMs);
-      return {
-        ...verifyAuditDocument(doc, cid),
-        gateway,
-        url,
-      };
+      url = normalizeGatewayUrl(gw, cid);
     } catch (err: unknown) {
       lastError = err instanceof Error ? err.message : String(err);
+      lastGateway = gw;
+      continue;
+    }
+    lastGateway = gw;
+    lastUrl = url;
+
+    for (let attempt = 0; attempt <= retries; attempt += 1) {
+      try {
+        const doc = await fetchJsonWithTimeout(url, fetchFn, timeoutMs);
+        return {
+          ...verifyAuditDocument(doc, cid),
+          gateway: gw,
+          url,
+        };
+      } catch (err: unknown) {
+        lastError = err instanceof Error ? err.message : String(err);
+      }
     }
   }
 
   return {
     ok: false,
     cid,
-    gateway,
-    url,
+    gateway: lastGateway,
+    url: lastUrl,
     hashMatch: false,
     expectedHash: '',
     computedHash: '',
