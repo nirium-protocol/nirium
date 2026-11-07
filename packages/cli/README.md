@@ -202,6 +202,46 @@ Each line is pass or fail:
 
 `--json` prints the same report (`ok`, `seller`, `network`, `checks`) for CI.
 
+## Anchor a record
+
+```bash
+nirium anchor --file evidence.json
+nirium anchor --hash <64-hex-sha256>
+nirium anchor --record '{"order":"A-12"}'
+```
+
+Anchors a sha-256 hash (or a small JSON object, up to 8KB) to IPFS via an
+Audit Trail node's `POST /api/audit/log`, and prints back the CID.
+
+- `--file <path>` computes the sha-256 of the file locally and sends only
+  the hash - the file's contents are never uploaded. IPFS cannot delete
+  anything once pinned, so hashing locally means raw evidence never
+  leaves your machine.
+- `--hash <hex>` sends a sha-256 you already have (64 hex chars, optional
+  `sha-256:` prefix).
+- `--record <json>` anchors a small JSON object verbatim (max 8KB,
+  enforced here before the request, not just by the server). Don't put
+  personal data in it - an anchored record can never be deleted.
+
+Exactly one of the three is required. `--tx <hash>` and `--tag <label>`
+are optional and attached to the anchor as-is. There is no `--network`
+flag: the agent box anchoring the record decides its own network, and a
+client-supplied network field is rejected server-side anyway.
+
+| Option | Purpose | Default |
+|---|---|---|
+| `--file <path>` | anchor this file's sha-256 | none |
+| `--hash <hex>` | anchor this sha-256 directly | none |
+| `--record <json>` | anchor this small JSON object verbatim | none |
+| `--tx <hash>` | associate a transaction hash | none |
+| `--tag <label>` | free-form label | none |
+| `-u, --url <url>` | agent URL | `http://localhost:3002` |
+| `--json` | machine-readable result | off |
+
+On success, prints the CID, the content hash, the gateway URL, and a
+`nirium verify <cid>` suggestion so the anchor can be independently
+re-checked right away.
+
 ## Verify an audit record
 
 ```bash
