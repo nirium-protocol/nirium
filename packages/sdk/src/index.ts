@@ -1392,8 +1392,23 @@ const sdkVersionForTelemetry = (): string | undefined => {
 export interface X402ServeConfig {
     /** Cuenta Stellar que recibe los pagos. Sin esto no hay a quién cobrarle. */
     payTo: string;
-    /** `'GET /signals': '$0.02'` — el método es opcional y default GET. */
-    routes: Record<string, string | { price: string; description?: string }>;
+    /**
+     * `'GET /signals': '$0.02'` — el método es opcional y default GET.
+     *
+     * `input`/`inputSchema`/`output` son opcionales y activan el discovery
+     * de x402 Bazaar (misma forma que `PREMIUM_ROUTES` en
+     * packages/agent/src/middleware/x402.ts): si cualquiera está presente,
+     * la ruta se anuncia vía `declareDiscoveryExtension()` y aparece en
+     * `GET /discovery/resources` del facilitador. Sin ellos, cero cambio de
+     * comportamiento respecto a antes de que este campo existiera.
+     */
+    routes: Record<string, string | {
+        price: string;
+        description?: string;
+        input?: unknown;
+        inputSchema?: unknown;
+        output?: unknown;
+    }>;
     network?: 'stellar:testnet' | 'stellar:pubnet';
     /** Default: OpenZeppelin Channels, el facilitador canónico de Stellar. */
     facilitatorUrl?: string;
@@ -1453,7 +1468,7 @@ export function x402Serve(config: X402ServeConfig): any {
         } catch (err: any) {
             const missing = /cannot find (module|package)/i.test(String(err?.message));
             throw new Error(missing
-                ? `x402Serve needs "${m}". Install it alongside the SDK: npm i @x402/express @x402/core @x402/stellar`
+                ? `x402Serve needs "${m}". Install it alongside the SDK: npm i @x402/express @x402/core @x402/stellar @x402/extensions`
                 : `x402Serve could not load "${m}": ${err?.message}`);
         }
     };
@@ -1467,7 +1482,14 @@ export function x402Serve(config: X402ServeConfig): any {
 
     // 'GET /signals' y '/signals' significan lo mismo: el método se omite
     // porque casi todo cobro es un GET, y obligar a escribirlo es fricción.
+    //
+    // `discoverySpecs` guarda input/inputSchema/output por separado de
+    // `routes` porque convertirlos en `extensions.bazaar` requiere
+    // `declareDiscoveryExtension()` de `@x402/extensions/bazaar`, un import
+    // dinámico — y todo el resto de esta función carga sus dependencias
+    // dentro de build(), nunca aquí arriba de forma síncrona.
     const routes: Record<string, any> = {};
+    const discoverySpecs: Record<string, { input?: unknown; inputSchema?: unknown; output?: unknown }> = {};
     for (const [key, value] of entries) {
         const spec = typeof value === 'string' ? { price: value } : value;
         const routeKey = /^[A-Z]+\s/.test(key) ? key : `GET ${key}`;
@@ -1484,6 +1506,13 @@ export function x402Serve(config: X402ServeConfig): any {
                 payTo: config.payTo,
             },
         };
+        if ('input' in spec || 'inputSchema' in spec || 'output' in spec) {
+            discoverySpecs[routeKey] = {
+                input: (spec as any).input,
+                inputSchema: (spec as any).inputSchema,
+                output: (spec as any).output,
+            };
+        }
     }
 
     const facilitatorKeyHash = config.facilitatorApiKey
@@ -1534,12 +1563,26 @@ export function x402Serve(config: X402ServeConfig): any {
 
     let cached: any;
     const build = async () => {
-        const [{ paymentMiddlewareFromConfig }, { HTTPFacilitatorClient }, { ExactStellarScheme: ServerScheme }] =
+        const hasDiscovery = Object.keys(discoverySpecs).length > 0;
+        const [{ paymentMiddlewareFromConfig }, { HTTPFacilitatorClient }, { ExactStellarScheme: ServerScheme }, bazaar] =
             await Promise.all([
                 load('@x402/express'),
                 load('@x402/core/server'),
                 load('@x402/stellar/exact/server'),
+                hasDiscovery ? load('@x402/extensions/bazaar') : Promise.resolve(undefined),
             ]);
+
+        if (bazaar) {
+            const { declareDiscoveryExtension } = bazaar;
+            for (const [routeKey, discovery] of Object.entries(discoverySpecs)) {
+                // Solo los campos que de verdad se pasaron — `output: undefined`
+                // no debería terminar escrito literal en el discovery.
+                const fields = Object.fromEntries(
+                    Object.entries(discovery).filter(([, v]) => v !== undefined),
+                );
+                routes[routeKey].extensions = declareDiscoveryExtension(fields);
+            }
+        }
 
         const facilitator = new HTTPFacilitatorClient({
             url: facilitatorUrl,
