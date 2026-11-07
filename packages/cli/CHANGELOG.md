@@ -4,6 +4,12 @@ All notable changes to the `nirium-cli` package are documented here.
 
 ## Unreleased
 
+## 3.1.1 - 2026-11-07
+
+### Fixed
+
+- `nirium verify` with no `--gateway` tried only `gateway.pinata.cloud`, which often takes 5-7s and can hit the 8s timeout, so a healthy CID failed to verify. It now tries Filebase's dedicated gateway first, then Pinata, `ipfs.io` and `dweb.link` - the same chain the `verify-audit-cid` Action has used since [#259](https://github.com/nirium-protocol/nirium/pull/259), plus Pinata. Passing `--gateway` still replaces the default list.
+
 ## 3.1.0 - 2026-11-07
 
 ### Added

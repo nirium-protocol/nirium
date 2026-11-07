@@ -288,7 +288,11 @@ Signatures are accepted as base64 or hex, raw ed25519 or SEP-53
 short backoff first - a fresh pin can take a moment to propagate, so a
 404 there doesn't mean the CID is wrong, just not there *yet*. Any other
 failure (a real error, or a timed-out request) moves straight to the
-next gateway instead, since retrying the same one won't help:
+next gateway instead, since retrying the same one won't help.
+
+With no `--gateway`, it tries Filebase's dedicated gateway, then Pinata,
+then `ipfs.io`, then `dweb.link`. Shared public gateways often answer
+`429` under load, so the dedicated one goes first:
 
 ```bash
 nirium verify <cid> --gateway https://gateway.pinata.cloud --gateway https://ipfs.io --retries 3
@@ -296,7 +300,7 @@ nirium verify <cid> --gateway https://gateway.pinata.cloud --gateway https://ipf
 
 | Option | Purpose | Default |
 |---|---|---|
-| `-g, --gateway <url>` | IPFS gateway to fetch from - repeat for fallbacks | `https://gateway.pinata.cloud` |
+| `-g, --gateway <url>` | IPFS gateway to fetch from - repeat for fallbacks | `nirium.myfilebase.com`, then `gateway.pinata.cloud`, `ipfs.io`, `dweb.link` |
 | `--retries <n>` | retries per gateway on a 404, with backoff | `2` |
 | `--timeout <ms>` | per-request timeout | `8000` |
 | `--json` | machine-readable result | off |
