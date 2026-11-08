@@ -361,7 +361,10 @@ class Agent:
         return await self._post("/api/payroll/onboard/submit", {"signedXdr": signed_xdr})
 
     async def get_payout_runs(self) -> Dict[str, Any]:
-        """Payout history for the current network, with tx hashes and IPFS receipt CIDs."""
+        """Public payout history for the current network: amount, asset, recipient count and tx hash.
+
+        It does not include run ids or IPFS receipt CIDs; your own run's CID comes back
+        from submit_payout()."""
         return await self._get("/api/payroll/runs")
 
     async def get_payout_terms(self) -> Dict[str, Any]:

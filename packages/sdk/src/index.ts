@@ -327,6 +327,22 @@ export interface PayoutRun {
     [key: string]: unknown;
 }
 
+/**
+ * One entry of the public payout history (getPayoutRuns). It carries what is
+ * already public on-chain - amount, asset, recipient count and the tx - and
+ * never the run id or the IPFS receipt CID: the receipt is the paying
+ * company's evidence, returned only to whoever runs the payout (submitPayout).
+ */
+export interface PublicPayoutRun {
+    network?: string;
+    asset?: string;
+    totalAmount?: string;
+    recipientCount?: number;
+    txHash?: string;
+    explorer?: string;
+    signed?: boolean;
+}
+
 export interface AgentAttestationInput {
     /** ed25519 public key of the agent, as a Stellar address (G...). */
     key: string;
@@ -924,8 +940,12 @@ export class Agent {
         return this.request('POST', '/api/payroll/onboard/submit', { signedXdr });
     }
 
-    /** Payout history for the current network, each with tx hash and IPFS receipt CID. */
-    async getPayoutRuns(): Promise<{ runs: PayoutRun[] }> {
+    /**
+     * Public payout history for the current network: amount, asset, recipient
+     * count and tx hash. It does not include run ids or IPFS receipt CIDs; your
+     * own run's CID comes back from submitPayout().
+     */
+    async getPayoutRuns(): Promise<{ runs: PublicPayoutRun[] }> {
         return this.request('GET', '/api/payroll/runs');
     }
 
