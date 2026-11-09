@@ -4,6 +4,13 @@ All notable changes to the `nirium-cli` package are documented here.
 
 ## Unreleased
 
+## 3.2.0 - unreleased
+
+### Changed
+
+- `nirium report export anchors` prints each anchor's date and network (tab-separated) instead of its CID, and never prints a CID even if an older node sends one. The node's public Reporting export stopped returning CIDs and payroll run ids on 8 Nov 2026: an anchor's CID belongs to whoever made it. Piping `export anchors` into `nirium verify` no longer applies; verify the CIDs you anchored yourself with `nirium verify <cid>`.
+- `nirium report summary` shows the date of the last anchor (`last: YYYY-MM-DD`) when the node sends `lastAnchoredAt`, and falls back to `latest: <cid>` for older nodes.
+
 ## 3.1.1 - 2026-11-07
 
 ### Fixed
