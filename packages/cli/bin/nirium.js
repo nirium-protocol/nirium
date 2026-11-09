@@ -2015,7 +2015,12 @@ async function executeReportSummaryCommand(options) {
         console.log(`             ${asset}: ${amount}`);
     }
     console.log(`   Payments: ${data.payments?.count ?? 0} receipt(s), ${data.payments?.totalUsdc ?? '0'} USDC total`);
-    console.log(`   Anchors:  ${data.anchors?.count ?? 0} (latest: ${data.anchors?.latestCid || 'none'})`);
+    // Nodes since 8 Nov 2026 send lastAnchoredAt instead of latestCid (the latest
+    // anchor is usually someone else's evidence). Older nodes still send latestCid.
+    const lastAnchor = data.anchors?.lastAnchoredAt
+        ? `last: ${String(data.anchors.lastAnchoredAt).slice(0, 10)}`
+        : `latest: ${data.anchors?.latestCid || 'none'}`;
+    console.log(`   Anchors:  ${data.anchors?.count ?? 0} (${lastAnchor})`);
     if (Array.isArray(data.warnings) && data.warnings.length > 0) {
         console.log('   ⚠ Warnings:');
         for (const w of data.warnings) console.log(`      - ${w}`);
@@ -2090,12 +2095,13 @@ async function executeReportExportCommand(type, options) {
         return;
     }
 
-    // `export anchors` prints exactly one CID per line on stdout - nothing
-    // else - so it pipes straight into `nirium verify` (xargs -n1 or a
-    // while-read loop). Row count and the disclaimer go to stderr instead
-    // of stdout for the same reason: stdout must stay pure for piping.
+    // `export anchors` prints one line per anchor: when and on which network,
+    // tab-separated. No CID: the public Reporting export stopped returning them
+    // on 8 Nov 2026 (an anchor's CID belongs to whoever made it), and this never
+    // prints one even if an older node still sends it. Row count and the
+    // disclaimer go to stderr so stdout stays clean for piping.
     for (const row of data.rows || []) {
-        console.log(type === 'anchors' ? (row.cid || '') : JSON.stringify(row));
+        console.log(type === 'anchors' ? `${row.anchored_at || ''}\t${row.network || ''}` : JSON.stringify(row));
     }
     console.error(`# ${data.rowCount ?? (data.rows || []).length} row(s). ${data.disclaimer || ''}`);
 }

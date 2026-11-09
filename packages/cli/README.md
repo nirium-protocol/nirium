@@ -341,15 +341,12 @@ receipts by gateway, and anchor counts for the period. `report export
 <type>` pulls the underlying rows:
 
 - Without `--csv`, rows print one per line on stdout. For `export
-  anchors` specifically, that line is **just the CID** - nothing else -
-  so it pipes straight into `nirium verify`:
+  anchors`, each line is the anchor's date and network, tab-separated.
+  There is no CID: the public Reporting export doesn't return them (an
+  anchor's CID belongs to whoever made it). If you anchored something,
+  you already have its CID - check it with `nirium verify <cid>`.
 
-  ```bash
-  nirium report export anchors --from 2026-10-01 | xargs -n1 nirium verify
-  ```
-
-  The row count and disclaimer print to **stderr**, not stdout, so they
-  never end up in that pipe.
+  The row count and disclaimer print to **stderr**, not stdout.
 - With `--csv <file>`, the server's CSV is written to that file instead
   (nothing on stdout but a confirmation).
 - `--json` prints the full response (`type`, `period`, `rowCount`,

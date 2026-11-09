@@ -4,6 +4,12 @@ All notable changes to the `nirium` package are documented here.
 
 ## Unreleased
 
+## 0.19.0 - unreleased
+
+### Changed
+
+- `getPayoutRuns()` now returns `{ runs: PublicPayoutRun[] }` instead of `PayoutRun[]`. The node's public `GET /api/payroll/runs` no longer includes `runId` or the IPFS receipt `cid`: a run's receipt is the paying company's evidence, so the public history keeps only what is already public on-chain (amount, asset, recipient count, tx hash). Your own run's CID still comes back from `submitPayout()`. TypeScript code that read `runId` or `cid` from `getPayoutRuns()` will no longer compile; at runtime those fields are `undefined` once a node runs the new version.
+
 ## 0.18.0 - 2026-11-07
 
 ### Added

@@ -25,14 +25,15 @@ const SUMMARY = {
     network: 'all',
     payroll: { settledRuns: 2, recipientsPaid: 5, totalsByAsset: { USDC: '120.0000000' }, lastSettledAt: '2026-11-01T00:00:00.000Z' },
     payments: { count: 10, totalUsdc: '1.23', byGateway: { x402: { count: 8, totalUsdc: 1.0 }, mpp: { count: 2, totalUsdc: 0.23 } } },
-    anchors: { count: 3, latestCid: 'QmLatestFake' },
+    anchors: { count: 3, lastAnchoredAt: '2026-11-01T00:00:00.000Z' },
     generatedAt: '2026-11-08T00:00:00.000Z',
     disclaimer: DISCLAIMER,
 };
 
 const ANCHOR_ROWS = [
+    // An older node may still send cid; the CLI must never print it.
     { anchored_at: '2026-11-01T00:00:00.000Z', source: 'AUDIT_NODE', cid: 'QmAnchorOne', network: 'testnet' },
-    { anchored_at: '2026-10-31T00:00:00.000Z', source: 'AUDIT_NODE', cid: 'QmAnchorTwo', network: 'testnet' },
+    { anchored_at: '2026-10-31T00:00:00.000Z', source: 'AUDIT_NODE', network: 'mainnet' },
 ];
 
 let lastRequest = null;
@@ -62,7 +63,7 @@ const server = http.createServer((req, res) => {
         const format = u.searchParams.get('format') || 'csv';
         if (format === 'csv') {
             res.writeHead(200, { 'content-type': 'text/csv; charset=utf-8', 'content-disposition': `attachment; filename="nirium-${type}.csv"` });
-            res.end('anchored_at,source,cid,network\r\n2026-11-01T00:00:00.000Z,AUDIT_NODE,QmAnchorOne,testnet\r\n');
+            res.end('anchored_at,source,network\r\n2026-11-01T00:00:00.000Z,AUDIT_NODE,testnet\r\n');
             return;
         }
         res.writeHead(200, { 'content-type': 'application/json' });
@@ -117,7 +118,7 @@ test('summary human output reports payroll, payments, anchors, and the disclaime
     assert.match(r.stdout, /2 settled run\(s\), 5 recipient\(s\) paid/);
     assert.match(r.stdout, /USDC: 120\.0000000/);
     assert.match(r.stdout, /10 receipt\(s\), 1\.23 USDC total/);
-    assert.match(r.stdout, /3 \(latest: QmLatestFake\)/);
+    assert.match(r.stdout, /3 \(last: 2026-11-01\)/);
     assert.match(r.stdout, /not certified regulatory reporting/);
 });
 
@@ -140,11 +141,11 @@ test('summary surfaces a server error as a failure', async () => {
 
 // ─── export ────────────────────────────────────────────────────
 
-test('export anchors prints exactly one CID per line on stdout, nothing else', async () => {
+test('export anchors prints one line per anchor (date and network), nothing else', async () => {
     const r = await run(['export', 'anchors', '--url', base]);
     assert.equal(r.code, 0, r.stdout + r.stderr);
     const lines = r.stdout.trim().split('\n');
-    assert.deepEqual(lines, ['QmAnchorOne', 'QmAnchorTwo']);
+    assert.deepEqual(lines, ['2026-11-01T00:00:00.000Z\ttestnet', '2026-10-31T00:00:00.000Z\tmainnet']);
 });
 
 test('export anchors footer (row count + disclaimer) goes to stderr, not stdout', async () => {
@@ -155,11 +156,10 @@ test('export anchors footer (row count + disclaimer) goes to stderr, not stdout'
     assert.match(r.stderr, /not certified regulatory reporting/);
 });
 
-test('export anchors pipes straight into `nirium verify` without extra parsing', async () => {
+test('export anchors never prints a CID, even if the node sends one', async () => {
     const r = await run(['export', 'anchors', '--url', base]);
-    const cids = r.stdout.trim().split('\n').filter(Boolean);
-    assert.equal(cids.length, 2);
-    for (const cid of cids) assert.match(cid, /^Qm[A-Za-z0-9]+$/);
+    assert.equal(r.code, 0, r.stdout + r.stderr);
+    assert.doesNotMatch(r.stdout + r.stderr, /Qm[A-Za-z0-9]{10,}/);
 });
 
 test('export payments/payroll print one JSON row per line (not just anchors)', async () => {
@@ -185,8 +185,8 @@ test('export --csv writes the file, not stdout', async () => {
         assert.equal(r.code, 0, r.stdout + r.stderr);
         assert.match(r.stdout, /Wrote/);
         const content = fs.readFileSync(out, 'utf8');
-        assert.match(content, /anchored_at,source,cid,network/);
-        assert.match(content, /QmAnchorOne/);
+        assert.match(content, /anchored_at,source,network/);
+        assert.doesNotMatch(content, /Qm[A-Za-z0-9]{10,}/);
     } finally {
         fs.rmSync(out, { force: true });
     }
