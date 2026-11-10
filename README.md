@@ -14,6 +14,8 @@ This repository contains the TypeScript and Python SDKs, the MCP server, the CLI
 
 Software-only and non-custodial: regulated partners execute settlement, the client signs every fund movement, and Nirium never holds client funds.
 
+**Reviewing Nirium?** [`docs/FOR-REVIEWERS.md`](docs/FOR-REVIEWERS.md) is a ten-minute path through things you can check yourself. Verify any receipt with no account at [nirium.xyz/verify](https://nirium.xyz/verify), and see live usage, each row labeled with its source, at [nirium.xyz/stats](https://nirium.xyz/stats).
+
 ## Packages
 
 | Package | Install | Version | Description |
@@ -157,6 +159,36 @@ Real bugs found in code we don't control, in other people's repos, confirmed by 
 **Update, 2026-09-28 (checked against the GitHub API that day):** an earlier version of this entry, published the same day, said all five issues including #1699 were "confirmed and fixed by the maintainer in PR #1747 and PR #1742." That was wrong on two counts, caught the same day by re-checking each issue's closing event individually instead of trusting the grouped claim: #1699 was withdrawn as `not_planned`, never fixed; and #1681/#1700 were never closed by those two PRs - #1681 by #1743 + #1744 (closed manually by us), #1700 by a docs-only PR (#1745) that documents a known limitation instead of changing behavior. Corrected above.
 
 **[Trustless-Work/trustlesswork-sdk-react#6](https://github.com/Trustless-Work/trustlesswork-sdk-react/issues/6)** - `trustline.address` ambiguity (SAC contract id vs. classic issuer) in their Multi-Release docs. Closed 28-sep-2026, 30 minutes after their ["Feature/version 2" PR](https://github.com/Trustless-Work/trustlesswork-sdk-react/pull/7) merged.
+
+### Merged pull requests in other teams' repos
+
+Checked against the GitHub API on 10 Nov 2026. Each one was reviewed and merged by that repo's own maintainers (one by Stellar's triage bot).
+
+| Pull request | What it does | Author | Merged by |
+|---|---|---|---|
+| [stellar/stellar-dev-skill#96](https://github.com/stellar/stellar-dev-skill/pull/96) | Add Nirium to the community skills | Eras256 | kaankacar, 15 Aug 2026 |
+| [stellar/stellar-dev-skill#97](https://github.com/stellar/stellar-dev-skill/pull/97) | Production patterns for x402 + MPP in the agentic-payments skill | Eras256 | kaankacar, 5 Sep 2026 |
+| [stellar/stellar-dev-skill#150](https://github.com/stellar/stellar-dev-skill/pull/150) | Correct the MPP production claim | Eras256 | Stellar triage bot, 15 Oct 2026 |
+| [stellar/stellar-mpp-sdk#69](https://github.com/stellar/stellar-mpp-sdk/pull/69) | Fix the two invalid mainnet SAC constants | Eras256 | jeesunikim, 9 Sep 2026 |
+| [pollar-xyz/pollar-apps#30](https://github.com/pollar-xyz/pollar-apps/pull/30) | Nirium x402 adapter demo | Eras256 | aleregex, 31 Aug 2026 |
+| [Trustless-Work/agentic-escrow-research#1](https://github.com/Trustless-Work/agentic-escrow-research/pull/1) | Bounded-authority milestone payouts + x402 | Eras256 | techrebelgit, 21 Sep 2026 |
+| [Trustless-Work/agentic-escrow-research#2](https://github.com/Trustless-Work/agentic-escrow-research/pull/2) | Authority by missing parameter (treasury rebalancing) | Eras256 | techrebelgit, 21 Sep 2026 |
+| [Trustless-Work/agentic-escrow-research#3](https://github.com/Trustless-Work/agentic-escrow-research/pull/3) | Direct x402 payment without escrow | M0nsxx | techrebelgit, 21 Sep 2026 |
+| [Trustless-Work/agentic-escrow-research#4](https://github.com/Trustless-Work/agentic-escrow-research/pull/4) | Production evidence for the agent-facing tool schema | Eras256 | techrebelgit, 21 Sep 2026 |
+| [Trustless-Work/agentic-escrow-research#9](https://github.com/Trustless-Work/agentic-escrow-research/pull/9) | Fail-closed payment and delivery gates | Eras256 | techrebelgit, 2 Nov 2026 |
+| [Trustless-Work/agentic-escrow-research#10](https://github.com/Trustless-Work/agentic-escrow-research/pull/10) | Evidence-gated milestone release (testnet pilot) | Eras256 | techrebelgit, 4 Nov 2026 |
+| [Trustless-Work/agentic-escrow-research#11](https://github.com/Trustless-Work/agentic-escrow-research/pull/11) | "Enabled" is not activity (signer liveness) | Eras256 | techrebelgit, 4 Nov 2026 |
+| [Trustless-Work/agentic-escrow-research#12](https://github.com/Trustless-Work/agentic-escrow-research/pull/12) | Pre-sign policy hook decision states | M0nsxx | techrebelgit, 5 Nov 2026 |
+| [Trustless-Work/agentic-escrow-research#13](https://github.com/Trustless-Work/agentic-escrow-research/pull/13) | x402 and MPP Charge on one endpoint | M0nsxx | techrebelgit, 5 Nov 2026 |
+
+Also merged in x402's own core, by the same author. These are protocol-level fixes, not changes to Nirium's code:
+
+| Pull request | What it does | Author | Merged by |
+|---|---|---|---|
+| [x402-foundation/x402#3138](https://github.com/x402-foundation/x402/pull/3138) | Bazaar: raw resource URL as canonical for opaque-origin schemes | Eras256 | CarsonRoscoe, 26 Oct 2026 |
+| [x402-foundation/x402#3215](https://github.com/x402-foundation/x402/pull/3215) | Core: one wildcard pattern per namespace | Eras256 | CarsonRoscoe, 26 Oct 2026 |
+| [x402-foundation/x402#3338](https://github.com/x402-foundation/x402/pull/3338) | Core: enforce the settlement override ceiling | Eras256 | CarsonRoscoe, 22 Oct 2026 |
+| [x402-foundation/x402#3339](https://github.com/x402-foundation/x402/pull/3339) | Stellar docs: areFeesSponsored limitation | Eras256 | CarsonRoscoe, 22 Oct 2026 |
 
 Full history, including findings still open, in the [devlog](./docs/devlog.md).
 
