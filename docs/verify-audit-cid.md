@@ -19,11 +19,11 @@ The verification model reconstructs the signed statement from the **recomputed**
 
 ## 1. Fetch the Audit Document from IPFS
 
-Using `curl` with a public IPFS gateway:
+Using `curl` with an IPFS gateway. Nirium's dedicated Filebase gateway is the most reliable; shared public gateways such as `ipfs.io` often answer `429` under load:
 
 ```bash
 CID="QmSSZdtt3dQ8BqUm62zrKQ85E4BUHYiVfvDgZmHfJsqU1U"
-curl -s "https://ipfs.io/ipfs/${CID}" | jq
+curl -s "https://nirium.myfilebase.com/ipfs/${CID}" | jq
 ```
 
 **Expected output** (example):
@@ -217,7 +217,7 @@ This CID is from a real Nirium mainnet deployment and can be verified independen
 
 | Problem | Fix |
 | --- | --- |
-| IPFS gateway timeout | Try another gateway: `--gateway https://gateway.pinata.cloud` or `https://ipfs.io/ipfs/` |
+| IPFS gateway timeout or `429` | Try another gateway. With no `--gateway`, `nirium verify` already tries Filebase, Pinata, ipfs.io and dweb.link in that order; to pick one: `--gateway https://nirium.myfilebase.com` or `--gateway https://gateway.pinata.cloud` |
 | Hash mismatch | Check that you are computing `SHA-256(JSON.stringify(record))` with exact key order and no extra whitespace |
 | Invalid signature | Verify the agent's public key (`G...` Stellar address) and that you are reconstructing the statement from the **recomputed** hash, not `agent.statement` |
 | CID not found | The CID may not have propagated to all gateways yet; wait a few minutes or try the node's own IPFS gateway |

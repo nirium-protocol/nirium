@@ -28,6 +28,10 @@ it on your own machine:
 npx nirium-cli@latest verify QmVWZM1i9qusiTfNAT9QdSFYJNEwQUXtnWuSkrCqRAnGEu
 ```
 
+The CLI reads the record from a dedicated Filebase gateway first and falls
+back to Pinata, ipfs.io and dweb.link if it fails. To open the raw record
+yourself: [https://nirium.myfilebase.com/ipfs/QmVWZM1i…RAnGEu](https://nirium.myfilebase.com/ipfs/QmVWZM1i9qusiTfNAT9QdSFYJNEwQUXtnWuSkrCqRAnGEu).
+
 It should print `SIGNATURE: VALID`, signed by
 `GATT3MOLOCTDOUGS3FDNZUYV3UKDLIQE4PN7JJ4JYZBYJOOXBVJV4KXI`, and
 `VERIFICATION PASSED`. That receipt was anchored on mainnet by TIA, an
