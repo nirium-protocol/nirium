@@ -87,7 +87,7 @@ Any AI agent can now pay for your endpoint in USDC: no account, no card, no subs
 > [issue #91](https://github.com/nirium-protocol/nirium/issues/91) for what's
 > missing and why, and for a real production reference implementation).
 
-See [`docs/`](./docs) for full quickstarts, including [**"Charge AI agents in 5 minutes"**](./docs/quickstart-x402.md) ([🇪🇸 Español](./docs/es/quickstart-x402.md)), and [**serverless Audit Trail anchoring with `waitUntil`**](./docs/serverless-audit-waituntil.md), plus [`examples/`](./examples) for 13 runnable integrations across 5 languages: [Express](./examples/express-x402) and [Next.js](./examples/nextjs-x402) (TypeScript), [Go](./examples/go-x402), [Rust](./examples/rust-x402), [LangChain x402](./examples/langchain-x402-agent) (Python), [non-custodial treasury vault](./examples/treasury-vault-quickstart), [resilient WebSocket signals](./examples/ws-signals-resilient), [one-click Vercel deploy](./examples/deploy-x402-vercel), [Unity/C# game paywall](./examples/unity-game-x402-gate), [RouteDock discovery manifest](./examples/routedock-manifest), [Stellar Disbursement Platform audit bridge](./examples/sdp-audit-bridge), [audit-forensic-bridge](./examples/audit-forensic-bridge), and [per-agent daily spend policy](./examples/x402-policy-daily-budget). For real production findings (not marketing copy), see the [**devlog**](./docs/devlog.md).
+See [`docs/`](./docs) for full quickstarts, including [**"Charge AI agents in 5 minutes"**](./docs/quickstart-x402.md) ([🇪🇸 Español](./docs/es/quickstart-x402.md)), and [**serverless Audit Trail anchoring with `waitUntil`**](./docs/serverless-audit-waituntil.md), plus [`examples/`](./examples) for 14 runnable integrations: [Express](./examples/express-x402) and [Next.js](./examples/nextjs-x402) (TypeScript), [Go](./examples/go-x402), [Rust](./examples/rust-x402), [LangChain x402](./examples/langchain-x402-agent) (Python), [non-custodial treasury vault](./examples/treasury-vault-quickstart), [resilient WebSocket signals](./examples/ws-signals-resilient), [one-click Vercel deploy](./examples/deploy-x402-vercel), [Unity/C# game paywall](./examples/unity-game-x402-gate), [RouteDock discovery manifest](./examples/routedock-manifest), [Stellar Disbursement Platform audit bridge](./examples/sdp-audit-bridge), [audit-forensic-bridge](./examples/audit-forensic-bridge), [per-agent daily spend policy](./examples/x402-policy-daily-budget), and an [Open Policy Agent policy behind the pre-sign hook](./examples/x402-policy-opa). For real production findings (not marketing copy), see the [**devlog**](./docs/devlog.md).
 
 ## Networks
 
@@ -97,11 +97,11 @@ Live on **both** Stellar networks. They are not two copies of the same thing.
 
 | Product | Status |
 |---|---|
-| x402 | Live in production, mainnet |
-| Audit Trail | Live in production, mainnet |
-| Reporting | Live in production, mainnet |
-| Treasury Rebalance | Mainnet, invite-only |
-| Payouts | Mainnet, invite-only |
+| x402 | Live on mainnet ([last settled payment 29 Sep 2026](https://stellar.expert/explorer/public/account/GCLBBPON256CV7ATEHM5B54BOKNC7GX53MBINJ42MHVXGDMMZ3ZWKBHP)) |
+| Audit Trail | Live on mainnet (last anchor 6 Nov 2026) |
+| Reporting | Live on mainnet |
+| Treasury Rebalance | Mainnet, invite-only (4 self-funded rebalances, last 6 Aug 2026) |
+| Payouts | Mainnet, invite-only (no mainnet runs yet) |
 | Policy hook (pre-sign `ALLOW`/`DENY`) | Experimental |
 | MPP Charge | Testnet only |
 
@@ -129,7 +129,7 @@ That third transaction is the point: the agent moved funds it does not own, and 
 
 | Contract | ID |
 |---|---|
-| NiriumVault | [`CBTWMZCG3P72EHFAQ4ZLSEBIOFYJC244H5J6DHZIJ56FHFWJ2CFAWSZU`](https://stellar.expert/explorer/testnet/contract/CBTWMZCG3P72EHFAQ4ZLSEBIOFYJC244H5J6DHZIJ56FHFWJ2CFAWSZU) |
+| NiriumVault | [`CDMFURE6MYROTA2A6DLD4TN2S4QTN64L2FZ2I2RY2AREONX6DUQOI2S2`](https://stellar.expert/explorer/testnet/contract/CDMFURE6MYROTA2A6DLD4TN2S4QTN64L2FZ2I2RY2AREONX6DUQOI2S2) (built from a GitHub-attested release, shown as verified on Stellar Expert; in use since 9 Nov 2026, replacing `CBTWMZCG…FAWSZU`) |
 | NiriumProtocol | [`CC2TU5BDTKTPRRRQPEF77I54XYHFQ25XGIRO2TCWKSR7NRJDFR5L5NR5`](https://stellar.expert/explorer/testnet/contract/CC2TU5BDTKTPRRRQPEF77I54XYHFQ25XGIRO2TCWKSR7NRJDFR5L5NR5) |
 
 API: [`nirium-agent.fly.dev/health`](https://nirium-agent.fly.dev/health) · node catalog: [`/api/nodes`](https://nirium-agent.fly.dev/api/nodes)
@@ -166,7 +166,7 @@ Nirium received Stellar Community Fund Instaward funding (two awards) via a regi
 
 ## Contributing
 
-Contributions welcome: examples, framework adapters, language bindings, docs and tests. This repo ran a GrantFox bounty campaign with Trustless Work through early September 2026 - that campaign is now closed, so there are currently **no open, assigned-on-request issues** from that program. Separately, a no-cash contribution sprint is running: **[Niriumtober](https://nirium.xyz/build/niriumtober)** (Oct 22 to Nov 2), with open issues labeled [`niriumtober`](../../issues?q=is%3Aissue+is%3Aopen+label%3Aniriumtober). Watch the [issues page](../../issues) for the next GrantFox round rather than pinging an old thread; a future campaign, if one runs, will be labeled explicitly.
+Contributions welcome: examples, framework adapters, language bindings, docs and tests. This repo ran a GrantFox bounty campaign with Trustless Work through early September 2026 - that campaign is now closed, so there are currently **no open, assigned-on-request issues** from that program. Separately, a no-cash contribution sprint, **[Niriumtober](https://nirium.xyz/build/niriumtober)**, ran from Oct 22 to Nov 2, 2026; it has ended, and its issues are still open and labeled [`niriumtober`](../../issues?q=is%3Aissue+is%3Aopen+label%3Aniriumtober). Watch the [issues page](../../issues) for the next GrantFox round rather than pinging an old thread; a future campaign, if one runs, will be labeled explicitly.
 
 Outside of any campaign, PRs are still welcome - examples, framework adapters, bindings, docs, tests - just note in the PR that it isn't tied to a bounty.
 

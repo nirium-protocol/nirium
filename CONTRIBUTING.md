@@ -34,7 +34,7 @@ cd packages/sdk-python && pip install -e .
 | `npm run build` | Compile TypeScript (`tsc`) |
 | `npm run dev` | Watch mode |
 | `npm run lint` | ESLint |
-| `npm run test` | Jest |
+| `npm test` | Run the package's tests (Jest in the SDK, `node --test` in the CLI) |
 
 ---
 
