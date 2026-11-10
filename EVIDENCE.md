@@ -1,6 +1,6 @@
 # Nirium: Evidence Index
 
-Last verified live: 10 Nov 2026, against Horizon (mainnet/testnet), the Pinata gateway, GitHub API and npm. Every item below links directly to its own evidence. Check any of them independently.
+Last verified live: 10 Nov 2026, against Horizon (mainnet/testnet), the Filebase and Pinata gateways, GitHub API and npm. Every item below links directly to its own evidence. Check any of them independently. The CID links below use the Pinata gateway; if one answers `429` (rate limit), open the same CID at `https://nirium.myfilebase.com/ipfs/<CID>`, or run `npx nirium-cli@latest verify <CID>`, which tries Filebase, Pinata, ipfs.io and dweb.link in that order.
 
 ## 1. x402 payments on Stellar (mainnet)
 
