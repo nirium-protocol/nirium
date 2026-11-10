@@ -1,0 +1,21 @@
+name: Feature request
+description: Propose a change or addition to the SDK, CLI, MCP server or an example
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve
+      description: What you're trying to do today that this would make possible or easier
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered

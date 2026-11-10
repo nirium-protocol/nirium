@@ -1,0 +1,51 @@
+name: Bug report
+description: Something in the SDK, CLI, MCP server or an example doesn't work as documented
+labels: [bug]
+body:
+  - type: dropdown
+    id: package
+    attributes:
+      label: Package
+      options:
+        - nirium (TypeScript SDK)
+        - nirium (Python SDK)
+        - nirium-cli
+        - nirium-mcp
+        - nirium-pollar-adapter
+        - An example in examples/
+        - Documentation
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: "`npm ls <package>` or `pip show nirium`, not the latest tag"
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened instead
+      description: Full error output, not a paraphrase
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: Minimal code or commands someone else can run
+    validations:
+      required: true
+  - type: input
+    id: network
+    attributes:
+      label: Network
+      description: stellar:testnet, stellar:pubnet, or not applicable
