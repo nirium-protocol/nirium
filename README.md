@@ -14,6 +14,8 @@ This repository contains the TypeScript and Python SDKs, the MCP server, the CLI
 
 Software-only and non-custodial: regulated partners execute settlement, the client signs every fund movement, and Nirium never holds client funds.
 
+**Reviewing Nirium?** [`docs/FOR-REVIEWERS.md`](docs/FOR-REVIEWERS.md) is a ten-minute path through things you can check yourself. Verify any receipt with no account at [nirium.xyz/verify](https://nirium.xyz/verify), and see live usage, each row labeled with its source, at [nirium.xyz/stats](https://nirium.xyz/stats).
+
 ## Packages
 
 | Package | Install | Version | Description |
@@ -87,7 +89,7 @@ Any AI agent can now pay for your endpoint in USDC: no account, no card, no subs
 > [issue #91](https://github.com/nirium-protocol/nirium/issues/91) for what's
 > missing and why, and for a real production reference implementation).
 
-See [`docs/`](./docs) for full quickstarts, including [**"Charge AI agents in 5 minutes"**](./docs/quickstart-x402.md) ([🇪🇸 Español](./docs/es/quickstart-x402.md)), and [**serverless Audit Trail anchoring with `waitUntil`**](./docs/serverless-audit-waituntil.md), plus [`examples/`](./examples) for 13 runnable integrations across 5 languages: [Express](./examples/express-x402) and [Next.js](./examples/nextjs-x402) (TypeScript), [Go](./examples/go-x402), [Rust](./examples/rust-x402), [LangChain x402](./examples/langchain-x402-agent) (Python), [non-custodial treasury vault](./examples/treasury-vault-quickstart), [resilient WebSocket signals](./examples/ws-signals-resilient), [one-click Vercel deploy](./examples/deploy-x402-vercel), [Unity/C# game paywall](./examples/unity-game-x402-gate), [RouteDock discovery manifest](./examples/routedock-manifest), [Stellar Disbursement Platform audit bridge](./examples/sdp-audit-bridge), [audit-forensic-bridge](./examples/audit-forensic-bridge), and [per-agent daily spend policy](./examples/x402-policy-daily-budget). For real production findings (not marketing copy), see the [**devlog**](./docs/devlog.md).
+See [`docs/`](./docs) for full quickstarts, including [**"Charge AI agents in 5 minutes"**](./docs/quickstart-x402.md) ([🇪🇸 Español](./docs/es/quickstart-x402.md)), and [**serverless Audit Trail anchoring with `waitUntil`**](./docs/serverless-audit-waituntil.md), plus [`examples/`](./examples) for 14 runnable integrations: [Express](./examples/express-x402) and [Next.js](./examples/nextjs-x402) (TypeScript), [Go](./examples/go-x402), [Rust](./examples/rust-x402), [LangChain x402](./examples/langchain-x402-agent) (Python), [non-custodial treasury vault](./examples/treasury-vault-quickstart), [resilient WebSocket signals](./examples/ws-signals-resilient), [one-click Vercel deploy](./examples/deploy-x402-vercel), [Unity/C# game paywall](./examples/unity-game-x402-gate), [RouteDock discovery manifest](./examples/routedock-manifest), [Stellar Disbursement Platform audit bridge](./examples/sdp-audit-bridge), [audit-forensic-bridge](./examples/audit-forensic-bridge), [per-agent daily spend policy](./examples/x402-policy-daily-budget), and an [Open Policy Agent policy behind the pre-sign hook](./examples/x402-policy-opa). For real production findings (not marketing copy), see the [**devlog**](./docs/devlog.md).
 
 ## Networks
 
@@ -97,11 +99,11 @@ Live on **both** Stellar networks. They are not two copies of the same thing.
 
 | Product | Status |
 |---|---|
-| x402 | Live in production, mainnet |
-| Audit Trail | Live in production, mainnet |
-| Reporting | Live in production, mainnet |
-| Treasury Rebalance | Mainnet, invite-only |
-| Payouts | Mainnet, invite-only |
+| x402 | Live on mainnet ([last settled payment 29 Sep 2026](https://stellar.expert/explorer/public/account/GCLBBPON256CV7ATEHM5B54BOKNC7GX53MBINJ42MHVXGDMMZ3ZWKBHP)) |
+| Audit Trail | Live on mainnet (last anchor 6 Nov 2026) |
+| Reporting | Live on mainnet |
+| Treasury Rebalance | Mainnet, invite-only (4 self-funded rebalances, last 6 Aug 2026) |
+| Payouts | Mainnet, invite-only (no mainnet runs yet) |
 | Policy hook (pre-sign `ALLOW`/`DENY`) | Experimental |
 | MPP Charge | Testnet only |
 
@@ -129,7 +131,7 @@ That third transaction is the point: the agent moved funds it does not own, and 
 
 | Contract | ID |
 |---|---|
-| NiriumVault | [`CBTWMZCG3P72EHFAQ4ZLSEBIOFYJC244H5J6DHZIJ56FHFWJ2CFAWSZU`](https://stellar.expert/explorer/testnet/contract/CBTWMZCG3P72EHFAQ4ZLSEBIOFYJC244H5J6DHZIJ56FHFWJ2CFAWSZU) |
+| NiriumVault | [`CDMFURE6MYROTA2A6DLD4TN2S4QTN64L2FZ2I2RY2AREONX6DUQOI2S2`](https://stellar.expert/explorer/testnet/contract/CDMFURE6MYROTA2A6DLD4TN2S4QTN64L2FZ2I2RY2AREONX6DUQOI2S2) (built from a GitHub-attested release, shown as verified on Stellar Expert; in use since 9 Nov 2026, replacing `CBTWMZCG…FAWSZU`) |
 | NiriumProtocol | [`CC2TU5BDTKTPRRRQPEF77I54XYHFQ25XGIRO2TCWKSR7NRJDFR5L5NR5`](https://stellar.expert/explorer/testnet/contract/CC2TU5BDTKTPRRRQPEF77I54XYHFQ25XGIRO2TCWKSR7NRJDFR5L5NR5) |
 
 API: [`nirium-agent.fly.dev/health`](https://nirium-agent.fly.dev/health) · node catalog: [`/api/nodes`](https://nirium-agent.fly.dev/api/nodes)
@@ -158,6 +160,36 @@ Real bugs found in code we don't control, in other people's repos, confirmed by 
 
 **[Trustless-Work/trustlesswork-sdk-react#6](https://github.com/Trustless-Work/trustlesswork-sdk-react/issues/6)** - `trustline.address` ambiguity (SAC contract id vs. classic issuer) in their Multi-Release docs. Closed 28-sep-2026, 30 minutes after their ["Feature/version 2" PR](https://github.com/Trustless-Work/trustlesswork-sdk-react/pull/7) merged.
 
+### Merged pull requests in other teams' repos
+
+Checked against the GitHub API on 10 Nov 2026. Each one was reviewed and merged by that repo's own maintainers (one by Stellar's triage bot).
+
+| Pull request | What it does | Author | Merged by |
+|---|---|---|---|
+| [stellar/stellar-dev-skill#96](https://github.com/stellar/stellar-dev-skill/pull/96) | Add Nirium to the community skills | Eras256 | kaankacar, 15 Aug 2026 |
+| [stellar/stellar-dev-skill#97](https://github.com/stellar/stellar-dev-skill/pull/97) | Production patterns for x402 + MPP in the agentic-payments skill | Eras256 | kaankacar, 5 Sep 2026 |
+| [stellar/stellar-dev-skill#150](https://github.com/stellar/stellar-dev-skill/pull/150) | Correct the MPP production claim | Eras256 | Stellar triage bot, 15 Oct 2026 |
+| [stellar/stellar-mpp-sdk#69](https://github.com/stellar/stellar-mpp-sdk/pull/69) | Fix the two invalid mainnet SAC constants | Eras256 | jeesunikim, 9 Sep 2026 |
+| [pollar-xyz/pollar-apps#30](https://github.com/pollar-xyz/pollar-apps/pull/30) | Nirium x402 adapter demo | Eras256 | aleregex, 31 Aug 2026 |
+| [Trustless-Work/agentic-escrow-research#1](https://github.com/Trustless-Work/agentic-escrow-research/pull/1) | Bounded-authority milestone payouts + x402 | Eras256 | techrebelgit, 21 Sep 2026 |
+| [Trustless-Work/agentic-escrow-research#2](https://github.com/Trustless-Work/agentic-escrow-research/pull/2) | Authority by missing parameter (treasury rebalancing) | Eras256 | techrebelgit, 21 Sep 2026 |
+| [Trustless-Work/agentic-escrow-research#3](https://github.com/Trustless-Work/agentic-escrow-research/pull/3) | Direct x402 payment without escrow | M0nsxx | techrebelgit, 21 Sep 2026 |
+| [Trustless-Work/agentic-escrow-research#4](https://github.com/Trustless-Work/agentic-escrow-research/pull/4) | Production evidence for the agent-facing tool schema | Eras256 | techrebelgit, 21 Sep 2026 |
+| [Trustless-Work/agentic-escrow-research#9](https://github.com/Trustless-Work/agentic-escrow-research/pull/9) | Fail-closed payment and delivery gates | Eras256 | techrebelgit, 2 Nov 2026 |
+| [Trustless-Work/agentic-escrow-research#10](https://github.com/Trustless-Work/agentic-escrow-research/pull/10) | Evidence-gated milestone release (testnet pilot) | Eras256 | techrebelgit, 4 Nov 2026 |
+| [Trustless-Work/agentic-escrow-research#11](https://github.com/Trustless-Work/agentic-escrow-research/pull/11) | "Enabled" is not activity (signer liveness) | Eras256 | techrebelgit, 4 Nov 2026 |
+| [Trustless-Work/agentic-escrow-research#12](https://github.com/Trustless-Work/agentic-escrow-research/pull/12) | Pre-sign policy hook decision states | M0nsxx | techrebelgit, 5 Nov 2026 |
+| [Trustless-Work/agentic-escrow-research#13](https://github.com/Trustless-Work/agentic-escrow-research/pull/13) | x402 and MPP Charge on one endpoint | M0nsxx | techrebelgit, 5 Nov 2026 |
+
+Also merged in x402's own core, by the same author. These are protocol-level fixes, not changes to Nirium's code:
+
+| Pull request | What it does | Author | Merged by |
+|---|---|---|---|
+| [x402-foundation/x402#3138](https://github.com/x402-foundation/x402/pull/3138) | Bazaar: raw resource URL as canonical for opaque-origin schemes | Eras256 | CarsonRoscoe, 26 Oct 2026 |
+| [x402-foundation/x402#3215](https://github.com/x402-foundation/x402/pull/3215) | Core: one wildcard pattern per namespace | Eras256 | CarsonRoscoe, 26 Oct 2026 |
+| [x402-foundation/x402#3338](https://github.com/x402-foundation/x402/pull/3338) | Core: enforce the settlement override ceiling | Eras256 | CarsonRoscoe, 22 Oct 2026 |
+| [x402-foundation/x402#3339](https://github.com/x402-foundation/x402/pull/3339) | Stellar docs: areFeesSponsored limitation | Eras256 | CarsonRoscoe, 22 Oct 2026 |
+
 Full history, including findings still open, in the [devlog](./docs/devlog.md).
 
 ## Funding
@@ -166,7 +198,7 @@ Nirium received Stellar Community Fund Instaward funding (two awards) via a regi
 
 ## Contributing
 
-Contributions welcome: examples, framework adapters, language bindings, docs and tests. This repo ran a GrantFox bounty campaign with Trustless Work through early September 2026 - that campaign is now closed, so there are currently **no open, assigned-on-request issues** from that program. Separately, a no-cash contribution sprint is running: **[Niriumtober](https://nirium.xyz/build/niriumtober)** (Oct 22 to Nov 2), with open issues labeled [`niriumtober`](../../issues?q=is%3Aissue+is%3Aopen+label%3Aniriumtober). Watch the [issues page](../../issues) for the next GrantFox round rather than pinging an old thread; a future campaign, if one runs, will be labeled explicitly.
+Contributions welcome: examples, framework adapters, language bindings, docs and tests. This repo ran a GrantFox bounty campaign with Trustless Work through early September 2026 - that campaign is now closed, so there are currently **no open, assigned-on-request issues** from that program. Separately, a no-cash contribution sprint, **[Niriumtober](https://nirium.xyz/build/niriumtober)**, ran from Oct 22 to Nov 2, 2026; it has ended, and its issues are still open and labeled [`niriumtober`](../../issues?q=is%3Aissue+is%3Aopen+label%3Aniriumtober). Watch the [issues page](../../issues) for the next GrantFox round rather than pinging an old thread; a future campaign, if one runs, will be labeled explicitly.
 
 Outside of any campaign, PRs are still welcome - examples, framework adapters, bindings, docs, tests - just note in the PR that it isn't tied to a bounty.
 

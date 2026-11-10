@@ -1,6 +1,6 @@
 # Nirium - 10 minutes for a reviewer
 
-Not a Claude Code session, not a deep dive. Five things, in order of how much
+Not a Claude Code session, not a deep dive. Seven things, in order of how much
 you have to trust us to believe them. Every link below is something you can
 check yourself right now - none of it depends on taking our word for it.
 
@@ -12,10 +12,47 @@ curl https://nirium-agent.fly.dev/api/nodes
 
 Real JSON, no auth, right now: the live status of every execution node
 (Settlement, Audit Trail, Treasury Rebalance, Payouts, Reporting), which
-network each runs on, and which endpoints back it. This is what the whole
-project actually is - not a pitch deck, a running API you just hit.
+network each runs on, and which endpoints back it.
 
-## 2. Treasury Node - real money, on mainnet, with a contract that can't take it
+## 2. A payment receipt you can verify without us
+
+This is the core of what Nirium builds: a signed receipt of a payment that
+anyone can check without an account and without trusting our API.
+
+Open [nirium.xyz/verify](https://nirium.xyz/verify) and paste this CID, or run
+it on your own machine:
+
+```bash
+npx nirium-cli@latest verify QmVWZM1i9qusiTfNAT9QdSFYJNEwQUXtnWuSkrCqRAnGEu
+```
+
+It should print `SIGNATURE: VALID`, signed by
+`GATT3MOLOCTDOUGS3FDNZUYV3UKDLIQE4PN7JJ4JYZBYJOOXBVJV4KXI`, and
+`VERIFICATION PASSED`. That receipt was anchored on mainnet by TIA, an
+external integrator, with its own key, for the payment
+[`cc5740ae…b577808a`](https://stellar.expert/explorer/public/tx/cc5740aebf850194532392a1d216c2af620c70a7c46c8b36a0ea4a06b577808a)
+(18 Oct 2026). TIA has anchored three such receipts on mainnet (18 Oct,
+23 Oct and 6 Nov 2026). The wallets behind its payments are also TIA's own,
+so we count these as integration tests, not as paying customers.
+
+To see why a receipt can be trusted, change one character of any receipt
+and verify it again: the signature still belongs to the original, the file
+no longer does, and verification fails.
+
+## 3. Payments that settle
+
+- **Mainnet:** the x402 payment account,
+  [`GCLBBPON…ZWKBHP`](https://stellar.expert/explorer/public/account/GCLBBPON256CV7ATEHM5B54BOKNC7GX53MBINJ42MHVXGDMMZ3ZWKBHP),
+  has 36 settled payments. The last one settled on 29 Sep 2026. None of them
+  came from an external payer; they are our own and our integrators' tests.
+- **Testnet:** a payment through `nirium-cli` on 10 Nov 2026 settled as
+  [`4b1427ae…8607ecf3`](https://stellar.expert/explorer/testnet/tx/4b1427ae8328a0c1c70daaa412f941234895a8c9f5fd85c03c49501e8607ecf3).
+  Settlement on testnet goes through a hosted facilitator and sometimes
+  fails on the first try; a retry settles.
+
+Live counts, each labeled with its source: [nirium.xyz/stats](https://nirium.xyz/stats).
+
+## 4. Treasury Node - real money, on mainnet, with a contract that can't take it
 
 Nirium doesn't hold the vault. It holds the `RebalanceManager` role of a
 [DeFindex](https://defindex.io) vault the client owns, and DeFindex's own
@@ -38,7 +75,10 @@ cross-referenced in the full [nirium-core
 mirror](https://github.com/nirium-protocol/nirium-core) - both our repos
 cite the same transactions; the chain is the independent source.
 
-## 3. A real partner integration, not a listed logo
+Status: invite-only. Four self-funded rebalances so far, the last on
+6 Aug 2026. Autonomous execution for clients waits on a written legal opinion.
+
+## 5. Real partner integrations, not listed logos
 
 [`nirium-pollar-adapter`](https://github.com/nirium-protocol/nirium-pollar-adapter)
 lets a wallet onboarded through [Pollar](https://pollar.xyz) (social login,
@@ -53,19 +93,20 @@ The demo-app integration itself,
 [pollar-apps#30](https://github.com/pollar-xyz/pollar-apps/pull/30), was
 **merged by Pollar's own maintainer on 31 Aug 2026** (`bb277f6a`).
 
-**Another real integration, publicly thanked by the protocol, not just a logo.** [Trustless-Work/agentic-escrow-research](https://github.com/Trustless-Work/agentic-escrow-research): 4 PRs merged on 21-sep-2026 ([#1](https://github.com/Trustless-Work/agentic-escrow-research/pull/1), [#2](https://github.com/Trustless-Work/agentic-escrow-research/pull/2), [#3](https://github.com/Trustless-Work/agentic-escrow-research/pull/3), [#4](https://github.com/Trustless-Work/agentic-escrow-research/pull/4)), thanked by name by Trustless Work's official account.
+**Another real integration, publicly thanked by the protocol, not just a logo.** [Trustless-Work/agentic-escrow-research](https://github.com/Trustless-Work/agentic-escrow-research): 9 PRs merged by their team: 4 on 21-sep-2026 ([#1](https://github.com/Trustless-Work/agentic-escrow-research/pull/1) to [#4](https://github.com/Trustless-Work/agentic-escrow-research/pull/4)), thanked by name by Trustless Work's official account, and 5 more between 2 and 5 Nov 2026 ([#9](https://github.com/Trustless-Work/agentic-escrow-research/pull/9) to [#13](https://github.com/Trustless-Work/agentic-escrow-research/pull/13)).
 
-**A real escrow cycle, liquidated with real money, not a description of one.** Beyond the 4 merged PRs above, Nirium ran Trustless Work's own Multi-Release escrow contract end to end on mainnet, 3-sep-2026: deploy → fund → approve → release, a real 0.50 USDC, self-directed (one key holding every role, proving the mechanism, not a decision to open this flow to Payouts production - that stays behind legal review). Four confirmed transactions, receiver balance moved by exactly 0.4985 USDC (0.50 minus Trustless Work's fixed 0.3% fee): [`4110dd16…12aefe84`](https://stellar.expert/explorer/public/tx/4110dd16df6c7cdaf50d89f7402e3e51de0ac4f63255f6601e800e3912aefe84) → [`7b181a13…451c09c`](https://stellar.expert/explorer/public/tx/7b181a13160d6d7170f78ba9a4e15309cc0a8f6e20a1db01adfcdb667451c09c) → [`a3aa35a2…4096ca5`](https://stellar.expert/explorer/public/tx/a3aa35a272774547d3ca4ce5a32e361641daac6cf829ecf8951b83a194096ca5) → [`0c533088…a8192b`](https://stellar.expert/explorer/public/tx/0c533088ab6326a78b9f79c197b7636ca4662a0d72562968ddea37f370a8192b). Full detail, including the deploy-path timing evidence, in the [nirium-core mirror's README](https://github.com/nirium-protocol/nirium-core#readme).
+**A real escrow cycle, liquidated with real money, not a description of one.** Beyond the merged PRs above, Nirium ran Trustless Work's own Multi-Release escrow contract end to end on mainnet, 3-sep-2026: deploy → fund → approve → release, a real 0.50 USDC, self-directed (one key holding every role, proving the mechanism, not a decision to open this flow to Payouts production - that stays behind legal review). Four confirmed transactions, receiver balance moved by exactly 0.4985 USDC (0.50 minus Trustless Work's fixed 0.3% fee): [`4110dd16…12aefe84`](https://stellar.expert/explorer/public/tx/4110dd16df6c7cdaf50d89f7402e3e51de0ac4f63255f6601e800e3912aefe84) → [`7b181a13…451c09c`](https://stellar.expert/explorer/public/tx/7b181a13160d6d7170f78ba9a4e15309cc0a8f6e20a1db01adfcdb667451c09c) → [`a3aa35a2…4096ca5`](https://stellar.expert/explorer/public/tx/a3aa35a272774547d3ca4ce5a32e361641daac6cf829ecf8951b83a194096ca5) → [`0c533088…a8192b`](https://stellar.expert/explorer/public/tx/0c533088ab6326a78b9f79c197b7636ca4662a0d72562968ddea37f370a8192b). Full detail, including the deploy-path timing evidence, in the [nirium-core mirror's README](https://github.com/nirium-protocol/nirium-core#readme).
 
-## 4. Upstream contributions - bugs fixed in code we don't control
+## 6. Upstream contributions
 
-The strongest kind of evidence: a maintainer with no reason to agree if it
+Every pull request we got merged in other teams' repos, with who merged it
+and when, is in the [README's table](../README.md#merged-pull-requests-in-other-teams-repos).
+Below are the bugs we found and reported in code we don't control. The
+strongest kind of evidence: a maintainer with no reason to agree if it
 weren't real, agreeing.
 
 | Where | What | Status |
 |---|---|---|
-| [stellar/stellar-dev-skill#96](https://github.com/stellar/stellar-dev-skill/pull/96) | Nirium listed in Stellar's own official developer-skills catalog | **Merged** 15 Aug 2026, reviewed by SDF DevRel |
-| [stellar/stellar-dev-skill#97](https://github.com/stellar/stellar-dev-skill/pull/97) | Multiple real production-hardening fixes to the agentic-payments skill (x402/MPP) | **Merged** 5 Sep 2026 |
 | [x402-foundation/x402#3171](https://github.com/x402-foundation/x402/issues/3171) | Filed by us against `@x402/core`'s reference implementation; fixed by an unrelated third-party contributor, not us | **Closed** 17 Aug 2026 - external confirmation, not self-reported |
 | [stellar/js-stellar-sdk#1655](https://github.com/stellar/js-stellar-sdk/issues/1655) | Delegate-signing path (CAP-71) wasn't seeing signers outside the root node | **Closed** 28 Sep 2026 via maintainer's [PR #1747](https://github.com/stellar/js-stellar-sdk/pull/1747) |
 | [stellar/js-stellar-sdk#1683](https://github.com/stellar/js-stellar-sdk/issues/1683) | `authorizeEntry`'s bare-signature fallback ignored `forAddress` | **Closed** 24 Sep 2026 via maintainer's [PR #1742](https://github.com/stellar/js-stellar-sdk/pull/1742) |
@@ -88,7 +129,7 @@ more PRs (#1743, #1744) that we closed manually after confirming; #1700
 via a docs-only PR (#1745) with no behavior change; and #1699 was never
 fixed at all - withdrawn `not_planned`.
 
-## 5. GrantFox - the real numbers, not the flattering summary
+## 7. GrantFox - the real numbers, not the flattering summary
 
 This repo's GrantFox bounty program, all three campaigns to date
 (Official Campaign, FWC26, Third Campaign - the last one wrapped 30 Aug
@@ -116,5 +157,6 @@ omit it - caught 2026-09-28 re-verifying this page.
 ---
 
 *Every number and link on this page was checked live against its source
-(Horizon, GitHub's API, the running API itself) before being written down
-- not copied from an internal doc or an earlier draft. Last verified: 23 Oct 2026.*
+(Horizon, GitHub's API, the running API itself, `nirium-cli verify`) before
+being written down - not copied from an internal doc or an earlier draft.
+Last verified: 10 Nov 2026.*

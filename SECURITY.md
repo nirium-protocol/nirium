@@ -101,7 +101,7 @@ We appreciate the security research community's efforts. Reporters of valid secu
 
 - **Security issues:** niriumprotocol@gmail.com
 - **General inquiries:** niriumprotocol@gmail.com
-- **Twitter/X:** [@NiriumXYZ](https://x.com/Niriumstellar)
+- **Twitter/X:** [@Niriumstellar](https://x.com/Niriumstellar)
 
 ---
 
