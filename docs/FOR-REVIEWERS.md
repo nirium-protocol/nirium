@@ -3,6 +3,8 @@
 Not a Claude Code session, not a deep dive. Seven things, in order of how much
 you have to trust us to believe them. Every link below is something you can
 check yourself right now - none of it depends on taking our word for it.
+The full evidence list, with the network and date of every item, is in
+[`EVIDENCE.md`](../EVIDENCE.md).
 
 ## 1. Something live, in 30 seconds
 
