@@ -141,9 +141,9 @@ exceeds either limit fails explicitly and must be narrowed.
 The issue identifies [Providencia Onchain / VIIO](https://github.com/itrmachines/viio_poc)
 as the deployment-specific prior art that motivated this work. The linked public
 VIIO POC documents an
-[`external_transfer`](https://github.com/ITRMachines/viio_poc/tree/master/external_transfer)
+[`external_transfer`](https://github.com/ITRMachines/viio_poc/tree/main/external_transfer)
 flow that returns a blockchain transaction hash and a project-specific
-[`movements`](https://github.com/ITRMachines/viio_poc/tree/master/movements)
+[`movements`](https://github.com/ITRMachines/viio_poc/tree/main/movements)
 view. The public repository does not independently document every deployment
 detail stated in the issue, so this README does not repeat those details as
 verified facts.
