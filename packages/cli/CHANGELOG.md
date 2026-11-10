@@ -4,7 +4,13 @@ All notable changes to the `nirium-cli` package are documented here.
 
 ## Unreleased
 
-## 3.2.0 - unreleased
+## 3.2.1 - 2026-11-10
+
+### Fixed
+
+- `nirium pay` decodes the base64 `PAYMENT-RESPONSE` header and prints the real transaction hash and a working Stellar Expert link; no link is printed without a valid hash ([#275](https://github.com/nirium-protocol/nirium/pull/275)).
+
+## 3.2.0 - 2026-11-09
 
 ### Changed
 
