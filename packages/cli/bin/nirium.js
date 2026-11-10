@@ -686,6 +686,32 @@ async function executeConfigCommand(action, key, value) {
 // pay — sign and settle an x402 payment from the terminal
 // ═══════════════════════════════════════════════════════════════
 
+// PAYMENT-RESPONSE in x402 v2 is a JSON object base64-encoded onto the header,
+// not a bare hash. The real tx hash lives under `transaction`, not `txHash`/
+// `transactionHash`/`hash` — those were guesses that never matched the actual
+// shape of the header and silently printed the whole encoded blob as the
+// "hash" — a base64 PAYMENT-RESPONSE that doesn't start with "{" was never
+// decoded, so it fell straight through to being treated as the hash.
+function parsePaymentResponse(raw) {
+    const value = (raw || '').trim();
+    if (!value) return { txHash: '', meta: null };
+    let text = value;
+    if (!text.startsWith('{')) {
+        try {
+            const decoded = Buffer.from(text, 'base64').toString('utf8').trim();
+            if (decoded.startsWith('{')) text = decoded;
+        } catch {}
+    }
+    if (text.startsWith('{')) {
+        try {
+            const meta = JSON.parse(text);
+            const tx = meta.transaction || meta.txHash || meta.transactionHash || meta.hash || '';
+            return { txHash: /^[0-9a-f]{64}$/i.test(tx) ? tx : '', meta };
+        } catch {}
+    }
+    return { txHash: /^[0-9a-f]{64}$/i.test(value) ? value : '', meta: null };
+}
+
 async function executePayCommand(url, options) {
     const config = loadConfig(options.config);
     const network = options.network || process.env.NIRIUM_NETWORK || config.network || 'stellar:testnet';
@@ -799,21 +825,7 @@ async function executePayCommand(url, options) {
             || response.headers.get('payment-tx-hash')
             || '';
 
-        let txHash = '';
-        let paymentMeta = null;
-        if (paymentResponseHeader) {
-            try {
-                if (paymentResponseHeader.startsWith('{')) {
-                    const parsed = JSON.parse(paymentResponseHeader);
-                    txHash = parsed.txHash || parsed.transactionHash || parsed.hash || '';
-                    paymentMeta = parsed;
-                } else {
-                    txHash = paymentResponseHeader;
-                }
-            } catch {
-                txHash = paymentResponseHeader;
-            }
-        }
+        const { txHash, meta: paymentMeta } = parsePaymentResponse(paymentResponseHeader);
 
         let responseBody;
         const contentType = response.headers.get('content-type') || '';
@@ -846,8 +858,9 @@ async function executePayCommand(url, options) {
         }
         console.log(`   Response Time: ${durationMs}ms`);
         if (txHash) {
+            const explorerNetwork = paymentMeta?.network || network;
             console.log(`   Tx Reference:  ${txHash}`);
-            console.log(`   Explorer:      https://stellar.expert/explorer/${network.includes('testnet') ? 'testnet' : 'public'}/tx/${txHash}`);
+            console.log(`   Explorer:      https://stellar.expert/explorer/${explorerNetwork.includes('testnet') ? 'testnet' : 'public'}/tx/${txHash}`);
         }
         console.log(`\n--- Response Payload ---`);
         console.log(typeof responseBody === 'object' ? JSON.stringify(responseBody, null, 2) : responseBody);
