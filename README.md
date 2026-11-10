@@ -14,7 +14,7 @@ This repository contains the TypeScript and Python SDKs, the MCP server, the CLI
 
 Software-only and non-custodial: regulated partners execute settlement, the client signs every fund movement, and Nirium never holds client funds.
 
-**Reviewing Nirium?** [`docs/FOR-REVIEWERS.md`](docs/FOR-REVIEWERS.md) is a ten-minute path through things you can check yourself. Verify any receipt with no account at [nirium.xyz/verify](https://nirium.xyz/verify), and see live usage, each row labeled with its source, at [nirium.xyz/stats](https://nirium.xyz/stats).
+**Reviewing Nirium?** [`docs/FOR-REVIEWERS.md`](docs/FOR-REVIEWERS.md) is a ten-minute path through things you can check yourself. Every piece of evidence, with its network and date, is in [`EVIDENCE.md`](EVIDENCE.md). Verify any receipt with no account at [nirium.xyz/verify](https://nirium.xyz/verify), and see live usage, each row labeled with its source, at [nirium.xyz/stats](https://nirium.xyz/stats).
 
 ## Packages
 

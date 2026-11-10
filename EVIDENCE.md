@@ -1,6 +1,6 @@
 # Nirium: Evidence Index
 
-Last verified live: 6 Nov 2026, against Horizon (mainnet/testnet), the Pinata gateway, GitHub API and npm. Every item below links directly to its own evidence. Check any of them independently.
+Last verified live: 10 Nov 2026, against Horizon (mainnet/testnet), the Pinata gateway, GitHub API and npm. Every item below links directly to its own evidence. Check any of them independently.
 
 ## 1. x402 payments on Stellar (mainnet)
 
@@ -32,7 +32,7 @@ Last verified live: 6 Nov 2026, against Horizon (mainnet/testnet), the Pinata ga
 | [CID](https://gateway.pinata.cloud/ipfs/QmXT33ZyUvwxzamEMeGYyUxpAWt86bsPpRkFFu4D1fPkso) | mainnet, 6 Nov 2026 | TIA's third receipt, same key, tag `tia-route`. Signature checked independently. No payment transaction is linked to it |
 | [CID](https://gateway.pinata.cloud/ipfs/QmUoapw3ya1pNkWChZZCLWq1z2yUZffnrEtt5W3LXc2KzM) | testnet, 29 Oct 2026 | Our own workshop dry run: a receipt signed with a Stellar key (`nirium-audit-v1:<sha256>`) |
 | [CID](https://gateway.pinata.cloud/ipfs/QmboKKkuwck3zvRx2bqnzUdDFkrEtc1VUHo6rrzm9nyBtD) + [tx](https://stellar.expert/explorer/testnet/tx/95717202be514ed0ae6d59d88c5950d79ff94b40dad709a430691ad6c4449b7b) | testnet, 1 Nov 2026 | Our Pollar adapter anchoring a receipt on a payment's success event. Our own self-test, not a feature Pollar has adopted |
-| [Reporting summary](https://nirium-agent-mainnet.fly.dev/api/reporting/summary?network=mainnet) | mainnet, live | 34 anchors as of 6 Nov 2026, including our own tests and demos |
+| [Reporting summary](https://nirium-agent-mainnet.fly.dev/api/reporting/summary?network=mainnet) | mainnet, live | 33 anchors as of 10 Nov 2026 (the last on 6 Nov), including our own tests and demos |
 | [nirium.xyz/verify](https://nirium.xyz/verify) | live | Anyone can paste any CID and verify it independently |
 | `POST /api/audit/log` on [testnet](https://nirium-agent.fly.dev/api/audit/info) and [mainnet](https://nirium-agent-mainnet.fly.dev/api/audit/info) | live | Anyone can anchor a record with no API key, free and rate-limited during the beta. Signing with your own Stellar key is optional. API keys for the rest of the API are at [nirium.xyz/keys](https://nirium.xyz/keys) |
 | [`verify-audit-cid`](https://github.com/nirium-protocol/nirium/tree/main/actions/verify-audit-cid) GitHub Action, [PR #259](https://github.com/nirium-protocol/nirium/pull/259), [PR #260](https://github.com/nirium-protocol/nirium/pull/260) | live, 6 Nov 2026 | No longer depends on one public IPFS gateway. Tries a dedicated gateway first, then two public ones as fallback, and reports which one answered. Also fixed: verification of hash-only receipts (no `record` field), which previously always failed. |
@@ -77,7 +77,7 @@ Not counted as users above:
 
 Four `rebalance()` calls on mainnet, 6 Aug 2026 01:54-02:29 UTC, from RebalanceManager [`GCEAC7KK...MNI`](https://stellar.expert/explorer/public/account/GCEAC7KKHLSPNHEO3N662N57ABRQZQ7QDVIZWQSQAUJZDMHU6ZEH7MNI): [tx1](https://stellar.expert/explorer/public/tx/b7bf6d7079aa128081ac2a5091cbff2da2b1e9f2157232209cf03eab00f840a9), [tx2](https://stellar.expert/explorer/public/tx/9f0e7e03cf3f17655b7e1b755c6a3fb5e65c499835424e440e601ecc8b68f033), [tx3](https://stellar.expert/explorer/public/tx/d8bec2b44a0b053d45f843aed21f87e217a2fe87d2761c1e2d3b04318f6330b1), [tx4](https://stellar.expert/explorer/public/tx/ccae5347739e1f65d319f4ce4c2b586661365ffc919e572a758fd2e11a9b7f45). Team's own funds, self-directed.
 
-## 8. External open-source contributions (GitHub API, updated 5 Nov)
+## 8. External open-source contributions (GitHub API, updated 10 Nov)
 
 **24 pull requests merged by external maintainers** (21 Eras256, 3 M0nsxx). The 18 below are for Nirium and x402 core; the other 6 are for the team's other projects:
 - **Nirium (14):** stellar-dev-skill [#96](https://github.com/stellar/stellar-dev-skill/pull/96), [#97](https://github.com/stellar/stellar-dev-skill/pull/97), [#150](https://github.com/stellar/stellar-dev-skill/pull/150); stellar-mpp-sdk [#69](https://github.com/stellar/stellar-mpp-sdk/pull/69); pollar-apps [#30](https://github.com/pollar-xyz/pollar-apps/pull/30); Trustless-Work agentic-escrow-research [#1](https://github.com/Trustless-Work/agentic-escrow-research/pull/1), [#2](https://github.com/Trustless-Work/agentic-escrow-research/pull/2), [#4](https://github.com/Trustless-Work/agentic-escrow-research/pull/4), [#9](https://github.com/Trustless-Work/agentic-escrow-research/pull/9), [#10](https://github.com/Trustless-Work/agentic-escrow-research/pull/10), [#11](https://github.com/Trustless-Work/agentic-escrow-research/pull/11) (Eras256), [#3](https://github.com/Trustless-Work/agentic-escrow-research/pull/3), [#12](https://github.com/Trustless-Work/agentic-escrow-research/pull/12), [#13](https://github.com/Trustless-Work/agentic-escrow-research/pull/13) (M0nsxx)
@@ -85,7 +85,7 @@ Four `rebalance()` calls on mainnet, 6 Aug 2026 01:54-02:29 UTC, from RebalanceM
 
 ## 9. Packages
 
-npm: [`nirium-cli@3.0.1`](https://www.npmjs.com/package/nirium-cli), [`nirium@0.17.0`](https://www.npmjs.com/package/nirium), [`nirium-mcp@0.6.4`](https://www.npmjs.com/package/nirium-mcp), [`nirium-pollar-adapter@0.6.0`](https://www.npmjs.com/package/nirium-pollar-adapter). PyPI: [`nirium@0.11.1`](https://pypi.org/project/nirium/). Listed on [skills.stellar.org](https://skills.stellar.org). [nirium.xyz/stats](https://nirium.xyz/stats) is live, our own source, presented as supporting data, not third-party proof.
+npm: [`nirium-cli@3.2.1`](https://www.npmjs.com/package/nirium-cli), [`nirium@0.19.0`](https://www.npmjs.com/package/nirium), [`nirium-mcp@0.6.4`](https://www.npmjs.com/package/nirium-mcp), [`nirium-pollar-adapter@0.6.0`](https://www.npmjs.com/package/nirium-pollar-adapter). PyPI: [`nirium@0.11.1`](https://pypi.org/project/nirium/). Listed on [skills.stellar.org](https://skills.stellar.org). [nirium.xyz/stats](https://nirium.xyz/stats) is live, our own source, presented as supporting data, not third-party proof.
 
 ## 10. Public recognition and community (verified 3 Nov 2026, newsletter 5 Nov)
 
@@ -113,4 +113,5 @@ The following teams, and one independent researcher, signed a non-binding letter
 - TIA
 - AgentRail
 - Aldo Hernández / KINEGuard
+- AgentLedger (its founder has also worked with Nirium part-time since October 2026)
 
