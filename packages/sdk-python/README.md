@@ -247,8 +247,8 @@ Anchor a **hash** rather than the data itself: IPFS content cannot be deleted, s
 
 - [Documentation](https://nirium.xyz/docs)
 - [Developer Sandbox](https://nirium.xyz/sandbox)
-- [API Reference](https://nirium.xyz/docs/api)
-- [MCP Server Integration](https://nirium.xyz/docs/mcp)
+- [Documentation](https://nirium.xyz/docs)
+- [MCP Server Integration](https://github.com/nirium-protocol/nirium/tree/main/packages/mcp)
 - [GitHub](https://github.com/nirium-protocol/nirium)
 
 ## License
