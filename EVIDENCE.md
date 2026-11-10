@@ -91,7 +91,6 @@ npm: [`nirium-cli@3.2.1`](https://www.npmjs.com/package/nirium-cli), [`nirium@0.
 
 | Event | What it proves |
 |---|---|
-| **[ETH Cinco de Mayo 2026](https://x.com/ETHCincoDeMayo/status/2077553531834237216)** | Finalist, 10 of 30+ applicants, public tweet 15 Jul 2026 |
 | **[BBVA Open Deal / "The Open Deal Room by Stellar"](https://www.youtube.com/watch?v=kpN5YwGz1bk)** | 1 of 6 Stellar ecosystem startups invited to pitch investors, 21 May 2026, Torre BBVA CDMX |
 | **[BAF newsletter](https://bafs-newsletter.beehiiv.com/p/recap-de-la-call-becas-hubs-y-un-summit-en-juego-tu-proyecto-est-listo)** | Nirium featured by the Blockchain Acceleration Foundation, 27 Jun 2026 |
 
