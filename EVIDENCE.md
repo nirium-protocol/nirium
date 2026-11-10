@@ -87,14 +87,13 @@ Four `rebalance()` calls on mainnet, 6 Aug 2026 01:54-02:29 UTC, from RebalanceM
 
 npm: [`nirium-cli@3.0.1`](https://www.npmjs.com/package/nirium-cli), [`nirium@0.17.0`](https://www.npmjs.com/package/nirium), [`nirium-mcp@0.6.4`](https://www.npmjs.com/package/nirium-mcp), [`nirium-pollar-adapter@0.6.0`](https://www.npmjs.com/package/nirium-pollar-adapter). PyPI: [`nirium@0.11.1`](https://pypi.org/project/nirium/). Listed on [skills.stellar.org](https://skills.stellar.org). [nirium.xyz/stats](https://nirium.xyz/stats) is live, our own source, presented as supporting data, not third-party proof.
 
-## 10. Public recognition and community (verified 3 Nov 2026, newsletter 5 Nov, bootcamp 6 Nov)
+## 10. Public recognition and community (verified 3 Nov 2026, newsletter 5 Nov)
 
 | Event | What it proves |
 |---|---|
 | **[ETH Cinco de Mayo 2026](https://x.com/ETHCincoDeMayo/status/2077553531834237216)** | Finalist, 10 of 30+ applicants, public tweet 15 Jul 2026 |
 | **[BBVA Open Deal / "The Open Deal Room by Stellar"](https://www.youtube.com/watch?v=kpN5YwGz1bk)** | 1 of 6 Stellar ecosystem startups invited to pitch investors, 21 May 2026, Torre BBVA CDMX |
 | **[BAF newsletter](https://bafs-newsletter.beehiiv.com/p/recap-de-la-call-becas-hubs-y-un-summit-en-juego-tu-proyecto-est-listo)** | Nirium featured by the Blockchain Acceleration Foundation, 27 Jun 2026 |
-| **["Código 402: Agentes que pagan"](https://luma.com/ljzvwv35)** | Online bootcamp, 5 sessions plus Demo Day, 10-27 Nov 2026, hosted by the Blockchain Acceleration Foundation with Fernanda Tello (Country Lead Mexico), Gerardo Vela (Stellar Ambassador), Giovanny Amador and Monserrat Mendoza. Sessions, per BAF's published program: a first USDC payment on testnet; charging for an API with x402; an agent that pays on its own within a spending limit (Soroban smart accounts); verifying payments with RPC or Horizon, with Nirium as a case study; and a workshop to finish the prototype before Demo Day. [Post](https://nirium.xyz/blog/codigo-402-agentes-que-pagan). Nirium appears as one real case among several, up to 15 minutes per session. Scheduled, so this shows the program exists, not its results |
 
 ## 11. Stellar Community Fund grants received (Instawards)
 
