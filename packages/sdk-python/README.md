@@ -1,8 +1,12 @@
 # nirium
 
-Autonomous treasury and agentic-payments infrastructure for **Nirium Protocol** on Stellar/Soroban - Python client.
+Verifiable receipts, agentic payments and treasury execution for **Nirium Protocol** on Stellar/Soroban - Python client.
 
-Nirium agents rebalance USDC ↔ CETES (tokenized Mexican T-bills via Etherfuse) 24/7 without human intervention. Built for developers who want to integrate autonomous treasury management, agentic payments with x402, and real-time market signals into their applications.
+- **Audit Trail:** anchor a SHA-256 of any event to IPFS and get back a CID that anyone can re-check, optionally signed with your agent's own Stellar key so it also proves *who* declared it. See [Audit Trail](#audit-trail).
+- **x402 payments:** pay for x402 APIs with `init_x402()` / `x402_fetch()`, or from any LangChain agent with `NiriumX402Tool`.
+- **Treasury:** a Nirium agent can rebalance USDC ↔ CETES (tokenized Mexican T-bills via Etherfuse) over a vault you own. It runs on its own on testnet; on mainnet, autonomous execution is invite-only and anyone can get a proposal they review and sign.
+
+**Status:** x402 and Audit Trail run on Stellar mainnet; MPP Charge does not work in this version; autonomous treasury execution on mainnet is invite-only. Every claim, with its network, date and transaction hash: [EVIDENCE.md](https://github.com/nirium-protocol/nirium/blob/main/EVIDENCE.md).
 
 ## Install
 
@@ -40,6 +44,48 @@ async def main():
 
 asyncio.run(main())
 ```
+
+## Audit Trail
+
+Anchor evidence to IPFS and get back a CID - an integrity seal, not notarization.
+
+```python
+anchor = await agent.anchor_audit_record(
+    hash="sha-256:9f86d081...",   # hash of your own file or event
+    tag="invoice-batch-jul",
+)
+print(anchor["cid"])
+```
+
+Anchor a **hash** rather than the data itself: IPFS content cannot be deleted, so raw personal data would outlive any erasure request.
+
+### Signed receipts: prove who declared it
+
+The CID proves the fact was not altered. Add `agent` and it also proves which key declared it: your agent signs `nirium-audit-v1:<sha256>` with its own Stellar key, locally. Only the signature and the public key are sent; an invalid signature is rejected with `400` and nothing is anchored.
+
+```python
+import base64, hashlib, os
+from stellar_sdk import Keypair
+
+kp = Keypair.from_secret(os.environ["AGENT_SECRET"])
+hash = hashlib.sha256(b"...your evidence...").hexdigest()   # 64-hex sha-256
+signature = base64.b64encode(kp.sign(f"nirium-audit-v1:{hash}".encode())).decode()
+
+anchor = await agent.anchor_audit_record(
+    hash=hash,
+    tag="invoice-batch-jul",
+    agent={"key": kp.public_key, "signature": signature},
+)
+print(anchor["cid"], anchor["attestedBy"])
+```
+
+### Verify any receipt, without trusting Nirium
+
+```bash
+npx nirium-cli verify <cid> --hash <64-hex-sha256>
+```
+
+`nirium verify` fetches the document from IPFS, recomputes the hash and checks the ed25519 signature against the declared Stellar key. You can also paste a CID at [nirium.xyz/verify](https://nirium.xyz/verify), with no account. More in [docs/verify-audit-cid.md](https://github.com/nirium-protocol/nirium/blob/main/docs/verify-audit-cid.md).
 
 ## Real-Time Signals (Resilient WebSocket)
 
@@ -198,20 +244,6 @@ else:
 
 `execute_treasury_rebalance()` has Nirium sign and submit with its own RebalanceManager key - full autonomy, no per-cycle approval. **This is invite-only while a specific legal question stays open**: whether executing on a client's behalf without taking custody still counts as regulated facilitation under Mexican law. It only runs against vaults explicitly allowlisted server-side; calling it against any other vault returns 403, and Nirium's mainnet infrastructure returns 501 for it entirely, since that box holds no signing key by design. Ask if you want autonomous execution today - otherwise, `propose_treasury_rebalance()` above gives you the same decision-making with you as the one who signs.
 
-## Audit Trail
-
-Anchor evidence to IPFS and get back a CID - an integrity seal, not notarization.
-
-```python
-anchor = await agent.anchor_audit_record(
-    hash="sha-256:9f86d081...",   # hash of your own file or event
-    tag="invoice-batch-jul",
-)
-print(anchor["cid"])
-```
-
-Anchor a **hash** rather than the data itself: IPFS content cannot be deleted, so raw personal data would outlive any erasure request.
-
 ## API Coverage
 
 | Category | Methods |
@@ -246,8 +278,8 @@ Anchor a **hash** rather than the data itself: IPFS content cannot be deleted, s
 ## Links
 
 - [Documentation](https://nirium.xyz/docs)
-- [Developer Sandbox](https://nirium.xyz/sandbox)
-- [Documentation](https://nirium.xyz/docs)
+- [Build examples](https://nirium.xyz/build)
+- [Verify a receipt](https://nirium.xyz/verify)
 - [MCP Server Integration](https://github.com/nirium-protocol/nirium/tree/main/packages/mcp)
 - [GitHub](https://github.com/nirium-protocol/nirium)
 

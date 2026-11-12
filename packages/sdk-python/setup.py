@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="nirium",
-    version="0.11.1",
+    version="0.11.2",
     package_dir={"": "src"},
     packages=find_packages(where="src"),
     install_requires=[
@@ -19,7 +19,7 @@ setup(
         ],
     },
     author="Nirium Team",
-    description="Autonomous treasury and agentic-payments infrastructure for Stellar (x402) — Python client",
+    description="Verifiable receipts (Audit Trail), x402 payments and treasury execution for Stellar — Python client",
     keywords=["nirium", "stellar", "defi", "x402", "mpp", "agentic-payments", "soroban"],
     python_requires=">=3.10",
 )
