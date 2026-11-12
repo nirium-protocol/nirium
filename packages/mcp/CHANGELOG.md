@@ -4,6 +4,12 @@ All notable changes to the `nirium-mcp` package are documented here.
 
 ## Unreleased
 
+## 0.6.5 - 2026-11-12
+
+### Changed
+
+- README leads with Audit Trail (`anchor_audit_record`) and how to verify its receipts. Docs only, no tool change.
+
 ## 0.6.4 - 2026-11-05
 
 ### Fixed
