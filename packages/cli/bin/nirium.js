@@ -314,7 +314,7 @@ reportCommand
 reportCommand
     .command('export')
     .argument('<type>', 'anchors, payments, or payroll')
-    .description('Export rows for a period - "export anchors" prints one CID per line, pipeable to `nirium verify`')
+    .description('Export rows for a period - "export anchors" prints when and on which network each anchor was made (no CIDs: a CID belongs to whoever anchored it)')
     .option('--from <date>', 'ISO date, start of period (default: a 30-day window)')
     .option('--to <date>', 'ISO date, end of period')
     .option('--limit <n>', 'Max rows (server caps at 1000)')
@@ -931,7 +931,7 @@ async function executeServeCommand(options) {
             price,
             paidTo: payTo,
             timestamp: new Date().toISOString(),
-            sampleData: { signal: 'CETES_REBALANCE_OPPORTUNITY', yieldApy: '5.57%', network },
+            sampleData: { signal: 'CETES_REBALANCE_OPPORTUNITY', yieldApy: '5.55%', network },
         });
     });
 

@@ -120,7 +120,7 @@ MPP - see `packages/sdk/README.md#mpp-charge-experimental`.
 
 | What | Verify |
 |---|---|
-| First real x402 payment | [`3134a51c…7558bc`](https://stellar.expert/explorer/public/tx/3134a51c66091fd7fbd85b38a4a6ec6cd432bb92c2450eac84ea7855cb7558bc) |
+| First real x402 payment | [`8a2487b8…d73170`](https://stellar.expert/explorer/public/tx/8a2487b8545e02324ced5d902fa350f0f5d8c2d5d2210272506a320b36d73170) |
 | Treasury vault deployed (client signs) | [`93ff6284…78416`](https://stellar.expert/explorer/public/tx/93ff6284cdf03706624c88434a79fba1b213ee547f58e09a9248f75373178416) |
 | Autonomous invest (**the agent signs**) | [`82d73f53…6b3d4`](https://stellar.expert/explorer/public/tx/82d73f537e907140367f9343f63a36704c74a5286aced7a938cee8fffb56b3d4) |
 | API | [`nirium-agent-mainnet.fly.dev/health`](https://nirium-agent-mainnet.fly.dev/health) |
