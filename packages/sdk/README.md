@@ -1,8 +1,12 @@
 # nirium
 
-Autonomous treasury and agentic-payments infrastructure for **Nirium Protocol** on Stellar/Soroban.
+Verifiable receipts, agentic payments and treasury execution for **Nirium Protocol** on Stellar/Soroban.
 
-Nirium agents rebalance USDC ↔ CETES (tokenized Mexican T-bills via Etherfuse) 24/7 without human intervention. Built for developers who want to integrate autonomous treasury management, agentic payments with x402 (in both directions: paying for other APIs with `initX402()` and charging for your own with `x402Serve()`), an experimental MPP Charge client, and real-time market data into their applications.
+- **Audit Trail:** anchor a SHA-256 of any event to IPFS and get back a CID that anyone can re-check, optionally signed with your agent's own Stellar key so it also proves *who* declared it. See [Audit Trail](#audit-trail).
+- **x402 payments, both directions:** pay for other APIs with `initX402()` and charge for your own with `x402Serve()`. An MPP Charge client is included, experimental.
+- **Treasury:** a Nirium agent can rebalance USDC ↔ CETES (tokenized Mexican T-bills via Etherfuse) over a vault you own. It runs on its own on testnet; on mainnet, autonomous execution is invite-only and anyone can get a proposal they review and sign.
+
+**Status:** x402 and Audit Trail run on Stellar mainnet; MPP Charge is testnet only; autonomous treasury execution on mainnet is invite-only. Every claim, with its network, date and transaction hash: [EVIDENCE.md](https://github.com/nirium-protocol/nirium/blob/main/EVIDENCE.md).
 
 ## Install
 
@@ -39,6 +43,47 @@ agent.subscribe((signal) => {
   console.log('Signal:', signal.signal_type, signal.data.details);
 });
 ```
+
+## Audit Trail
+
+Anchor evidence to IPFS and get back a CID - an integrity seal, not notarization.
+
+```typescript
+const anchor = await agent.anchorAuditRecord({
+  hash: 'sha-256:9f86d081...',   // hash of your own file or event
+  tag: 'invoice-batch-jul',
+});
+console.log(anchor.cid);
+```
+
+Anchor a **hash** rather than the data itself: IPFS content cannot be deleted, so raw personal data would outlive any erasure request.
+
+### Signed receipts: prove who declared it
+
+The CID proves the fact was not altered. Add `agent` and it also proves which key declared it: your agent signs `nirium-audit-v1:<sha256>` with its own Stellar key, locally. Only the signature and the public key are sent; an invalid signature is rejected with `400` and nothing is anchored.
+
+```typescript
+import { Keypair } from '@stellar/stellar-sdk';
+
+const kp = Keypair.fromSecret(process.env.AGENT_SECRET!);
+const hash = '...';   // 64-hex sha-256 of your evidence
+const signature = Buffer.from(kp.sign(Buffer.from(`nirium-audit-v1:${hash}`))).toString('base64');
+
+const anchor = await agent.anchorAuditRecord({
+  hash,
+  tag: 'invoice-batch-jul',
+  agent: { key: kp.publicKey(), signature },
+});
+console.log(anchor.cid, anchor.attestedBy);
+```
+
+### Verify any receipt, without trusting Nirium
+
+```bash
+npx nirium-cli verify <cid> --hash <64-hex-sha256>
+```
+
+`nirium verify` fetches the document from IPFS, recomputes the hash and checks the ed25519 signature against the declared Stellar key. You can also paste a CID at [nirium.xyz/verify](https://nirium.xyz/verify), with no account. More in [docs/verify-audit-cid.md](https://github.com/nirium-protocol/nirium/blob/main/docs/verify-audit-cid.md).
 
 ## API Coverage
 
@@ -214,7 +259,7 @@ app.use('/premium', x402Serve({
 }));
 ```
 
-Runs on **your own server**, not Nirium's - `x402Serve()` is a client-side function you call from your own code; Nirium doesn't operate, host, or route through anything here, is never in the payment path, and never sees your end users' requests.
+Runs on **your own server**, not Nirium's - `x402Serve()` is Express middleware you run in your own server code; Nirium doesn't operate, host, or route through anything here, is never in the payment path, and never sees your end users' requests.
 
 **Known limitation:** by default `x402Serve()` does not protect against replay and does not rate-limit callers. It is turned on by passing `guard` (see below).
 
@@ -345,7 +390,7 @@ curl -s http://localhost:3000/metrics
 Output:
 
 ```
-# HELP x402_challenges_total Total402 payment challenges issued
+# HELP x402_challenges_total Total 402 payment challenges issued
 # TYPE x402_challenges_total counter
 x402_challenges_total{route="GET /signals"} 12
 # HELP x402_verify_success_total Total successful payment verifications
@@ -363,7 +408,7 @@ x402_settle_fail_total{route="GET /signals"} 1
 # HELP x402_infra_errors_total Total facilitator/infrastructure errors (5xx)
 # TYPE x402_infra_errors_total counter
 x402_infra_errors_total{route="GET /signals"} 1
-# HELP x402_rejections_total Total403 rejections from protected-request hooks
+# HELP x402_rejections_total Total 403 rejections from protected-request hooks
 # TYPE x402_rejections_total counter
 x402_rejections_total{route="GET /signals"} 1
 # HELP x402_revenue_total Revenue collected per route and asset
@@ -431,20 +476,6 @@ if (proposal.instructions.length) {
 
 `executeTreasuryRebalance()` has Nirium sign and submit with its own RebalanceManager key - full autonomy, no per-cycle approval. **This is invite-only while a specific legal question stays open**: whether executing on a client's behalf without taking custody still counts as regulated facilitation under Mexican law. It only runs against vaults explicitly allowlisted server-side; calling it against any other vault returns 403, and Nirium's mainnet infrastructure returns 501 for it entirely, since that box holds no signing key by design. Ask if you want autonomous execution today - otherwise, `proposeTreasuryRebalance()` above gives you the same decision-making with you as the one who signs.
 
-## Audit Trail
-
-Anchor evidence to IPFS and get back a CID - an integrity seal, not notarization.
-
-```typescript
-const anchor = await agent.anchorAuditRecord({
-  hash: 'sha-256:9f86d081...',   // hash of your own file or event
-  tag: 'invoice-batch-jul',
-});
-console.log(anchor.cid);
-```
-
-Anchor a **hash** rather than the data itself: IPFS content cannot be deleted, so raw personal data would outlive any erasure request.
-
 ## Requirements
 
 - Node.js >= 22.12.0. `@stellar/stellar-sdk` 16 and `@x402/stellar` 2.28 declare `>=22.0.0`, but stellar-sdk 16 depends on `@noble/hashes` 2.x, which is ESM-only, and this package is published as CommonJS: `require('nirium')` only works without a flag from Node 22.12.0 (on 22.11 it throws `ERR_REQUIRE_ESM`)
@@ -453,7 +484,8 @@ Anchor a **hash** rather than the data itself: IPFS content cannot be deleted, s
 ## Links
 
 - [Documentation](https://nirium.xyz/docs)
-- [Developer Sandbox](https://nirium.xyz/sandbox)
+- [Build examples](https://nirium.xyz/build)
+- [Verify a receipt](https://nirium.xyz/verify)
 - [GitHub](https://github.com/nirium-protocol/nirium)
 
 ## License
