@@ -4,6 +4,12 @@ All notable changes to the `nirium` package are documented here.
 
 ## Unreleased
 
+## 0.19.1 - 2026-11-12
+
+### Changed
+
+- README leads with Audit Trail: signed receipts and how to verify them with nirium verify or nirium.xyz/verify. HELP text of the 402/403 counters fixed ("Total 402", "Total 403"). Docs only, no API change.
+
 ## 0.19.0 - unreleased
 
 ### Changed
