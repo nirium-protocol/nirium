@@ -1,6 +1,8 @@
 # nirium-mcp
 
-Model Context Protocol server for [Nirium](https://nirium.xyz) - exposes market data, autonomous treasury loop control, and x402 paid endpoints (MPP tools are experimental) to any MCP-compatible AI: Claude, GPT, Cursor, VS Code Copilot, and others.
+Model Context Protocol server for [Nirium](https://nirium.xyz) - lets any MCP-compatible AI (Claude, GPT, Cursor, VS Code Copilot, and others) anchor verifiable receipts to IPFS with Audit Trail, pay x402 endpoints (MPP tools are experimental), read market data and control the treasury loop.
+
+Every receipt the `anchor_audit_record` tool returns can be re-checked by anyone with `npx nirium-cli verify <cid>` or at [nirium.xyz/verify](https://nirium.xyz/verify).
 
 Software-only. This server never holds funds - paid tools sign per-request payments from a Stellar wallet you control via `STELLAR_SECRET_KEY`.
 
@@ -51,6 +53,7 @@ No install needed - run directly with `npx`, or add to your MCP client config.
 **Paid via MPP - requires a funded `STELLAR_SECRET_KEY`**
 - `get_mpp_signals` - $0.02 USDC - same data and same testnet-only limit as `get_premium_signals`, settled via direct Soroban SAC transfer with no external facilitator
 - `get_mpp_market` - $0.05 USDC - same as `get_premium_market`, MPP-settled
+
 **Treasury - requires `NIRIUM_API_KEY`**
 
 Reading a DeFindex vault is free. Changing one needs the key, and ten of these eleven tools only build an unsigned XDR; you sign it yourself and broadcast it with `submit_treasury_tx`. Only `execute_treasury_rebalance` signs anything, and it does so with Nirium's own key, invite-only while a specific legal question stays open (see below) - everywhere else, Nirium never holds a key that can move your funds.

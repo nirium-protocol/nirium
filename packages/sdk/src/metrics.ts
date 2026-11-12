@@ -185,7 +185,7 @@ function renderPrometheus(state: MetricsState): string {
 
   writeCounter(
     'x402_challenges_total',
-    'Total402 payment challenges issued',
+    'Total 402 payment challenges issued',
     state.challenges,
   );
   writeCounter(
@@ -215,7 +215,7 @@ function renderPrometheus(state: MetricsState): string {
   );
   writeCounter(
     'x402_rejections_total',
-    'Total403 rejections from protected-request hooks',
+    'Total 403 rejections from protected-request hooks',
     state.rejections,
   );
 
