@@ -219,7 +219,7 @@ Mainnet is invite-only during early access and additionally requires `client_inf
 
 ## Treasury Rebalance
 
-Two ways to rebalance a DeFindex vault between idle cash and an invested strategy. Neither is a swap - the contract's `rebalance()` exposes exactly two instructions, `Unwind` and `Invest`, and neither accepts a destination address, so withdrawing anywhere but back into the vault itself is not expressible.
+Two ways to rebalance a DeFindex vault between idle cash and an invested strategy. Neither is a swap. The contract's `rebalance()` accepts four instructions (`Unwind`, `Invest`, `SwapExactIn`, `SwapExactOut`); these methods only send `Unwind` and `Invest`. None of the four accepts a destination address, so withdrawing anywhere but back into the vault itself is not expressible.
 
 ### Propose - you review and sign, available to everyone today
 
