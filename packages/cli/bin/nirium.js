@@ -931,7 +931,7 @@ async function executeServeCommand(options) {
             price,
             paidTo: payTo,
             timestamp: new Date().toISOString(),
-            sampleData: { signal: 'CETES_REBALANCE_OPPORTUNITY', yieldApy: '5.57%', network },
+            sampleData: { signal: 'CETES_REBALANCE_OPPORTUNITY', yieldApy: '5.55%', network },
         });
     });
 
