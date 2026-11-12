@@ -4,6 +4,17 @@ All notable changes to the `nirium-cli` package are documented here.
 
 ## Unreleased
 
+## 3.2.2 - 2026-11-11
+
+### Fixed
+
+- `nirium create x402` and `nirium create bot` scaffolded a `package.json` pinning `"nirium": "^0.16.0"`. Under 0.x semver, `^0.16.0` means `>=0.16.0 <0.17.0`, so every new project installed an SDK without `maxAmountPerPayment` or the Bazaar discovery extension even after those shipped. Now `^0.19.0`, same as this CLI's own `nirium` dependency.
+- `nirium status`, `nirium anchor`, and `nirium report summary|export` defaulted `--url` to `http://localhost:3002`, an agent this repo doesn't run. Now defaults to `https://nirium-agent.fly.dev` (the Nirium testnet agent), so a fresh `npm install -g nirium-cli` works without any agent of your own.
+
+### Changed
+
+- README reorders Audit Trail (`anchor`, `verify`) to the top, ahead of the x402 quickstart - SCF reviewers land here first and Audit Trail is the SOW's focus.
+
 ## 3.2.1 - 2026-11-10
 
 ### Fixed

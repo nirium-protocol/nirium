@@ -94,7 +94,7 @@ program
 program
     .command('status')
     .description('Check agent connection status')
-    .option('-u, --url <url>', 'Agent URL', 'http://localhost:3002')
+    .option('-u, --url <url>', 'Agent URL', 'https://nirium-agent.fly.dev')
     .option('--json', 'Output the raw /health fields plus ok, as JSON')
     .option('--timeout <ms>', 'Give up after this many milliseconds', '5000')
     .action(async (options) => {
@@ -225,7 +225,7 @@ program
     .option('--tag <tag>', 'Free-form label for this anchor')
     .option('--sign', 'Attach an ed25519 attestation of which key produced this anchor')
     .option('--key-env <VAR>', 'Environment variable holding the Stellar secret key to sign with (--sign only; default: the config store\'s secretKey)')
-    .option('-u, --url <url>', 'Agent URL', 'http://localhost:3002')
+    .option('-u, --url <url>', 'Agent URL', 'https://nirium-agent.fly.dev')
     .option('--json', 'Output result as JSON')
     .action(async (options) => {
         await executeAnchorCommand(options);
@@ -305,7 +305,7 @@ reportCommand
     .option('--from <date>', 'ISO date, start of period (default: a 30-day window)')
     .option('--to <date>', 'ISO date, end of period')
     .option('--network <network>', 'testnet or mainnet (default: all)')
-    .option('-u, --url <url>', 'Agent URL', 'http://localhost:3002')
+    .option('-u, --url <url>', 'Agent URL', 'https://nirium-agent.fly.dev')
     .option('--json', 'Output as JSON')
     .action(async (options) => {
         await executeReportSummaryCommand(options);
@@ -320,7 +320,7 @@ reportCommand
     .option('--limit <n>', 'Max rows (server caps at 1000)')
     .option('--network <network>', 'testnet or mainnet (default: all)')
     .option('--csv <file>', 'Write the CSV export to this file instead of printing rows')
-    .option('-u, --url <url>', 'Agent URL', 'http://localhost:3002')
+    .option('-u, --url <url>', 'Agent URL', 'https://nirium-agent.fly.dev')
     .option('--json', 'Output the full JSON response instead of one row per line')
     .action(async (type, options) => {
         await executeReportExportCommand(type, options);
@@ -337,7 +337,7 @@ function scaffoldX402(dir, name) {
         type: 'module',
         scripts: { dev: 'tsx watch src/server.ts', build: 'tsc' },
         dependencies: {
-            nirium: '^0.16.0',
+            nirium: '^0.19.0',
             express: '^5.1.0',
             '@x402/express': '^2.17.0',
             '@x402/core': '^2.17.0',
@@ -403,7 +403,7 @@ function scaffoldTS(dir, name) {
             "build": "tsc"
         },
         dependencies: {
-            "nirium": "^0.16.0",
+            "nirium": "^0.19.0",
             "tsx": "^4.19.0",
             "typescript": "^5.7.0",
             "dotenv": "^16.4.5"
