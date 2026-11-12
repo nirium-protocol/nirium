@@ -6,6 +6,127 @@ Scaffold Stellar agent projects, including one that charges for itself.
 npm install -g nirium-cli
 ```
 
+Audit Trail receipts: anchor a sha-256 hash (optionally signed with ed25519) to IPFS, and anyone can independently verify it with `nirium verify` or at [nirium.xyz/verify](https://nirium.xyz/verify) - no account, no trust in this CLI's own output required.
+
+## Anchor a record
+
+```bash
+nirium anchor --file evidence.json
+nirium anchor --hash <64-hex-sha256>
+nirium anchor --record '{"order":"A-12"}'
+```
+
+Anchors a sha-256 hash (or a small JSON object, up to 8KB) to IPFS via an
+Audit Trail node's `POST /api/audit/log`, and prints back the CID.
+
+- `--file <path>` computes the sha-256 of the file locally and sends only
+  the hash - the file's contents are never uploaded. IPFS cannot delete
+  anything once pinned, so hashing locally means raw evidence never
+  leaves your machine.
+- `--hash <hex>` sends a sha-256 you already have (64 hex chars, optional
+  `sha-256:` prefix).
+- `--record <json>` anchors a small JSON object verbatim (max 8KB,
+  enforced here before the request, not just by the server). Don't put
+  personal data in it - an anchored record can never be deleted.
+
+Exactly one of the three is required. `--tx <hash>` and `--tag <label>`
+are optional and attached to the anchor as-is. There is no `--network`
+flag: the agent box anchoring the record decides its own network, and a
+client-supplied network field is rejected server-side anyway.
+
+| Option | Purpose | Default |
+|---|---|---|
+| `--file <path>` | anchor this file's sha-256 | none |
+| `--hash <hex>` | anchor this sha-256 directly | none |
+| `--record <json>` | anchor this small JSON object verbatim | none |
+| `--tx <hash>` | associate a transaction hash | none |
+| `--tag <label>` | free-form label | none |
+| `--sign` | attach an ed25519 attestation of which key produced this anchor | off |
+| `--key-env <VAR>` | env var holding the secret key to sign with (`--sign` only) | config store's `secretKey` |
+| `-u, --url <url>` | agent URL | `https://nirium-agent.fly.dev` |
+| `--json` | machine-readable result | off |
+
+On success, prints the CID, the content hash, the gateway URL, and a
+`nirium verify <cid>` suggestion so the anchor can be independently
+re-checked right away.
+
+### Attesting who produced an anchor
+
+```bash
+nirium config set secretKey          # hidden prompt, stored in ~/.niriumrc.json
+nirium anchor --hash <64-hex> --sign
+# or, without touching the config store:
+NIRIUM_KEY=S... nirium anchor --hash <64-hex> --sign --key-env NIRIUM_KEY
+```
+
+The CID alone proves the anchored fact wasn't altered; `--sign` proves
+*who* declared it. The secret key signs `nirium-audit-v1:<content_sha256>`
+locally with ed25519 - only the resulting signature and the derived
+public key (`G...`) ever leave this process, never the secret itself. If
+the node rejects the signature, nothing is anchored (`400`, exit non-zero).
+`nirium verify <cid>` independently re-checks it afterward and reports
+`SIGNATURE: VALID` against the same public key.
+
+## Verify an audit record
+
+```bash
+nirium verify <cid>
+```
+
+Independently re-checks a Nirium audit document anchored to IPFS: fetches
+it from a gateway, recomputes its SHA-256 content hash, and, if the
+document carries an agent attestation, verifies the ed25519 signature
+over `nirium-audit-v1:<content_sha256>` against the declared signer's
+Stellar public key. Nothing here trusts the document's own claims about
+itself; both the hash and the signed statement are recomputed from the
+raw content, not read off the document.
+
+Hash-only anchors (no `record`, the recommended mode) have nothing to
+recompute: the document's `content_sha256` is the hash you submitted. Pass
+`--hash <hex>` or `--evidence <file>` to compare it with your own evidence;
+without either, the hash is reported as NOT CHECKED (not as a mismatch)
+and the signature is still verified over `nirium-audit-v1:<content_sha256>`.
+Signatures are accepted as base64 or hex, raw ed25519 or SEP-53
+(Freighter `signMessage`), like the anchoring node.
+
+`-g, --gateway <url>` is repeatable and tried in order as fallbacks. A
+`404` is retried on the *same* gateway up to `--retries` times with a
+short backoff first - a fresh pin can take a moment to propagate, so a
+404 there doesn't mean the CID is wrong, just not there *yet*. Any other
+failure (a real error, or a timed-out request) moves straight to the
+next gateway instead, since retrying the same one won't help.
+
+With no `--gateway`, it tries Filebase's dedicated gateway, then Pinata,
+then `ipfs.io`, then `dweb.link`. Shared public gateways often answer
+`429` under load, so the dedicated one goes first:
+
+```bash
+nirium verify <cid> --gateway https://gateway.pinata.cloud --gateway https://ipfs.io --retries 3
+```
+
+| Option | Purpose | Default |
+|---|---|---|
+| `-g, --gateway <url>` | IPFS gateway to fetch from - repeat for fallbacks | `nirium.myfilebase.com`, then `gateway.pinata.cloud`, `ipfs.io`, `dweb.link` |
+| `--retries <n>` | retries per gateway on a 404, with backoff | `2` |
+| `--timeout <ms>` | per-request timeout | `8000` |
+| `--json` | machine-readable result | off |
+| `--hash <hex>` | expected evidence hash for a hash-only anchor (`sha-256:` prefix optional) | none |
+| `--evidence <file>` | file whose SHA-256 is compared with the anchored hash | none |
+
+If every gateway comes back 404 after exhausting retries, that's
+reported as **NOT YET AVAILABLE** (`availability: "not_yet_available"`
+in `--json`) - distinct from a hash mismatch, because nothing was
+actually fetched to compare. A mix of real errors across gateways is
+reported as a gateway error instead. Both exit non-zero, same as before.
+
+Exits non-zero (and prints which check failed) if the hash doesn't match
+or the signature doesn't verify. A pass also requires that at least one
+of the two checks actually ran and succeeded, a matching `--hash`/
+`--evidence`, a valid agent signature, or both. If both were skipped
+(an unsigned hash-only anchor with no `--hash` or `--evidence`), nothing
+was verified, so `verify` prints `NOTHING VERIFIED`, exits non-zero, and
+sets `verified: false` in `--json`, instead of reporting a pass.
+
 ## Charge for your API in five minutes
 
 ```bash
@@ -45,7 +166,7 @@ network, the number of routes or requests, the SDK version, and a short hash
 of your `X402_FACILITATOR_API_KEY` (the first 16 characters of its SHA-256,
 never the key itself). The ping never blocks, delays or fails a charge, and
 it does not authorize or gate anything. Leave the variable unset and nothing
-is sent. (Checked against the code of `nirium` 0.16.1; `dist/` is identical to 0.16.0.)
+is sent. (Checked against the real `dist/` shipped in `nirium` 0.19.0 - same behavior as before, only the version citation was stale.)
 
 ## Listen to protocol signals
 
@@ -136,17 +257,16 @@ and for how long. It also prints a version and a network line, but they only
 carry a value when the agent reports one: the Nirium testnet agent's
 `/health` returns just `status`, `service` and `uptime` today, so those two
 lines are omitted rather than shown as `undefined`. `--url` points to the
-agent you want to check; `https://nirium-agent.fly.dev` is the Nirium
-testnet agent. Without `--url` it looks for an agent on your own machine at
-`http://localhost:3002` - the port `pnpm dev` runs the agent API on in this
-monorepo - so it reports "unreachable" if you are not running one there.
+agent you want to check; it defaults to `https://nirium-agent.fly.dev`,
+the Nirium testnet agent, so this works out of the box with no agent of
+your own running anywhere.
 
 Exits 0 only when `/health` answers 2xx; exits 1 if the agent is
 unreachable, times out, or answers with anything else.
 
 | Option | Purpose | Default |
 |---|---|---|
-| `-u, --url <url>` | Agent to check | `http://localhost:3002` |
+| `-u, --url <url>` | Agent to check | `https://nirium-agent.fly.dev` |
 | `--json` | The raw `/health` fields plus `ok` | off |
 | `--timeout <ms>` | Give up after this many milliseconds instead of hanging | `5000` |
 
@@ -202,125 +322,6 @@ Each line is pass or fail:
 
 `--json` prints the same report (`ok`, `seller`, `network`, `checks`) for CI.
 
-## Anchor a record
-
-```bash
-nirium anchor --file evidence.json
-nirium anchor --hash <64-hex-sha256>
-nirium anchor --record '{"order":"A-12"}'
-```
-
-Anchors a sha-256 hash (or a small JSON object, up to 8KB) to IPFS via an
-Audit Trail node's `POST /api/audit/log`, and prints back the CID.
-
-- `--file <path>` computes the sha-256 of the file locally and sends only
-  the hash - the file's contents are never uploaded. IPFS cannot delete
-  anything once pinned, so hashing locally means raw evidence never
-  leaves your machine.
-- `--hash <hex>` sends a sha-256 you already have (64 hex chars, optional
-  `sha-256:` prefix).
-- `--record <json>` anchors a small JSON object verbatim (max 8KB,
-  enforced here before the request, not just by the server). Don't put
-  personal data in it - an anchored record can never be deleted.
-
-Exactly one of the three is required. `--tx <hash>` and `--tag <label>`
-are optional and attached to the anchor as-is. There is no `--network`
-flag: the agent box anchoring the record decides its own network, and a
-client-supplied network field is rejected server-side anyway.
-
-| Option | Purpose | Default |
-|---|---|---|
-| `--file <path>` | anchor this file's sha-256 | none |
-| `--hash <hex>` | anchor this sha-256 directly | none |
-| `--record <json>` | anchor this small JSON object verbatim | none |
-| `--tx <hash>` | associate a transaction hash | none |
-| `--tag <label>` | free-form label | none |
-| `--sign` | attach an ed25519 attestation of which key produced this anchor | off |
-| `--key-env <VAR>` | env var holding the secret key to sign with (`--sign` only) | config store's `secretKey` |
-| `-u, --url <url>` | agent URL | `http://localhost:3002` |
-| `--json` | machine-readable result | off |
-
-On success, prints the CID, the content hash, the gateway URL, and a
-`nirium verify <cid>` suggestion so the anchor can be independently
-re-checked right away.
-
-### Attesting who produced an anchor
-
-```bash
-nirium config set secretKey          # hidden prompt, stored in ~/.niriumrc.json
-nirium anchor --hash <64-hex> --sign
-# or, without touching the config store:
-NIRIUM_KEY=S... nirium anchor --hash <64-hex> --sign --key-env NIRIUM_KEY
-```
-
-The CID alone proves the anchored fact wasn't altered; `--sign` proves
-*who* declared it. The secret key signs `nirium-audit-v1:<content_sha256>`
-locally with ed25519 - only the resulting signature and the derived
-public key (`G...`) ever leave this process, never the secret itself. If
-the node rejects the signature, nothing is anchored (`400`, exit non-zero).
-`nirium verify <cid>` independently re-checks it afterward and reports
-`SIGNATURE: VALID` against the same public key.
-
-## Verify an audit record
-
-```bash
-nirium verify <cid>
-```
-
-Independently re-checks a Nirium audit document anchored to IPFS: fetches
-it from a gateway, recomputes its SHA-256 content hash, and, if the
-document carries an agent attestation, verifies the ed25519 signature
-over `nirium-audit-v1:<content_sha256>` against the declared signer's
-Stellar public key. Nothing here trusts the document's own claims about
-itself; both the hash and the signed statement are recomputed from the
-raw content, not read off the document.
-
-Hash-only anchors (no `record`, the recommended mode) have nothing to
-recompute: the document's `content_sha256` is the hash you submitted. Pass
-`--hash <hex>` or `--evidence <file>` to compare it with your own evidence;
-without either, the hash is reported as NOT CHECKED (not as a mismatch)
-and the signature is still verified over `nirium-audit-v1:<content_sha256>`.
-Signatures are accepted as base64 or hex, raw ed25519 or SEP-53
-(Freighter `signMessage`), like the anchoring node.
-
-`-g, --gateway <url>` is repeatable and tried in order as fallbacks. A
-`404` is retried on the *same* gateway up to `--retries` times with a
-short backoff first - a fresh pin can take a moment to propagate, so a
-404 there doesn't mean the CID is wrong, just not there *yet*. Any other
-failure (a real error, or a timed-out request) moves straight to the
-next gateway instead, since retrying the same one won't help.
-
-With no `--gateway`, it tries Filebase's dedicated gateway, then Pinata,
-then `ipfs.io`, then `dweb.link`. Shared public gateways often answer
-`429` under load, so the dedicated one goes first:
-
-```bash
-nirium verify <cid> --gateway https://gateway.pinata.cloud --gateway https://ipfs.io --retries 3
-```
-
-| Option | Purpose | Default |
-|---|---|---|
-| `-g, --gateway <url>` | IPFS gateway to fetch from - repeat for fallbacks | `nirium.myfilebase.com`, then `gateway.pinata.cloud`, `ipfs.io`, `dweb.link` |
-| `--retries <n>` | retries per gateway on a 404, with backoff | `2` |
-| `--timeout <ms>` | per-request timeout | `8000` |
-| `--json` | machine-readable result | off |
-| `--hash <hex>` | expected evidence hash for a hash-only anchor (`sha-256:` prefix optional) | none |
-| `--evidence <file>` | file whose SHA-256 is compared with the anchored hash | none |
-
-If every gateway comes back 404 after exhausting retries, that's
-reported as **NOT YET AVAILABLE** (`availability: "not_yet_available"`
-in `--json`) - distinct from a hash mismatch, because nothing was
-actually fetched to compare. A mix of real errors across gateways is
-reported as a gateway error instead. Both exit non-zero, same as before.
-
-Exits non-zero (and prints which check failed) if the hash doesn't match
-or the signature doesn't verify. A pass also requires that at least one
-of the two checks actually ran and succeeded, a matching `--hash`/
-`--evidence`, a valid agent signature, or both. If both were skipped
-(an unsigned hash-only anchor with no `--hash` or `--evidence`), nothing
-was verified, so `verify` prints `NOTHING VERIFIED`, exits non-zero, and
-sets `verified: false` in `--json`, instead of reporting a pass.
-
 ## Reporting: summaries and exports
 
 ```bash
@@ -357,7 +358,7 @@ receipts by gateway, and anchor counts for the period. `report export
 |---|---|---|
 | `--from <date>` / `--to <date>` | ISO date period | 30-day window |
 | `--network <testnet\|mainnet>` | restrict to one network | all |
-| `-u, --url <url>` | agent URL | `http://localhost:3002` |
+| `-u, --url <url>` | agent URL | `https://nirium-agent.fly.dev` |
 | `--json` | machine-readable full response | off |
 
 | Option (`export` only) | Purpose | Default |
