@@ -93,12 +93,11 @@ Four `rebalance()` calls on mainnet, 6 Aug 2026 01:54-02:29 UTC, from RebalanceM
 
 npm: [`nirium-cli@3.2.2`](https://www.npmjs.com/package/nirium-cli), [`nirium@0.19.1`](https://www.npmjs.com/package/nirium), [`nirium-mcp@0.6.5`](https://www.npmjs.com/package/nirium-mcp), [`nirium-pollar-adapter@0.6.1`](https://www.npmjs.com/package/nirium-pollar-adapter). PyPI: [`nirium@0.11.2`](https://pypi.org/project/nirium/). Versions checked on the registries on 12 Nov 2026. Listed on [skills.stellar.org](https://skills.stellar.org). [nirium.xyz/stats](https://nirium.xyz/stats) is live, our own source, presented as supporting data, not third-party proof.
 
-## 10. Public recognition and community (verified 3 Nov 2026, newsletter 5 Nov)
+## 10. Public recognition and community (verified 3 Nov 2026)
 
 | Event | What it proves |
 |---|---|
 | **[BBVA Open Deal / "The Open Deal Room by Stellar"](https://www.youtube.com/watch?v=kpN5YwGz1bk)** | 1 of 6 Stellar ecosystem startups invited to pitch investors, 21 May 2026, Torre BBVA CDMX |
-| **[BAF newsletter](https://bafs-newsletter.beehiiv.com/p/recap-de-la-call-becas-hubs-y-un-summit-en-juego-tu-proyecto-est-listo)** | Nirium featured by the Blockchain Acceleration Foundation, 27 Jun 2026 |
 | **[Pollar's x402 guide](https://docs.pollar.xyz/docs/guides/x402-payments)** | Pollar's official x402 payments guide uses Nirium's testnet and mainnet `premium/market` endpoints as its "Try it against Nirium" example and links `nirium-pollar-adapter` and our demo app (checked 14 Nov 2026). A documentation reference, not usage of Nirium in Pollar's product |
 
 ## 11. Stellar Community Fund grants received (Instawards)
