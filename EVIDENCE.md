@@ -99,6 +99,7 @@ npm: [`nirium-cli@3.2.2`](https://www.npmjs.com/package/nirium-cli), [`nirium@0.
 |---|---|
 | **[BBVA Open Deal / "The Open Deal Room by Stellar"](https://www.youtube.com/watch?v=kpN5YwGz1bk)** | 1 of 6 Stellar ecosystem startups invited to pitch investors, 21 May 2026, Torre BBVA CDMX |
 | **[BAF newsletter](https://bafs-newsletter.beehiiv.com/p/recap-de-la-call-becas-hubs-y-un-summit-en-juego-tu-proyecto-est-listo)** | Nirium featured by the Blockchain Acceleration Foundation, 27 Jun 2026 |
+| **[Pollar's x402 guide](https://docs.pollar.xyz/docs/guides/x402-payments)** | Pollar's official x402 payments guide uses Nirium's testnet and mainnet `premium/market` endpoints as its "Try it against Nirium" example and links `nirium-pollar-adapter` and our demo app (checked 14 Nov 2026). A documentation reference, not usage of Nirium in Pollar's product |
 
 ## 11. Stellar Community Fund grants received (Instawards)
 
