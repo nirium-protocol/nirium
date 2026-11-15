@@ -160,6 +160,10 @@ stale left open to re-litigate. **Use `--limit 200`**: `gh issue list`
 defaults to 30 results, which silently truncates this exact count if you
 omit it - caught 2026-09-28 re-verifying this page.
 
+## 8. How we review each other's pull requests
+
+Approvals between the two maintainers (@Eras256 and @M0nsxx) are often AI-assisted: Claude reads the diff and drafts the review comment. Until 15 Nov 2026 many of those comments were drafted in the author's own Claude session and pasted by the reviewer without saying so; from that date every review says `AI-assisted review (Claude)` in its first line, plus what the reviewer checked personally. Read an approval here as "a second maintainer took responsibility for this change", not as an independent audit. What you can verify on your own is authorship (each maintainer commits from their own account, and every AI-assisted commit carries a `Co-Authored-By` trailer). Details: [CONTRIBUTING.md](../CONTRIBUTING.md#ai-assisted-code-review).
+
 ---
 
 *Every number and link on this page was checked live against its source
