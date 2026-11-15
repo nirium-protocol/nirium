@@ -1,0 +1,14 @@
+# gitleaks fingerprints reviewed one by one (15 Nov 2026), full history of this public repo.
+# Format: commit:file:ruleID:line, exactly as gitleaks prints it. Any finding NOT listed
+# here fails the Secret Scan job, so a new secret still blocks the build.
+#
+# CAT A - real Stellar secret seed, TESTNET only, now dead:
+#   packages/cli/test/pay-serve.test.js (24 Aug 2026, removed from the file in September)
+#   -> GAKBHMZE...AXCI. A testnet key used for an x402 test payment that ended up as the
+#   input of a maskSecret() test. Never existed on mainnet. On 15 Nov 2026 its test USDC
+#   was returned to the issuer, the trustline removed and the account merged into
+#   Friendbot (testnet tx 5500a96f...), so the leaked seed controls nothing. History is
+#   not rewritten on purpose.
+
+# -- CAT A --
+050104e0b4f4c4317bc1696b2deb359687e9fe32:packages/cli/test/pay-serve.test.js:stellar-secret-seed:12
