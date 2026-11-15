@@ -9,7 +9,7 @@ This repository contains the TypeScript and Python SDKs, the MCP server, the CLI
 
 - **Anchor immutable audit trails**: SHA-256 content hash pinned to IPFS, optionally carrying an ed25519 signature that proves *who* declared the fact, not just that it is unaltered. Records are pinned with Pinata. To read them back, `nirium verify` and the `verify-audit-cid` Action try a dedicated Filebase gateway first and fall back to shared public gateways, which often answer `429` under load.
 - **Get paid by AI agents**: put your own API behind an x402 pay-gate in one call with `x402Serve()`, or pay for someone else's with `initX402()`.
-- **Cap what your own agent can spend**: an experimental pre-sign policy hook (`initX402({ policy })`, shipped in 0.16.0) asks your own ALLOW/DENY policy before any payment is signed - see [`packages/sdk/README.md#pre-sign-policy-hook-experimental`](./packages/sdk/README.md#pre-sign-policy-hook-experimental) for its real scope and what it does not cover.
+- **Cap what your own agent can spend**: both SDKs refuse a payment above $1 of USDC by default unless you raise the cap (TypeScript through `@x402/core`, Python since 0.12.0, which also refuses a 402 offered on another network). On top of that, an experimental pre-sign policy hook (`initX402({ policy })`, shipped in 0.16.0) asks your own ALLOW/DENY policy before any payment is signed - see [`packages/sdk/README.md#pre-sign-policy-hook-experimental`](./packages/sdk/README.md#pre-sign-policy-hook-experimental) for its real scope and what it does not cover.
 - **Automate on-chain treasury**: a Nirium agent moves idle capital into a CETES strategy (tokenized Mexican T-bills via Etherfuse) and back, over a vault **you** own. The agent can propose a rebalance without ever holding a signing key; autonomous execution on mainnet (the agent signs) is invite-only while a legal review closes.
 
 Software-only and non-custodial: regulated partners execute settlement, the client signs every fund movement, and Nirium never holds client funds.
@@ -83,11 +83,12 @@ Any AI agent can now pay for your endpoint in USDC: no account, no card, no subs
 > it runs against by default (testnet). Get a key from [OpenZeppelin Channels](https://channels.openzeppelin.com),
 > or point `facilitatorUrl` at your own facilitator instead.
 
-> **Known limitation:** `x402Serve()` verifies and settles the payment; it does
-> not deduplicate a payment proof across requests or rate-limit callers on its
-> own. Add your own protection if you need either (see
-> [issue #91](https://github.com/nirium-protocol/nirium/issues/91) for what's
-> missing and why, and for a real production reference implementation).
+> **Off by default:** `x402Serve()` verifies and settles the payment and does
+> nothing else unless you pass `guard` (nirium 0.15.0 and later): with a store,
+> a payment proof can be used only once per route, and `guard.rateLimit` adds a
+> per-IP limit. See [packages/sdk/README.md](./packages/sdk/README.md#replay-and-rate-limit-guard-optional)
+> and [issue #91](https://github.com/nirium-protocol/nirium/issues/91) (closed),
+> where the design came from a real production deployment.
 
 See [`docs/`](./docs) for full quickstarts, including [**"Charge AI agents in 5 minutes"**](./docs/quickstart-x402.md) ([🇪🇸 Español](./docs/es/quickstart-x402.md)), and [**serverless Audit Trail anchoring with `waitUntil`**](./docs/serverless-audit-waituntil.md), plus [`examples/`](./examples) for 14 runnable integrations: [Express](./examples/express-x402) and [Next.js](./examples/nextjs-x402) (TypeScript), [Go](./examples/go-x402), [Rust](./examples/rust-x402), [LangChain x402](./examples/langchain-x402-agent) (Python), [non-custodial treasury vault](./examples/treasury-vault-quickstart), [resilient WebSocket signals](./examples/ws-signals-resilient), [one-click Vercel deploy](./examples/deploy-x402-vercel), [Unity/C# game paywall](./examples/unity-game-x402-gate), [RouteDock discovery manifest](./examples/routedock-manifest), [Stellar Disbursement Platform audit bridge](./examples/sdp-audit-bridge), [audit-forensic-bridge](./examples/audit-forensic-bridge), [per-agent daily spend policy](./examples/x402-policy-daily-budget), and an [Open Policy Agent policy behind the pre-sign hook](./examples/x402-policy-opa). For real production findings (not marketing copy), see the [**devlog**](./docs/devlog.md).
 
@@ -100,7 +101,7 @@ Live on **both** Stellar networks. They are not two copies of the same thing.
 | Product | Status |
 |---|---|
 | x402 | Live on mainnet ([last settled payment 29 Sep 2026](https://stellar.expert/explorer/public/account/GCLBBPON256CV7ATEHM5B54BOKNC7GX53MBINJ42MHVXGDMMZ3ZWKBHP)) |
-| Audit Trail | Live on mainnet (last anchor 6 Nov 2026) |
+| Audit Trail | Live on mainnet (last anchor 12 Nov 2026) |
 | Reporting | Live on mainnet |
 | Treasury Rebalance | Mainnet, invite-only (4 self-funded rebalances, last 6 Aug 2026) |
 | Payouts | Mainnet, invite-only (no mainnet runs yet) |
