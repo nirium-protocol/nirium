@@ -2,16 +2,24 @@
 
 from typing import TYPE_CHECKING
 
-from .client import Agent, WebSocketMaxRetriesExceeded, WebSocketStatus  # type: ignore
+from .client import (  # type: ignore
+    Agent,
+    WebSocketMaxRetriesExceeded,
+    WebSocketStatus,
+    X402NetworkMismatchError,
+    X402SpendCapError,
+)
 
 if TYPE_CHECKING:
     from .langchain_tools import NiriumX402Tool, create_nirium_x402_tool
 
-__version__ = "0.11.2"
+__version__ = "0.12.0"
 __all__ = [
     "Agent",
     "WebSocketMaxRetriesExceeded",
     "WebSocketStatus",
+    "X402NetworkMismatchError",
+    "X402SpendCapError",
     "NiriumX402Tool",
     "create_nirium_x402_tool",
 ]

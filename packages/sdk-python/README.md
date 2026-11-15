@@ -151,6 +151,19 @@ agent.init_x402(
 response = await agent.x402_fetch("https://nirium-agent.fly.dev/api/v1/premium/signals")
 ```
 
+**Spending limits (0.12.0).** `x402_fetch()` pays only what the 402 offers on the network you configured; it never falls back to another network (`X402NetworkMismatchError`). It pays USDC up to **$1** per request by default, like the TypeScript SDK. Anything above the cap, or in another asset, is refused before signing (`X402SpendCapError`) unless you raise the cap or decide case by case:
+
+```python
+agent.init_x402(secret_key="S...", network="stellar:pubnet", max_amount_per_payment="$5")
+
+def approve(req):  # sync or async; receives url, network, asset, payTo, amount, reason
+    return req["payTo"] in MY_TRUSTED_SELLERS
+
+agent.init_x402(secret_key="S...", network="stellar:pubnet", approve=approve)
+```
+
+Why the default stays low: an agent pays whatever a server's 402 asks for, so a low cap limits the damage from a mispriced or malicious endpoint. `NiriumX402Tool` accepts the same `max_amount_per_payment` and `approve` options.
+
 ### LangChain tool - pay x402 from any agent
 
 `NiriumX402Tool` is a LangChain `BaseTool` that wraps the same `init_x402` / `x402_fetch` client. A ReAct-style agent can pay a protected Stellar endpoint as a normal tool call. The Stellar secret is constructor/env configuration only: it never appears in the tool description, args schema, error text, or return value.
