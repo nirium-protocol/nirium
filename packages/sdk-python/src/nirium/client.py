@@ -12,7 +12,9 @@ import logging
 import random
 import aiohttp  # type: ignore
 import websockets  # type: ignore
-from typing import Callable, Dict, Any, List, Optional
+import inspect
+from decimal import Decimal, InvalidOperation
+from typing import Awaitable, Callable, Dict, Any, List, Optional, Union
 from stellar_sdk import Keypair, Network, Server, TransactionBuilder, Asset  # type: ignore
 from stellar_sdk import Account, Address, SorobanServer, scval  # type: ignore
 from stellar_sdk.xdr import SorobanTransactionData  # type: ignore
@@ -25,6 +27,88 @@ import math as _math
 _X402_NULL_ACCOUNT = "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF"
 
 logger = logging.getLogger("nirium.client")
+
+
+# USDC (Circle) Stellar Asset Contract per network: the only asset the default
+# per-payment cap knows how to price. Derived from USDC:GBBD47IF...LLFLA5
+# (testnet) and USDC:GA5ZSEJY...KZVN (mainnet, home domain circle.com).
+_X402_USDC_SAC = {
+    "stellar:testnet": "CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA",
+    "stellar:pubnet": "CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75",
+}
+_X402_USDC_DECIMALS = 7
+_X402_DEFAULT_MAX_AMOUNT = "$1"
+_X402_NETWORKS = ("stellar:testnet", "stellar:pubnet")
+# Same aliases the LangChain tool accepts, mapped to the CAIP-2 ids the 402
+# challenge uses, so the network check compares like with like.
+_X402_NETWORK_ALIASES = {
+    "testnet": "stellar:testnet",
+    "stellar:testnet": "stellar:testnet",
+    "mainnet": "stellar:pubnet",
+    "pubnet": "stellar:pubnet",
+    "public": "stellar:pubnet",
+    "stellar:pubnet": "stellar:pubnet",
+    "stellar:public": "stellar:pubnet",
+    "stellar:mainnet": "stellar:pubnet",
+}
+
+X402Approver = Callable[[Dict[str, Any]], Union[bool, Awaitable[bool]]]
+
+
+class X402NetworkMismatchError(RuntimeError):
+    """The 402 challenge offered no payment option on the configured network.
+
+    Raised before anything is built or signed.
+    """
+
+    code = "X402_NETWORK_MISMATCH"
+    signer_called = False
+
+    def __init__(self, url: str, network: str, offered: List[str]):
+        self.url = url
+        self.network = network
+        self.offered = offered
+        super().__init__(
+            f"x402_fetch refused to pay {url}: the client is configured for {network} "
+            f"but the server only offered {', '.join(offered) or 'no network'}. "
+            "Nothing was signed or sent."
+        )
+
+
+class X402SpendCapError(RuntimeError):
+    """The payment is above the per-payment cap, or in an asset the cap cannot
+    price, and no ``approve`` callback accepted it. Raised before signing."""
+
+    code = "X402_SPEND_CAP_EXCEEDED"
+    signer_called = False
+
+    def __init__(self, url: str, requirement: Dict[str, Any], cap: str, reason: str):
+        self.url = url
+        self.amount = requirement.get("amount")
+        self.asset = requirement.get("asset")
+        self.network = requirement.get("network")
+        self.pay_to = requirement.get("payTo")
+        self.cap = cap
+        self.reason = reason
+        super().__init__(
+            f"x402_fetch refused to pay {url}: {reason} The per-payment cap is {cap}. "
+            "Nothing was signed or sent. Raise it with init_x402(max_amount_per_payment=...) "
+            "or pass approve=... to decide case by case."
+        )
+
+
+def _parse_usd_cap(value: Any) -> Decimal:
+    """'$5', '5', 5 or 0.5 -> Decimal. Must be a positive amount."""
+    if isinstance(value, bool) or value is None:
+        raise ValueError("max_amount_per_payment must be a positive USD amount, e.g. '$1'")
+    raw = str(value).strip().lstrip("$").strip()
+    try:
+        cap = Decimal(raw)
+    except InvalidOperation:
+        raise ValueError(f"max_amount_per_payment is not a USD amount: {value!r}") from None
+    if not cap.is_finite() or cap <= 0:
+        raise ValueError("max_amount_per_payment must be a positive USD amount, e.g. '$1'")
+    return cap
 
 
 class WebSocketMaxRetriesExceeded(Exception):
@@ -652,7 +736,14 @@ class Agent:
 
     # ─── x402 Protocol ───────────────────────────────────────
 
-    def init_x402(self, secret_key: str, network: str = "stellar:testnet", rpc_url: str = ""):
+    def init_x402(
+        self,
+        secret_key: str,
+        network: str = "stellar:testnet",
+        rpc_url: str = "",
+        max_amount_per_payment: Any = _X402_DEFAULT_MAX_AMOUNT,
+        approve: Optional[X402Approver] = None,
+    ):
         """
         Initialize the x402 pay-per-request client (protocol v2).
 
@@ -663,8 +754,29 @@ class Agent:
             secret_key: Stellar secret key (S...) used to sign the auth entry.
             network: CAIP-2 network ID ('stellar:testnet' or 'stellar:pubnet').
             rpc_url: Soroban RPC override. Defaults per network.
+            max_amount_per_payment: Most this client pays in one request, in USD,
+                for USDC ('$1' by default, like the TypeScript SDK). A payment
+                above it, or in any asset other than the network's USDC, is
+                refused before signing unless ``approve`` accepts it.
+            approve: Optional callback (sync or async). It receives the payment
+                option (url, network, asset, payTo, amount) whenever the cap
+                cannot accept it on its own, and must return True to sign.
+
+        A 402 whose options are all on a different network than ``network`` is
+        always refused: the client never falls back to another network.
         """
-        is_testnet = "testnet" in network
+        network = _X402_NETWORK_ALIASES.get(str(network).strip().lower(), network)
+        if network not in _X402_NETWORKS:
+            raise ValueError(
+                f"network must be one of {', '.join(_X402_NETWORKS)}, got {network!r}"
+            )
+        if approve is not None and not callable(approve):
+            raise ValueError("approve must be a callable or None")
+        cap = _parse_usd_cap(max_amount_per_payment)
+        self._x402_cap_label = f"${cap.normalize():f}"
+        self._x402_cap_atomic = int(cap * (10 ** _X402_USDC_DECIMALS))
+        self._x402_approve = approve
+        is_testnet = network == "stellar:testnet"
         self._x402_keypair = Keypair.from_secret(secret_key)
         self._x402_network = network
         self._x402_passphrase = (
@@ -677,6 +789,81 @@ class Agent:
             # default que usan el SDK de TypeScript y @stellar/mpp.
             else "https://soroban-rpc.mainnet.stellar.gateway.fm"
         )
+
+    async def _x402_select_requirement(
+        self, url: str, accepts: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        """Pick the option to pay, or raise before anything is signed.
+
+        Only options on the configured network count; there is no fallback to
+        another network. Among them, the cheapest USDC option within the cap
+        wins. Anything else (above the cap, another asset, a malformed amount)
+        is signed only if the ``approve`` callback returns True.
+        """
+        network = self._x402_network
+        on_network = [
+            a for a in accepts
+            if isinstance(a, dict) and a.get("network") == network
+        ]
+        if not on_network:
+            offered = sorted({str(a.get("network")) for a in accepts if isinstance(a, dict)})
+            raise X402NetworkMismatchError(url, network, offered)
+
+        exact = [a for a in on_network if a.get("scheme") == "exact"]
+        if not exact:
+            raise RuntimeError(
+                f"unsupported x402 scheme: {on_network[0].get('scheme')}"
+            )
+
+        usdc = _X402_USDC_SAC[network]
+        cap = getattr(self, "_x402_cap_atomic", 10 ** _X402_USDC_DECIMALS)
+        cap_label = getattr(self, "_x402_cap_label", _X402_DEFAULT_MAX_AMOUNT)
+
+        def amount_of(a: Dict[str, Any]) -> Optional[int]:
+            raw = a.get("amount")
+            if isinstance(raw, str) and raw.isdigit():
+                return int(raw)
+            return None
+
+        within = [
+            a for a in exact
+            if a.get("asset") == usdc
+            and amount_of(a) is not None
+            and 0 < amount_of(a) <= cap  # type: ignore[operator]
+        ]
+        if within:
+            return min(within, key=lambda a: amount_of(a))  # type: ignore[arg-type,return-value]
+
+        candidate = min(exact, key=lambda a: amount_of(a) if amount_of(a) is not None else 2**127)
+        amount = amount_of(candidate)
+        if amount is None or amount <= 0:
+            reason = f"the server asked for an invalid amount ({candidate.get('amount')!r})."
+        elif candidate.get("asset") != usdc:
+            reason = (
+                f"the server asked for {amount} atomic units of {candidate.get('asset')}, "
+                f"which is not {network} USDC, so the cap cannot price it."
+            )
+        else:
+            reason = (
+                f"the server asked for {Decimal(amount) / (10 ** _X402_USDC_DECIMALS)} USDC."
+            )
+
+        approver = getattr(self, "_x402_approve", None)
+        if approver is not None and amount is not None and amount > 0:
+            decision = approver({
+                "url": url,
+                "network": network,
+                "scheme": candidate.get("scheme"),
+                "asset": candidate.get("asset"),
+                "payTo": candidate.get("payTo"),
+                "amount": candidate.get("amount"),
+                "reason": reason,
+            })
+            if inspect.isawaitable(decision):
+                decision = await decision
+            if decision is True:
+                return candidate
+        raise X402SpendCapError(url, candidate, cap_label, reason)
 
     def _x402_build_transaction(self, accepted: Dict[str, Any]) -> str:
         """
@@ -819,11 +1006,7 @@ class Agent:
             if not accepts:
                 raise RuntimeError("x402 challenge listed no acceptable payment methods")
 
-            accepted = next(
-                (a for a in accepts if a.get("network") == self._x402_network), accepts[0]
-            )
-            if accepted.get("scheme") != "exact":
-                raise RuntimeError(f"unsupported x402 scheme: {accepted.get('scheme')}")
+            accepted = await self._x402_select_requirement(url, accepts)
 
             payment = {
                 "x402Version": challenge.get("x402Version", 2),

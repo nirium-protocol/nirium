@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nirium"
-version = "0.11.2"
+version = "0.12.0"
 description = "Verifiable receipts (Audit Trail), x402 payments and treasury execution for Stellar — Python client"
 readme = "README.md"
 requires-python = ">=3.10"
