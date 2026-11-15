@@ -193,7 +193,7 @@ Runnable example: [`examples/langchain-x402-agent`](../../examples/langchain-x40
 
 ### MPP Charge: does not work in this version
 
-`init_mpp()` and `mpp_fetch()` in nirium 0.11.0 cannot pay an MPP Charge server. `mpp_fetch()` raises `ValueError: This is not a valid account:` before sending anything, because it:
+`init_mpp()` and `mpp_fetch()` in nirium 0.11.0 through 0.12.0 cannot pay an MPP Charge server. `mpp_fetch()` raises `ValueError: This is not a valid account:` before sending anything, because it:
 
 - reads the payment challenge from the JSON body of the `402`, but MPP sends it in the `WWW-Authenticate` header;
 - builds a classic Stellar payment, where MPP Charge needs a Soroban SAC transfer;
