@@ -85,6 +85,12 @@ We follow [Conventional Commits](https://www.conventionalcommits.org/):
 
 Every commit produced with AI assistance carries a `Co-Authored-By: <model> <noreply@anthropic.com>` trailer, where `<model>` is the model that actually produced that commit (for example `Claude Sonnet 5.5` or `Claude Opus 5.5`), never a fixed name. This is a factual disclosure of how the commit was produced - it is never stripped to make a commit look human-authored, and never added where it doesn't apply to fake the opposite. If you use AI assistance in your own contributions, disclose it the same way.
 
+### AI-assisted code review
+
+Pull requests between the two maintainers (@Eras256 and @M0nsxx) are often reviewed with help from Claude: the assistant reads the diff and drafts the review comment. From 15 Nov 2026 every review says so in its first line (`AI-assisted review (Claude)`), followed by what the approving maintainer checked personally, and that maintainer is responsible for the approval.
+
+Many earlier reviews (October and November 2026) were drafted the same way, often in the pull request author's own Claude session, and pasted by the reviewer without saying so. This note is the disclosure for those. An approval in this repository means a second maintainer took responsibility for the change; it is not an independent audit. What you can check independently is authorship: each maintainer commits from their own account.
+
 ### Dependency updates
 
 Dependabot (`.github/dependabot.yml`) opens update PRs every Monday for `packages/sdk`, `packages/cli`, `packages/mcp` and the GitHub Actions used in `.github/workflows/`. Each package gets at most one minor/patch PR a week; majors come as separate PRs, and `@stellar/stellar-sdk`, `@x402/*` and `@stellar/mpp` majors are grouped so they move together.
