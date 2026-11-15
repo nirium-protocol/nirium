@@ -98,7 +98,7 @@ npm: [`nirium-cli@3.2.2`](https://www.npmjs.com/package/nirium-cli), [`nirium@0.
 | Event | What it proves |
 |---|---|
 | **[BBVA Open Deal / "The Open Deal Room by Stellar"](https://www.youtube.com/watch?v=kpN5YwGz1bk)** | 1 of 6 Stellar ecosystem startups invited to pitch investors, 21 May 2026, Torre BBVA CDMX |
-| **[Pollar's x402 guide](https://docs.pollar.xyz/docs/guides/x402-payments)** | Pollar's official x402 payments guide uses Nirium's testnet and mainnet `premium/market` endpoints as its "Try it against Nirium" example and links `nirium-pollar-adapter` and our demo app (checked 14 Nov 2026). A documentation reference, not usage of Nirium in Pollar's product |
+| **[Pollar's x402 guide](https://docs.pollar.xyz/docs/guides/x402-payments)** | Pollar's official x402 payments guide uses Nirium's testnet and mainnet `premium/market` endpoints as its "Try it against Nirium" example and links `nirium-pollar-adapter` and [our demo app](https://nirium-pollar-x402-demo.vercel.app) (checked 14 Nov 2026). A documentation reference, not usage of Nirium in Pollar's product. The demo is live: a testnet payment through it settled on 15 Nov 2026 UTC ([tx](https://stellar.expert/explorer/testnet/tx/75c8b590d2ddef1b0d082df43f90cad9ac4d1014678e3d8b34df8dae284c8fb0)) and its receipt verifies ([CID](https://nirium.xyz/verify?cid=QmcwsCMfd53mSFAXocRqTXdiJkAkU6DnRf9Dup7pR8Y6EZ)); that payment was our own test, not external use |
 
 ## 11. Stellar Community Fund grants received (Instawards)
 
@@ -120,3 +120,11 @@ The following teams, and one independent researcher, signed a non-binding letter
 - Aldo Hernández / KINEGuard
 - AgentLedger (its founder has also worked with Nirium part-time since October 2026)
 
+## 13. Source code and verified contract build
+
+| Repository | What it holds | What you can check |
+|---|---|---|
+| [nirium-protocol/nirium](https://github.com/nirium-protocol/nirium) (this repo) | TypeScript and Python SDKs, CLI, MCP server, examples, the `verify-audit-cid` GitHub Action | Every package version in section 9 is published from here |
+| [nirium-protocol/nirium-core](https://github.com/nirium-protocol/nirium-core) | Public mirror of the monorepo: the Soroban contracts (Rust), the nirium.xyz web app and the fuzz targets. The agent API itself is private | The testnet NiriumVault [`CDMFURE6...QOI2S2`](https://stellar.expert/explorer/testnet/contract/CDMFURE6MYROTA2A6DLD4TN2S4QTN64L2FZ2I2RY2AREONX6DUQOI2S2) shows **verified** on Stellar Expert against `nirium-core` commit `8489481`, built by GitHub from release [`nirium-vault-v0.1.0`](https://github.com/nirium-protocol/nirium-core/releases/tag/nirium-vault-v0.1.0_nirium-contracts_pkg0.1.0_cli28.1.0) (9 Nov 2026; checked 15 Nov 2026) |
+| [nirium-protocol/nirium-pollar-adapter](https://github.com/nirium-protocol/nirium-pollar-adapter) | The Pollar adapter (`nirium-pollar-adapter` on npm) | Its demo app runs at [nirium-pollar-x402-demo.vercel.app](https://nirium-pollar-x402-demo.vercel.app) (testnet) |
+| [nirium-protocol/status](https://github.com/nirium-protocol/status) | Uptime monitor ([Upptime](https://github.com/upptime/upptime)) for nirium.xyz, the API keys console and the public mainnet and testnet endpoints (agent, Audit Trail, Reporting, Treasury and Payouts info, x402 market, MPP info) | Live page at [nirium-protocol.github.io/status](https://nirium-protocol.github.io/status); every check is a commit made by GitHub Actions in that repo, so the history is public. It measures availability of the endpoints, not payments or usage |
