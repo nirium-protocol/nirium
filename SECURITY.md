@@ -66,6 +66,11 @@ The Soroban contracts, the frontend at nirium.xyz and the agent API at nirium-ag
 - Persistent storage TTL extensions (~2 years) on every interaction (SC-TTL-001)
 - Admin-signed `initialize()` to prevent front-running at deployment
 - Strategy Marketplace: canonical USDC token address stored at init (token-spoofing fix)
+- NiriumVault: the vault-creation fee must be paid with the canonical native XLM contract; any other fee token is rejected (fixed 25 Oct 2026, reported through responsible disclosure)
+
+**SDK Layer:**
+
+- x402 clients refuse a payment above $1 of USDC by default unless the integrator raises the cap (TypeScript through `@x402/core`; Python since `nirium` 0.12.0, which also refuses a 402 offered on a network other than the configured one; reported through responsible disclosure)
 
 **API Layer:**
 - JWT: HS256, 1h expiry, RBAC tiers (public / sandbox / institutional / admin)

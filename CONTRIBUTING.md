@@ -46,8 +46,11 @@ nirium/
 ├── packages/sdk-python/    → Python SDK (pip: nirium)
 ├── packages/mcp/           → MCP server (npm: nirium-mcp)
 ├── packages/cli/           → CLI (npm: nirium-cli)
+├── actions/verify-audit-cid/ → GitHub Action that verifies an Audit Trail CID in CI
+├── skills/                 → Agent skill (nirium-agentic-payments)
+├── community/              → Contributor programs (Niriumtober)
 ├── docs/                   → Quickstarts and guides
-└── examples/               → Runnable integrations (Express, Next.js, treasury vault)
+└── examples/               → 14 runnable integrations (TypeScript, Python, Go, Rust, Unity, policy hooks)
 ```
 
 ---
