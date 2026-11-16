@@ -667,7 +667,7 @@ class Agent:
         nothing to do right now. Public: no allowlist, no invite — works for any
         vault where ``caller`` is already the on-chain rebalanceManager. Unlike
         ``execute_treasury_rebalance``, Nirium never executes on your behalf here,
-        so this doesn't wait on the same legal review the fully autonomous path does.
+        so this doesn't wait on the same written legal opinion the fully autonomous path does.
 
         ``enter_at``/``exit_at`` are your mandate, not a Nirium default. ``min_idle``
         is stroops, as a string or number — omit for no minimum (0).

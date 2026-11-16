@@ -472,7 +472,7 @@ if (proposal.instructions.length) {
 }
 ```
 
-### Autonomous: Nirium signs, invite-only during legal review
+### Autonomous: Nirium signs, invite-only until a written legal opinion
 
 `executeTreasuryRebalance()` has Nirium sign and submit with its own RebalanceManager key - full autonomy, no per-cycle approval. **This is invite-only while a specific legal question stays open**: whether executing on a client's behalf without taking custody still counts as regulated facilitation under Mexican law. It only runs against vaults explicitly allowlisted server-side; calling it against any other vault returns 403, and Nirium's mainnet infrastructure returns 501 for it entirely, since that box holds no signing key by design. Ask if you want autonomous execution today - otherwise, `proposeTreasuryRebalance()` above gives you the same decision-making with you as the one who signs.
 
