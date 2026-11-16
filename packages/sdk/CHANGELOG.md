@@ -4,6 +4,12 @@ All notable changes to the `nirium` package are documented here.
 
 ## Unreleased
 
+## 0.19.2 - 2026-11-16
+
+### Changed
+
+- README: the autonomous-signing section now says it is invite-only until a written legal opinion, instead of "during legal review". No lawyer is reviewing it yet. Docs only, no API change.
+
 ## 0.19.1 - 2026-11-12
 
 ### Changed
