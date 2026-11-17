@@ -465,7 +465,7 @@ server.tool(
 
 server.tool(
     'deploy_treasury_vault',
-    "Build an UNSIGNED XDR to deploy a DeFindex vault. `manager` keeps control (rescue, pause, revoke); Nirium only ever holds `rebalanceManager`, which cannot withdraw or change roles. Sign the returned XDR with `caller` and broadcast it with submit_treasury_tx. Requires NIRIUM_API_KEY env var.",
+    "Build an UNSIGNED XDR to deploy a DeFindex vault. `manager` keeps control (rescue, pause, revoke); Nirium only ever holds `rebalanceManager`, which cannot withdraw or change roles. Sign the returned XDR with `caller` and broadcast it with submit_treasury_tx. Requires NIRIUM_API_KEY env var. On mainnet this is invite-only (institutional key); a free key gets a 403. Open on testnet.",
     {
         manager: z.string().describe('Stellar account (G...) that owns and controls the vault'),
         caller: z.string().describe('Stellar account (G...) that pays to deploy and signs the returned XDR'),
@@ -491,7 +491,7 @@ server.tool(
 
 server.tool(
     'deposit_to_treasury_vault',
-    'Build an UNSIGNED XDR to deposit into a DeFindex vault. Sign with `from` and broadcast it with submit_treasury_tx. Requires NIRIUM_API_KEY env var.',
+    'Build an UNSIGNED XDR to deposit into a DeFindex vault. Sign with `from` and broadcast it with submit_treasury_tx. Requires NIRIUM_API_KEY env var. On mainnet this is invite-only (institutional key); a free key gets a 403. Open on testnet.',
     {
         vault: z.string().describe('Vault contract id (C...)'),
         from: z.string().describe('Stellar account (G...) funding the deposit and signing the returned XDR'),
@@ -524,7 +524,7 @@ server.tool(
 
 server.tool(
     'set_treasury_rebalance_manager',
-    "Build an UNSIGNED XDR handing the RebalanceManager role to a new address. Only the vault's current Manager can sign it — the same door that grants Nirium the role also revokes it. Requires NIRIUM_API_KEY env var.",
+    "Build an UNSIGNED XDR handing the RebalanceManager role to a new address. Only the vault's current Manager can sign it — the same door that grants Nirium the role also revokes it. Requires NIRIUM_API_KEY env var. On mainnet this is invite-only (institutional key); a free key gets a 403. Open on testnet.",
     {
         vault: z.string().describe('Vault contract id (C...)'),
         manager: z.string().describe("The vault's current Manager (G...), who must sign the returned XDR"),
@@ -545,7 +545,7 @@ const treasuryInstruction = z.object({
 
 server.tool(
     'build_treasury_rebalance',
-    "Build an UNSIGNED rebalance XDR — Unwind/Invest between a vault's own strategies only; no other instruction is expressible, and none takes a destination address. Sign with the vault's RebalanceManager and broadcast it with submit_treasury_tx. Requires NIRIUM_API_KEY env var.",
+    "Build an UNSIGNED rebalance XDR — Unwind/Invest between a vault's own strategies only; no other instruction is expressible, and none takes a destination address. Sign with the vault's RebalanceManager and broadcast it with submit_treasury_tx. Requires NIRIUM_API_KEY env var. On mainnet this is invite-only (institutional key); a free key gets a 403. Open on testnet.",
     {
         vault: z.string().describe('Vault contract id (C...)'),
         instructions: z.array(treasuryInstruction).min(1),

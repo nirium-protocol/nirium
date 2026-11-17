@@ -13,7 +13,7 @@ from .client import (  # type: ignore
 if TYPE_CHECKING:
     from .langchain_tools import NiriumX402Tool, create_nirium_x402_tool
 
-__version__ = "0.12.1"
+__version__ = "0.12.2"
 __all__ = [
     "Agent",
     "WebSocketMaxRetriesExceeded",

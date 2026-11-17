@@ -4,6 +4,12 @@ All notable changes to the `nirium-mcp` package are documented here.
 
 ## Unreleased
 
+## 0.6.6 - 2026-11-16
+
+### Changed
+
+- `deploy_treasury_vault`, `deposit_to_treasury_vault`, `set_treasury_rebalance_manager` and `build_treasury_rebalance` now say they are invite-only on mainnet (institutional key; the agent returns 403 to free keys since 16-nov-2026) and open on testnet. Withdraw is unchanged. Descriptions and README only, no behaviour change.
+
 ## 0.6.5 - 2026-11-12
 
 ### Changed

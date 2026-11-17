@@ -4,9 +4,9 @@ Verifiable receipts, agentic payments and treasury execution for **Nirium Protoc
 
 - **Audit Trail:** anchor a SHA-256 of any event to IPFS and get back a CID that anyone can re-check, optionally signed with your agent's own Stellar key so it also proves *who* declared it. See [Audit Trail](#audit-trail).
 - **x402 payments:** pay for x402 APIs with `init_x402()` / `x402_fetch()`, or from any LangChain agent with `NiriumX402Tool`.
-- **Treasury:** a Nirium agent can rebalance USDC ↔ CETES (tokenized Mexican T-bills via Etherfuse) over a vault you own. It runs on its own on testnet; on mainnet, autonomous execution is invite-only and anyone can get a proposal they review and sign.
+- **Treasury:** a Nirium agent can move a vault you own between idle cash and its strategy (USDC, or tokenized CETES issued by Etherfuse). Nothing is swapped. It runs on its own on testnet. On mainnet, deploying, depositing, proposals and autonomous execution are invite-only, and withdrawing is always open.
 
-**Status:** x402 and Audit Trail run on Stellar mainnet; MPP Charge does not work in this version; autonomous treasury execution on mainnet is invite-only. Every claim, with its network, date and transaction hash: [EVIDENCE.md](https://github.com/nirium-protocol/nirium/blob/main/EVIDENCE.md).
+**Status:** x402 and Audit Trail run on Stellar mainnet; MPP Charge does not work in this version; Treasury on mainnet is invite-only (withdrawing stays open). Every claim, with its network, date and transaction hash: [EVIDENCE.md](https://github.com/nirium-protocol/nirium/blob/main/EVIDENCE.md).
 
 ## Install
 
@@ -119,7 +119,7 @@ async def start_stream():
             initial_delay=1.0,     # Initial retry backoff in seconds
             max_delay=30.0,        # Max backoff cap in seconds
             backoff_factor=2.0,    # Exponential backoff multiplier
-            jitter=0.2,            # Random jitter factor (±20%)
+            jitter=0.2,            # Random jitter factor (+/-20%)
             dedupe_size=1000,      # Automatic deduplication buffer size
         )
     except WebSocketMaxRetriesExceeded as e:
@@ -234,9 +234,9 @@ Mainnet is invite-only during early access and additionally requires `client_inf
 
 Two ways to rebalance a DeFindex vault between idle cash and an invested strategy. Neither is a swap. The contract's `rebalance()` accepts four instructions (`Unwind`, `Invest`, `SwapExactIn`, `SwapExactOut`); these methods only send `Unwind` and `Invest`. None of the four accepts a destination address, so withdrawing anywhere but back into the vault itself is not expressible.
 
-### Propose - you review and sign, available to everyone today
+### Propose - you review and sign (open on testnet, invite-only on mainnet)
 
-The agent decides what it would do, using the same decision logic as the autonomous signer below, but it never signs. Public, no allowlist, no invite required - works for any vault where you're already the on-chain rebalance manager.
+The agent decides what it would do, using the same decision logic as the autonomous signer below, but it never signs. Works for any vault where you're already the on-chain rebalance manager. Open to any key on testnet. On mainnet it needs an invited (institutional) key, like every Treasury call that builds a transaction except withdraw; a free key gets a 403.
 
 ```python
 proposal = await agent.propose_treasury_rebalance(

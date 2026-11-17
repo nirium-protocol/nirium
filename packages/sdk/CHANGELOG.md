@@ -4,6 +4,12 @@ All notable changes to the `nirium` package are documented here.
 
 ## Unreleased
 
+## 0.19.3 - 2026-11-16
+
+### Changed
+
+- README: Treasury on mainnet is now invite-only for deploy, deposit, set-rebalance-manager, rebalance and propose (the agent returns 403 to free keys since 16-nov-2026); withdraw stays open. The Propose section no longer says "no invite required". Treasury is described as moving funds between idle cash and the strategy, not as a USDC/CETES swap. MPP Charge status matches its own section (untested on mainnet). Docs only, no API change.
+
 ## 0.19.2 - 2026-11-16
 
 ### Changed
