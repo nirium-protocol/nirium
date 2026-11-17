@@ -74,4 +74,4 @@ src/errors.ts  insufficient-balance / passphrase error mapping
 src/usdc.ts    BlendUSDC trustline + balance preflight (not Circle USDC)
 ```
 
-SDK methods used: `Agent.deployTreasuryVault`, `Agent.depositToTreasuryVault`, `Agent.submitTreasuryTx`, `Agent.getTreasuryVault`, `Agent.getTreasuryInfo` (`nirium@0.12.0`).
+SDK methods used: `Agent.deployTreasuryVault`, `Agent.depositToTreasuryVault`, `Agent.submitTreasuryTx`, `Agent.getTreasuryVault`, `Agent.getTreasuryInfo` (`nirium@0.19.3`).
