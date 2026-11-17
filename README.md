@@ -16,6 +16,37 @@ Software-only and non-custodial: independent partners execute settlement, the cl
 
 **Reviewing Nirium?** [`docs/FOR-REVIEWERS.md`](docs/FOR-REVIEWERS.md) is a ten-minute path through things you can check yourself. Every piece of evidence, with its network and date, is in [`EVIDENCE.md`](EVIDENCE.md). Verify any receipt with no account at [nirium.xyz/verify](https://nirium.xyz/verify), and see live usage, each row labeled with its source, at [nirium.xyz/stats](https://nirium.xyz/stats).
 
+## How a payment works
+
+One paid request, end to end. Every step runs on the client or an independent partner; Nirium never holds the funds. The policy step and the receipt are optional.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant A as Your app, backend or AI agent<br/>(nirium SDK)
+    participant P as Your policy<br/>(optional, experimental)
+    participant S as Paid API<br/>(x402Serve)
+    participant F as x402 facilitator<br/>(independent: OpenZeppelin)
+    participant X as Stellar
+    participant N as Nirium Audit Trail
+    participant I as IPFS
+    participant V as Anyone
+    A->>S: request
+    S-->>A: 402 Payment Required, price in USDC
+    A->>P: allow this payment?
+    P-->>A: ALLOW (DENY or WAIT: nothing is signed)
+    Note over A: signs with YOUR key, capped at $1 by default
+    A->>S: retry with the signed payment
+    S->>F: verify and settle
+    F->>X: submit, facilitator pays the network fee
+    S-->>A: 200 + the data
+    A->>N: anchor the receipt hash (optional, any side can)
+    N->>I: pin
+    N-->>A: CID
+    V->>I: fetch the CID, recompute the hash, check the signature
+```
+
+
 ## Packages
 
 | Package | Install | Version | Description |
