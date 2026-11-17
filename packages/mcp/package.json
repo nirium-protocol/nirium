@@ -1,7 +1,7 @@
 {
   "name": "nirium-mcp",
-  "version": "0.6.6",
-  "description": "Model Context Protocol server for Nirium - exposes market data, autonomous loop control, and x402 paid signals (MPP tools are experimental) to any MCP-compatible AI (Claude, GPT, Cursor, VS Code Copilot).",
+  "version": "0.6.7",
+  "description": "MCP server that lets an AI assistant (Claude, Cursor, VS Code Copilot) use Nirium on Stellar: paid x402 endpoints in USDC, receipts anyone can verify and treasury vault tools. MPP tools are experimental.",
   "main": "dist/index.js",
   "bin": {
     "nirium-mcp": "dist/index.js"
@@ -48,19 +48,18 @@
     "typescript": "^5.7.0"
   },
   "keywords": [
-    "nirium",
-    "mcp",
-    "model-context-protocol",
     "stellar",
-    "soroban",
-    "agent",
-    "autonomous",
-    "treasury",
     "x402",
-    "mpp",
+    "usdc",
+    "payments",
+    "pay-per-request",
+    "ai-agents",
     "agentic-payments",
+    "receipts",
+    "audit-trail",
+    "mcp",
     "claude",
-    "llm-tools"
+    "model-context-protocol"
   ],
   "license": "Apache-2.0"
 }

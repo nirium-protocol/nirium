@@ -4,6 +4,10 @@ All notable changes to the `nirium-mcp` package are documented here.
 
 ## Unreleased
 
+## 0.6.7 - 2026-11-17
+
+Package description and keywords updated. No code change.
+
 ## 0.6.6 - 2026-11-16
 
 ### Changed
