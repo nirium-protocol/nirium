@@ -370,6 +370,7 @@ export interface AuditAnchorOptions {
 
 export interface AuditAnchor {
     cid: string;
+    /** sha-256 hex that was anchored. Mapped from the node's `content_sha256`, which is also kept as is. */
     contentSha256: string;
     gatewayUrl?: string;
     anchoredAt: string;
@@ -969,7 +970,14 @@ export class Agent {
      * cannot be deleted, so raw personal data would outlive any erasure request.
      */
     async anchorAuditRecord(options: AuditAnchorOptions): Promise<AuditAnchor> {
-        return this.request('POST', '/api/audit/log', options as unknown as Record<string, unknown>);
+        const res = await this.request<AuditAnchor & { content_sha256?: unknown }>(
+            'POST', '/api/audit/log', options as unknown as Record<string, unknown>,
+        );
+        // The node answers with `content_sha256`; expose it as the typed `contentSha256` too.
+        if (res && typeof res === 'object' && typeof res.contentSha256 !== 'string' && typeof res.content_sha256 === 'string') {
+            return { ...res, contentSha256: res.content_sha256 };
+        }
+        return res;
     }
 
     /** Audit Trail node metadata: limits, pricing and disclaimer. */
