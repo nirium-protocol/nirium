@@ -4,6 +4,10 @@ All notable changes to the `nirium` package are documented here.
 
 ## Unreleased
 
+## 0.19.5 - 2026-11-17
+
+Package description and keywords updated. No code change.
+
 ## 0.19.4 - 2026-11-17
 
 ### Fixed

@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="nirium",
-    version="0.12.4",
+    version="0.12.5",
     package_dir={"": "src"},
     packages=find_packages(where="src"),
     install_requires=[
@@ -19,7 +19,7 @@ setup(
         ],
     },
     author="Nirium Team",
-    description="Verifiable receipts (Audit Trail), x402 payments and treasury execution for Stellar - Python client",
-    keywords=["nirium", "stellar", "defi", "x402", "mpp", "agentic-payments", "soroban"],
+    description="Pay per request in USDC on Stellar (x402) from Python and AI agents, with a spending cap and receipts anyone can verify. Non-custodial.",
+    keywords=["stellar", "x402", "usdc", "payments", "pay-per-request", "ai-agents", "agentic-payments", "receipts", "audit-trail"],
     python_requires=">=3.10",
 )

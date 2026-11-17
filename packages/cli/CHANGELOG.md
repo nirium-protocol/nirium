@@ -4,6 +4,10 @@ All notable changes to the `nirium-cli` package are documented here.
 
 ## Unreleased
 
+## 3.2.3 - 2026-11-17
+
+Package description and keywords updated. No code change.
+
 ## 3.2.2 - 2026-11-11
 
 ### Fixed

@@ -1,7 +1,7 @@
 {
   "name": "nirium",
-  "version": "0.19.4",
-  "description": "Autonomous treasury and agentic-payments infrastructure for Stellar (x402)",
+  "version": "0.19.5",
+  "description": "Charge or pay per request in USDC on Stellar (x402), with receipts anyone can verify. For apps, backends and AI agents. Non-custodial.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "homepage": "https://nirium.xyz",
@@ -69,20 +69,15 @@
     "typescript": "^5.9.3"
   },
   "keywords": [
-    "nirium",
     "stellar",
-    "soroban",
-    "defi",
-    "agent",
-    "autonomous",
-    "treasury",
     "x402",
-    "mpp",
-    "agentic-payments",
     "usdc",
-    "cetes",
-    "etherfuse",
-    "rwa"
+    "payments",
+    "pay-per-request",
+    "ai-agents",
+    "agentic-payments",
+    "receipts",
+    "audit-trail"
   ],
   "license": "Apache-2.0"
 }
