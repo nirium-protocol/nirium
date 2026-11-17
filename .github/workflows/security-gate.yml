@@ -57,11 +57,16 @@ jobs:
       # override, and the only mechanism available for mcp. Every other
       # high finding still blocks the build. Revisit when @x402/core
       # moves to zod 4 (no issue filed upstream yet as of this date).
+      # GHSA-fc5q-39xc-vjpf (picomatch <= 4.0.7, ReDoS, no patched version
+      # published) is allowlisted for the SDK only: picomatch is reached
+      # solely through dev tooling (jest, @parcel/watcher, fdir, anymatch) and
+      # is not part of the published nirium package. It is not in the CLI or
+      # MCP lockfiles. Remove it once a patched picomatch is released.
       - name: SDK — npm audit (high+ — blocks build)
         working-directory: packages/sdk
         run: |
           npm install --legacy-peer-deps
-          npx audit-ci@7 --high --allowlist GHSA-mrhx-c7xc-m3w5
+          npx audit-ci@7 --high --allowlist GHSA-mrhx-c7xc-m3w5 GHSA-fc5q-39xc-vjpf
 
       - name: CLI — npm audit (high+ — blocks build)
         working-directory: packages/cli
