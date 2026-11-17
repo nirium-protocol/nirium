@@ -4,6 +4,12 @@ All notable changes to the `nirium` package are documented here.
 
 ## Unreleased
 
+## 0.19.4 - 2026-11-17
+
+### Fixed
+
+- `anchorAuditRecord()` now returns `contentSha256`. The node answers with `content_sha256`, and the SDK used to pass that body through unchanged, so the typed `contentSha256` field was always `undefined`. The raw `content_sha256` is kept too.
+
 ## 0.19.3 - 2026-11-16
 
 ### Changed
