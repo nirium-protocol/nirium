@@ -168,6 +168,16 @@ describe('Agent - Payouts and Treasury client methods (issue #354)', () => {
             expect(url).toBe('http://localhost:3002/api/payroll/runs');
             expect(init.method).toBe('GET');
         });
+
+        it('throws descriptive error on server failure', async () => {
+            globalThis.fetch = jest.fn().mockResolvedValueOnce({
+                ok: false,
+                status: 500,
+                json: async () => ({ error: 'Internal Server Error' }),
+            }) as any;
+
+            await expect(agent.getPayoutRuns()).rejects.toThrow('Nirium API Error [500]');
+        });
     });
 
     // ─── Treasury Methods ────────────────────────────────────────────────────
@@ -201,6 +211,16 @@ describe('Agent - Payouts and Treasury client methods (issue #354)', () => {
             const [url] = (globalThis.fetch as jest.Mock).mock.calls[0];
             expect(url).toContain('/api/treasury/vault/vault-001?holder=GBX5ZID6H4G365G7O4W6U4E6U4E6U4E6U4E6U4E6U4E6U4E6U4E6U4E6');
         });
+
+        it('throws error when vaultId is not found', async () => {
+            globalThis.fetch = jest.fn().mockResolvedValueOnce({
+                ok: false,
+                status: 404,
+                json: async () => ({ error: 'Vault not found' }),
+            }) as any;
+
+            await expect(agent.getTreasuryVault('unknown-vault')).rejects.toThrow('Nirium API Error [404]');
+        });
     });
 
     describe('getTreasuryVaults', () => {
@@ -231,6 +251,16 @@ describe('Agent - Payouts and Treasury client methods (issue #354)', () => {
 
             const [url] = (globalThis.fetch as jest.Mock).mock.calls[0];
             expect(url).toBe('http://localhost:3002/api/treasury/vaults?manager=G-MANAGER-ADDR');
+        });
+
+        it('throws descriptive error on API failure', async () => {
+            globalThis.fetch = jest.fn().mockResolvedValueOnce({
+                ok: false,
+                status: 500,
+                json: async () => ({ error: 'Failed to retrieve vaults' }),
+            }) as any;
+
+            await expect(agent.getTreasuryVaults()).rejects.toThrow('Nirium API Error [500]');
         });
     });
 
