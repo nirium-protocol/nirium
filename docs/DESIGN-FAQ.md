@@ -7,19 +7,32 @@ where its limits are. For evidence with tx hashes, see
 
 ## What does a receipt prove that the Stellar ledger doesn't?
 
-For the payment itself, nothing. A Stellar transaction already proves the
-payer, the payee, the asset and the amount, and anyone can read it from any
-node. If that is all you need to prove, link the transaction.
+For the payment itself, nothing. A Stellar transaction already proves who paid
+whom, which asset and how much, that the payer authorized it with their
+signature, and that it settled in a given ledger at a given time. Nobody can
+change it afterwards, and anyone can read it from any node. A classic payment
+can also carry a memo: up to 28 bytes of text, or a 32-byte hash. A Soroban
+payment, which is how x402 settles on Stellar, can't carry a memo at all; at
+most a numeric ID inside a muxed address
+([Stellar docs](https://developers.stellar.org/docs/learn/fundamentals/contract-development/contract-interactions/stellar-transaction)).
+If that is all you need to prove, link the transaction.
 
 A receipt is for what the ledger doesn't hold:
 
+- **What a payment was for**, beyond what a memo or an ID can say: the
+  resource, request or delivery it paid for, e.g. "0.02 USDC paid for
+  GET /signals, request r-123, response delivered".
 - **A policy decision**, including a payment the agent refused and never
   signed. No transaction exists for that, so the ledger has nothing to show.
-- **What a payment was for**: the resource, request or delivery it paid for.
-- **Records that never touch the chain**: a report, an approval, proof that a
-  task was done, the evidence behind an escrow release.
-- **Who declared it**, through an optional ed25519 signature made with the
-  declarer's own key.
+- **Records that never touch the chain**: a partner's exchange-rate quote, the
+  evidence behind an escrow release, the invoice or order being paid, which
+  version of the terms a user accepted.
+- **Private evidence**: only its hash is public. The file stays with you, and
+  anyone you give it to can recompute the hash and check it matches.
+- **Who stands behind it**, through an optional ed25519 signature made with the
+  declarer's own key. The ledger signature shows who authorized moving the
+  money; the receipt signature shows who vouches for what is said around it.
+  Anyone can check the signer said it, not Nirium, and any later change shows.
 
 ## Then why make a receipt for a plain payment?
 
