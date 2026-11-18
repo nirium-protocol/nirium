@@ -50,5 +50,5 @@ outputs:
     description: Error detail when verification or fetch fails.
 
 runs:
-  using: node20
+  using: node24
   main: dist/index.js

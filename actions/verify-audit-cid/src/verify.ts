@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import { StrKey } from '@stellar/stellar-sdk';
+import { StrKey } from '@stellar/stellar-base';
 
 export type SignatureStatus = 'valid' | 'invalid' | 'absent';
 
