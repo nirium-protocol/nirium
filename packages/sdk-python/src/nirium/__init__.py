@@ -9,6 +9,13 @@ from .client import (  # type: ignore
     X402NetworkMismatchError,
     X402SpendCapError,
 )
+from .x402_policy import (  # type: ignore
+    PolicyContext,
+    PolicyDecision,
+    PolicyResult,
+    X402PolicyError,
+    run_policy_gate,
+)
 
 if TYPE_CHECKING:
     from .langchain_tools import NiriumX402Tool, create_nirium_x402_tool
@@ -20,6 +27,11 @@ __all__ = [
     "WebSocketStatus",
     "X402NetworkMismatchError",
     "X402SpendCapError",
+    "X402PolicyError",
+    "PolicyContext",
+    "PolicyDecision",
+    "PolicyResult",
+    "run_policy_gate",
     "NiriumX402Tool",
     "create_nirium_x402_tool",
 ]

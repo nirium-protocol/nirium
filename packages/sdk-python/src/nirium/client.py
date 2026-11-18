@@ -18,7 +18,9 @@ from typing import Awaitable, Callable, Dict, Any, List, Optional, Union
 from stellar_sdk import Keypair, Network, Server, TransactionBuilder, Asset  # type: ignore
 from stellar_sdk import Account, Address, SorobanServer, scval  # type: ignore
 from stellar_sdk.xdr import SorobanTransactionData  # type: ignore
-from stellar_sdk.auth import authorize_entry  # type: ignore
+from stellar_sdk.auth import authorize_entry
+
+from .x402_policy import X402PolicyError, build_context, run_policy_gate  # type: ignore
 import base64 as _b64
 import math as _math
 
@@ -743,6 +745,7 @@ class Agent:
         rpc_url: str = "",
         max_amount_per_payment: Any = _X402_DEFAULT_MAX_AMOUNT,
         approve: Optional[X402Approver] = None,
+        policy: Optional[Any] = None,
     ):
         """
         Initialize the x402 pay-per-request client (protocol v2).
@@ -761,6 +764,14 @@ class Agent:
             approve: Optional callback (sync or async). It receives the payment
                 option (url, network, asset, payTo, amount) whenever the cap
                 cannot accept it on its own, and must return True to sign.
+            policy: Optional pre-sign policy hook, the same guarantees as the
+                TypeScript SDK. Either an object with ``evaluate(context)``
+                (plus optional ``current_version`` / ``on_decision`` /
+                ``timeout_ms`` / ``require_expires_at``) or a plain callable
+                receiving the context. It runs after the spend-cap check and
+                immediately before signing; DENY, WAIT, a stale or unbound
+                answer and a timeout all raise ``X402PolicyError`` without
+                touching the signer.
 
         A 402 whose options are all on a different network than ``network`` is
         always refused: the client never falls back to another network.
@@ -772,10 +783,16 @@ class Agent:
             )
         if approve is not None and not callable(approve):
             raise ValueError("approve must be a callable or None")
+        if policy is not None and not (callable(policy) or callable(getattr(policy, "evaluate", None))):
+            raise ValueError("policy must be a callable or expose a callable evaluate()")
         cap = _parse_usd_cap(max_amount_per_payment)
         self._x402_cap_label = f"${cap.normalize():f}"
         self._x402_cap_atomic = int(cap * (10 ** _X402_USDC_DECIMALS))
         self._x402_approve = approve
+        self._x402_policy = policy
+        self._x402_policy_require_expires = (
+            None if policy is None else getattr(policy, "require_expires_at", None)
+        )
         is_testnet = network == "stellar:testnet"
         self._x402_keypair = Keypair.from_secret(secret_key)
         self._x402_network = network
@@ -801,6 +818,7 @@ class Agent:
         is signed only if the ``approve`` callback returns True.
         """
         network = self._x402_network
+        self._x402_pending_url = url
         on_network = [
             a for a in accepts
             if isinstance(a, dict) and a.get("network") == network
@@ -911,10 +929,7 @@ class Agent:
 
         prepared = soroban.prepare_transaction(tx)
         op = prepared.transaction.operations[0]
-        op.auth = [
-            authorize_entry(e, self._x402_keypair, max_ledger, self._x402_passphrase)
-            for e in (op.auth or [])
-        ]
+        op.auth = self._x402_authorize_entries(list(op.auth or []), accepted, max_ledger)
 
         sim = soroban.simulate_transaction(prepared)
         if getattr(sim, "error", None):
@@ -925,6 +940,64 @@ class Agent:
         )
         prepared.transaction.fee = 100 + int(sim.min_resource_fee)
         return prepared.to_xdr()
+
+    def _x402_authorize_entries(
+        self,
+        entries: List[Any],
+        accepted: Dict[str, Any],
+        max_ledger: int,
+    ) -> List[Any]:
+        """Sign the Soroban authorization entries, or refuse without signing.
+
+        Without a policy this is exactly the previous behaviour. With a policy
+        every entry goes through :func:`nirium.x402_policy.run_policy_gate`, so
+        a DENY, a WAIT, a stale/unbound answer or a timeout raises
+        ``X402PolicyError`` and the signer is never called.
+        """
+        policy = getattr(self, "_x402_policy", None)
+        signed: List[Any] = []
+        for entry in entries:
+            def sign_one(e: Any = entry) -> Any:
+                return authorize_entry(
+                    e, self._x402_keypair, max_ledger, self._x402_passphrase
+                )
+
+            if policy is None:
+                signed.append(sign_one())
+                continue
+            to_xdr = getattr(entry, "to_xdr", None)
+            payload_hash = hashlib.sha256(
+                to_xdr() if callable(to_xdr) else repr(entry).encode("utf-8")
+            ).hexdigest()
+            context = build_context(
+                url=getattr(self, "_x402_pending_url", ""),
+                method=getattr(self, "_x402_pending_method", "GET"),
+                requirements={
+                    "scheme": accepted.get("scheme"),
+                    "network": accepted.get("network"),
+                    "asset": accepted.get("asset"),
+                    "payTo": accepted.get("payTo"),
+                    "amount": accepted.get("amount"),
+                    "maxTimeoutSeconds": accepted.get("maxTimeoutSeconds"),
+                },
+                authorization={
+                    "payloadHash": payload_hash,
+                    "payloadType": "soroban-authorization-entry",
+                    "from": self._x402_keypair.public_key,
+                    "to": accepted.get("payTo"),
+                    "amount": accepted.get("amount"),
+                    "maxLedger": max_ledger,
+                },
+                signer=self._x402_keypair.public_key,
+            )
+            gate = run_policy_gate(
+                policy,
+                context,
+                sign_one,
+                require_expires_at=getattr(self, "_x402_policy_require_expires", None),
+            )
+            signed.append(gate.value)
+        return signed
 
     def _x402_http_payload(self, body: Optional[Any]) -> Dict[str, Any]:
         if body is None:
