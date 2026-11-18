@@ -21,6 +21,13 @@ network each runs on, and which endpoints back it.
 This is the core of what Nirium builds: a signed receipt of a payment that
 anyone can check without an account and without trusting our API.
 
+The payment itself is already public on Stellar; the receipt doesn't
+re-prove it. What it adds is a signed statement by the party that made the
+payment, checkable without trusting us. The same mechanism covers what the
+ledger can't hold at all: policy decisions (including refused payments that
+were never signed), what a payment was for, and off-chain records. See
+[What a receipt adds over the ledger](../README.md#what-a-receipt-adds-over-the-ledger).
+
 Open [nirium.xyz/verify](https://nirium.xyz/verify) and paste this CID, or run
 it on your own machine:
 

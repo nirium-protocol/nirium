@@ -46,6 +46,17 @@ sequenceDiagram
     V->>I: fetch the CID, recompute the hash, check the signature
 ```
 
+### What a receipt adds over the ledger
+
+A Stellar payment is already public and can't be changed: anyone can check the payer, payee, asset and amount from the transaction hash. A receipt that only repeats those fields proves nothing new. Audit Trail is for what the ledger doesn't hold:
+
+- **What a policy decided**, including payments it refused and never signed. No transaction exists for those.
+- **What a payment was for**: the resource, request or delivery it paid for.
+- **Documents and events that never touch the chain**: reports, approvals, proof that a task was done.
+- **Who declared it**, through the optional ed25519 signature.
+
+If everything you want to prove is already in the transaction, link the transaction.
+
 
 ## Packages
 
