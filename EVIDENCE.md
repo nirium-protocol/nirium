@@ -2,6 +2,8 @@
 
 Last verified live: 16 Nov 2026, against Horizon (mainnet/testnet), the Filebase gateway, `nirium verify`, the GitHub API, npm and PyPI. Every item below links directly to its own evidence. Check any of them independently. The CID links below use the Pinata gateway; if one answers `429` (rate limit), open the same CID at `https://nirium.myfilebase.com/ipfs/<CID>`, or run `npx nirium-cli@latest verify <CID>`, which tries Filebase, Pinata, ipfs.io and dweb.link in that order.
 
+For what a receipt does and doesn't prove, see [`docs/DESIGN-FAQ.md`](docs/DESIGN-FAQ.md).
+
 ## 1. x402 payments on Stellar (mainnet)
 
 | Evidence | Network | What it proves |

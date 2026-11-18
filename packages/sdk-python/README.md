@@ -87,6 +87,8 @@ npx nirium-cli verify <cid> --hash <64-hex-sha256>
 
 `nirium verify` fetches the document from IPFS, recomputes the hash and checks the ed25519 signature against the declared Stellar key. You can also paste a CID at [nirium.xyz/verify](https://nirium.xyz/verify), with no account. More in [docs/verify-audit-cid.md](https://github.com/nirium-protocol/nirium/blob/main/docs/verify-audit-cid.md).
 
+**What a receipt adds over the ledger:** a Stellar payment is already public, so a receipt that only repeats payer, payee and amount proves nothing new; link the transaction instead. Receipts are for what the ledger doesn't hold: policy decisions (including refused payments that were never signed), what a payment was for, off-chain records, and who declared them. More in the [design FAQ](https://github.com/nirium-protocol/nirium/blob/main/docs/DESIGN-FAQ.md).
+
 ## Real-Time Signals (Resilient WebSocket)
 
 The Python SDK includes a hardened, self-healing WebSocket signals client with exponential backoff, randomized jitter, configurable retry caps, automatic deduplication, and typed status/error channels.

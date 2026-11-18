@@ -4,6 +4,8 @@ Model Context Protocol server for [Nirium](https://nirium.xyz) - lets any MCP-co
 
 Every receipt the `anchor_audit_record` tool returns can be re-checked by anyone with `npx nirium-cli verify <cid>` or at [nirium.xyz/verify](https://nirium.xyz/verify).
 
+**What a receipt adds over the ledger:** a Stellar payment is already public, so a receipt that only repeats payer, payee and amount proves nothing new; link the transaction instead. Receipts are for what the ledger doesn't hold: policy decisions (including refused payments that were never signed), what a payment was for, off-chain records, and who declared them. More in the [design FAQ](https://github.com/nirium-protocol/nirium/blob/main/docs/DESIGN-FAQ.md).
+
 Software-only. This server never holds funds - paid tools sign per-request payments from a Stellar wallet you control via `STELLAR_SECRET_KEY`.
 
 ## Install

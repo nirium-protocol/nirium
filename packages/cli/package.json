@@ -1,6 +1,6 @@
 {
   "name": "nirium-cli",
-  "version": "3.2.3",
+  "version": "3.2.4",
   "description": "Nirium from the terminal: pay or serve an x402 API on Stellar, anchor and verify receipts, check an agent and export reports.",
   "main": "bin/nirium.js",
   "type": "module",
