@@ -6,6 +6,12 @@ The Nirium Agent builds an unsigned transaction XDR containing all batch payment
 
 ---
 
+## Demo Walkthrough
+
+![Batch Payout Demo Walkthrough](demo.gif)
+
+---
+
 ## Security Guarantee: Client-Side Signing
 
 > [!IMPORTANT]
