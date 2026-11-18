@@ -15,9 +15,13 @@ https://github.com/x402-foundation/x402/issues/3148
 
 **Where it stands today.** We cannot fix a race condition inside a facilitator we do not operate. What we built instead is `GET /api/reporting/reconcile`, which compares on-chain settlements to the treasury against payment receipts our own route handlers logged. Read honestly: it currently reports `matchable: false` for most of its history, because our receipts did not record the settlement transaction hash until we built this endpoint, so most existing receipts cannot be matched to a specific on-chain payment one to one. It compares totals in the meantime and will match individually going forward as receipts carry the hash. That gap is not fixed yet. It is the next thing to close.
 
+**Update, 17 November 2026: still open.** The endpoint now reports 37 on-chain payments and 39 logged receipts, so even the totals don't agree. One of the 37 is a Trustless Work escrow release, not an x402 payment; we haven't traced the rest of the difference yet. Matching one to one still needs the settlement hash recorded on the paid path.
+
 ## 2026-08-15: Three more upstream findings from running x402 and MPP in production
 
 **Production patterns proposed back to the Stellar agentic-payments skill.** Kaan Kaçar had closed an earlier PR of ours against the same skill ([stellar/stellar-dev-skill#14](https://github.com/stellar/stellar-dev-skill/pull/14)) because the files it targeted had been restructured out from under it, and invited a fresh, smaller PR against whichever of those patterns were still missing. Re-verified each one against what's actually running in production rather than copy the old diff, and opened [stellar/stellar-dev-skill#97](https://github.com/stellar/stellar-dev-skill/pull/97) with four: multi-route pricing, recipient resolution that fails open instead of crashing, an optional dual-intent server, and a discovery endpoint. Open, awaiting review.
+
+**Update: merged on 5 September 2026.** [stellar/stellar-dev-skill#97](https://github.com/stellar/stellar-dev-skill/pull/97). One of its claims turned out to be wrong a month later; see the 15 October entry.
 
 **`@x402/core` leaks a raw internal error on a malformed payment payload.** `paymentRequirementsMatchAccepted()`, called from every `@x402/express` resource server on every incoming payment, destructures the client-supplied `accepted` field without checking it exists first. Send a payload that omits `accepted` (or sets it to `null`) and the 402 comes back with a raw V8 `TypeError` in the `error` field instead of a protocol-level reason. Confirmed live against our own production endpoint, and confirmed still present in the latest published release. Filed: [x402-foundation/x402#3171](https://github.com/x402-foundation/x402/issues/3171).
 
@@ -74,3 +78,32 @@ Both outcomes came from the same rule: confirm root cause with real, run evidenc
 **A second, independent integrator repeated the exact test the next day.** [AgentLedger](https://agentpayments.fi) - one of the three integrators who'd converged on this finding back in early September - posted their own real settlement against the hosted facilitator on 2026-09-12, unmodified client, same code path that had been failing since 10 August. Same result: clean `200`, real content, tx confirmed on Horizon. Two independent teams, two independent settlements, one root cause. `zeljkoX` closed the issue 2026-09-14.
 
 **Net outage window: ~32 days, 2026-08-10 to 2026-09-11.** The logging hook we shipped mid-outage (server-side `onAfterVerify`/`onVerifyFailure`, so a facilitator rejection lands in our own logs instead of only being visible from outside) stays in place - it was never a workaround for this specific bug, it's permanent visibility into a dependency we don't control, useful for catching the next one without needing an external report to notice first.
+
+## 2026-10-15: We said MPP was billing in production. It wasn't.
+
+**What we found.** On 1 October we read our mainnet billing account directly instead of trusting our own status text. It held 37 credits, all x402, not a single MPP payment. Our README, our site and the production-patterns section we had contributed to Stellar's dev skill all said MPP Charge was live and billing real USDC. The endpoint did answer with a valid 402 challenge, and we had taken that as proof. It isn't: a challenge shows the server asks for payment, not that a payment can be collected.
+
+**What we did.** Corrected it in public instead of quietly: [stellar/stellar-dev-skill#150](https://github.com/stellar/stellar-dev-skill/pull/150), merged on 15 October, rewrote the claim in the skill, and our README now says MPP Charge is verified on testnet and untested on mainnet. Since then we only call a payment endpoint live with the hash of a recent settled payment or a query to the receiving account on the ledger.
+
+## 2026-10-26: Four more fixes merged into x402
+
+All four reviewed and merged by the x402 maintainers:
+
+- [x402#3338](https://github.com/x402-foundation/x402/pull/3338) (22 Oct): a settle-time amount override was not checked against `PaymentRequirements.amount`, the amount the client agreed to. The ceiling is now enforced.
+- [x402#3339](https://github.com/x402-foundation/x402/pull/3339) (22 Oct): the Stellar constructor now documents, where it is configured, that `areFeesSponsored: false` is not supported.
+- [x402#3215](https://github.com/x402-foundation/x402/pull/3215) (26 Oct): network matching derives one wildcard pattern per namespace, so a facilitator that serves several chains no longer matches the wrong one.
+- [x402#3138](https://github.com/x402-foundation/x402/pull/3138) (26 Oct): Bazaar discovery uses the raw resource URL for opaque-origin schemes, which fixes broken discovery URLs for MCP tools.
+
+Two earlier ones never made it into this log: [x402#3228](https://github.com/x402-foundation/x402/pull/3228) (31 Aug, a crash in the e2e conformance suite) and [x402#3336](https://github.com/x402-foundation/x402/pull/3336) (3 Sep, a missing signer in the Stellar facilitator safety checks).
+
+## 2026-11-17: `anchorAuditRecord()` never returned its own hash
+
+**What broke.** The Audit Trail node answers with `content_sha256`, but the TypeScript SDK typed the field as `contentSha256` and never mapped it, so code that read the typed field always got `undefined`. Nothing failed loudly; a caller just couldn't compare the hash the node computed with its own.
+
+**Fix.** [nirium#328](https://github.com/nirium-protocol/nirium/pull/328) maps the field and returns both names. Shipped in `nirium` 0.19.4 and the Python SDK 0.12.4.
+
+## 2026-11-17: A receipt over on-chain fields proves nothing new
+
+**What we got wrong.** We proposed an optional receipt hook to [Rumble Fish's Stellar facilitator](https://github.com/rumblefishdev/stellar-x402/issues/153). Their review asked what a receipt proves that the ledger doesn't, and for the fields we suggested hashing (payer, payee, amount, tx hash), the answer was nothing. A Stellar transaction already proves all of that.
+
+**What we changed.** Our home page stopped saying "prove every payment". The README, the four package READMEs and the Pollar adapter now say what a receipt is actually for: policy decisions (including refused payments that were never signed), what a payment was for, off-chain records, and who declared them. Where only the transfer matters, link the transaction. The reasoning is in [docs/DESIGN-FAQ.md](DESIGN-FAQ.md). The same week we closed our own `upto` spec for Stellar, [x402#3098](https://github.com/x402-foundation/x402/pull/3098), in favor of Rumble Fish's [x402#3781](https://github.com/x402-foundation/x402/pull/3781), after review there settled the design.
