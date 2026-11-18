@@ -28,6 +28,7 @@ ledger can't hold at all: policy decisions (including refused payments that
 were never signed), what a payment was for, and off-chain records. See
 [What a receipt adds over the ledger](../README.md#what-a-receipt-adds-over-the-ledger).
 Common design questions, with their limits, are in [`DESIGN-FAQ.md`](DESIGN-FAQ.md).
+What broke in production, how we found it and where it stands, including the claims we got wrong and corrected, is in [`devlog.md`](devlog.md).
 
 Open [nirium.xyz/verify](https://nirium.xyz/verify) and paste this CID, or run
 it on your own machine:
