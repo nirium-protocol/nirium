@@ -16,6 +16,8 @@ Software-only and non-custodial: independent partners execute settlement, the cl
 
 **Reviewing Nirium?** [`docs/FOR-REVIEWERS.md`](docs/FOR-REVIEWERS.md) is a ten-minute path through things you can check yourself. Every piece of evidence, with its network and date, is in [`EVIDENCE.md`](EVIDENCE.md). Verify any receipt with no account at [nirium.xyz/verify](https://nirium.xyz/verify), and see live usage, each row labeled with its source, at [nirium.xyz/stats](https://nirium.xyz/stats).
 
+Design questions and limits, including what a receipt does and doesn't prove: [`docs/DESIGN-FAQ.md`](docs/DESIGN-FAQ.md).
+
 ## How a payment works
 
 One paid request, end to end. Every step runs on the client or an independent partner; Nirium never holds the funds. The policy step and the receipt are optional.

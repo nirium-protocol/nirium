@@ -8,6 +8,8 @@ npm install -g nirium-cli
 
 Audit Trail receipts: anchor a sha-256 hash (optionally signed with ed25519) to IPFS, and anyone can independently verify it with `nirium verify` or at [nirium.xyz/verify](https://nirium.xyz/verify) - no account, no trust in this CLI's own output required.
 
+**What a receipt adds over the ledger:** a Stellar payment is already public, so a receipt that only repeats payer, payee and amount proves nothing new; link the transaction instead. Receipts are for what the ledger doesn't hold: policy decisions (including refused payments that were never signed), what a payment was for, off-chain records, and who declared them. More in the [design FAQ](https://github.com/nirium-protocol/nirium/blob/main/docs/DESIGN-FAQ.md).
+
 ## Anchor a record
 
 ```bash
