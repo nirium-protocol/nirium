@@ -144,7 +144,7 @@ Live on **both** Stellar networks. They are not two copies of the same thing.
 
 | Product | Status |
 |---|---|
-| x402 | Live on mainnet ([last settled payment 29 Sep 2026](https://stellar.expert/explorer/public/account/GCLBBPON256CV7ATEHM5B54BOKNC7GX53MBINJ42MHVXGDMMZ3ZWKBHP)) |
+| x402 | Live on mainnet ([last settled payment 18 Nov 2026](https://stellar.expert/explorer/public/account/GCLBBPON256CV7ATEHM5B54BOKNC7GX53MBINJ42MHVXGDMMZ3ZWKBHP)) |
 | Audit Trail | Live on mainnet (last anchor 12 Nov 2026) |
 | Reporting | Live on mainnet |
 | Treasury Rebalance | Mainnet, invite-only (4 self-funded rebalances, last 6 Aug 2026) |

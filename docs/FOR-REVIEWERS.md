@@ -58,8 +58,10 @@ no longer does, and verification fails.
 
 - **Mainnet:** the x402 payment account,
   [`GCLBBPON…ZWKBHP`](https://stellar.expert/explorer/public/account/GCLBBPON256CV7ATEHM5B54BOKNC7GX53MBINJ42MHVXGDMMZ3ZWKBHP),
-  has 36 settled payments. The last one settled on 29 Sep 2026. None of them
-  came from an external payer; they are our own and our integrators' tests.
+  has 39 settled payments. The last three settled on 18 Nov 2026, in a
+  mainnet test of the pre-sign policy hook by AgentLedger, whose founder works
+  with Nirium part-time. None of them came from an external payer; they are
+  our own and our integrators' tests.
 - **Testnet:** a payment through `nirium-cli` on 10 Nov 2026 settled as
   [`4b1427ae…8607ecf3`](https://stellar.expert/explorer/testnet/tx/4b1427ae8328a0c1c70daaa412f941234895a8c9f5fd85c03c49501e8607ecf3).
   Settlement on testnet goes through a hosted facilitator and sometimes
