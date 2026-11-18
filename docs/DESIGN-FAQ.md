@@ -34,6 +34,10 @@ A receipt is for what the ledger doesn't hold:
   money; the receipt signature shows who vouches for what is said around it.
   Anyone can check the signer said it, not Nirium, and any later change shows.
 
+To check a receipt yourself, paste its CID at
+[nirium.xyz/verify](https://nirium.xyz/verify). No account needed, and the page
+shows what the ledger already proves and what the receipt adds.
+
 ## Then why make a receipt for a plain payment?
 
 To link the transaction to the record it settles: the order, invoice or
