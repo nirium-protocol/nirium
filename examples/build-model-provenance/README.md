@@ -97,7 +97,7 @@ The record is written with sorted keys, so its bytes, and therefore its hash, ar
 
 ## Why the record stays private
 
-IPFS content can't be deleted, and the receipt is public forever. Training configs, dataset names and commits often reveal unreleased work, licensing arrangements, or the people and communities behind a dataset. So only a 64-character hash is published. The receipt reveals nothing about the record by itself, and you choose later, per auditor or partner, whether to hand over the record. They hash it and compare. Never put personal data in a record you intend to anchor, and treat dataset *names* as sensitive if the name itself is.
+Once published, you can't take a receipt back: anyone may have copied it. Don't anchor anything you wouldn't want public. Training configs, dataset names and commits often reveal unreleased work, licensing arrangements, or the people and communities behind a dataset. So only a 64-character hash is published. The receipt reveals nothing about the record by itself, and you choose later, per auditor or partner, whether to hand over the record. They hash it and compare. Never put personal data in a record you intend to anchor, and treat dataset *names* as sensitive if the name itself is.
 
 ## What the receipt proves, and what it doesn't
 
