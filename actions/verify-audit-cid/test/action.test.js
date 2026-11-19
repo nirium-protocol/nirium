@@ -211,3 +211,50 @@ test('offline verify: a full-record document is still hashOnly=false and verifie
   assert.equal(result.hashOnly, false);
   assert.equal(result.ok, true);
 });
+
+// Reported from outside by Abdellah Ouadoudi (github.com/holistis), who ran
+// the decision logic on edited receipts: an unsigned hash-only document came
+// back ok even with a made-up content_sha256, because nothing failed and
+// nothing was actually checked either.
+test('offline verify: a hash-only document with a made-up hash and no agent block is not verified', () => {
+  const forged = {
+    version: '1.1.0',
+    node: 'audit-external',
+    content_sha256: '0'.repeat(64),
+    network: 'stellar:testnet',
+    tag: 'made-up',
+  };
+
+  const result = verifyAuditDocument(forged, 'QmMadeUp');
+
+  assert.equal(result.hashOnly, true);
+  assert.equal(result.signatureStatus, 'absent');
+  assert.equal(result.ok, false);
+  assert.match(result.error, /Nothing verified/);
+});
+
+test('offline verify: a signed hash-only document stripped of its agent block is not verified', () => {
+  const stripped = structuredClone(hashOnlyFixture);
+  delete stripped.agent;
+
+  const result = verifyAuditDocument(stripped, 'QmHashOnlyStripped');
+
+  assert.equal(result.hashOnly, true);
+  assert.equal(result.signatureStatus, 'absent');
+  assert.equal(result.ok, false);
+});
+
+test('offline verify: a record stripped of its agent block passes on integrity only, and says the signature is absent', () => {
+  const stripped = structuredClone(validFixture);
+  delete stripped.agent;
+
+  const result = verifyAuditDocument(stripped, 'QmRecordStripped');
+
+  // The recomputed hash is a real check, so the record itself is intact.
+  // Who declared it is what signatureStatus answers, and here nobody did.
+  assert.equal(result.hashOnly, false);
+  assert.equal(result.hashMatch, true);
+  assert.equal(result.signatureStatus, 'absent');
+  assert.equal(result.ok, true);
+  assert.equal(result.error, undefined);
+});
