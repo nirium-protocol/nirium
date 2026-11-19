@@ -171,6 +171,10 @@ stale left open to re-litigate. **Use `--limit 200`**: `gh issue list`
 defaults to 30 results, which silently truncates this exact count if you
 omit it - caught 2026-09-28 re-verifying this page.
 
+### Stellar Wave on Drips (from 18 Nov 2026)
+
+Since Wave 11 we also publish issues on [Stellar Wave](https://www.drips.network/wave): 30 so far, labeled [`Stellar Wave`](https://github.com/nirium-protocol/nirium/issues?q=label%3A%22Stellar+Wave%22). Contributors apply with a plan and we assign by merit. Only merged work counts, and the first one is [#372](https://github.com/nirium-protocol/nirium/pull/372) (19 Nov 2026 UTC). Same rule as GrantFox: contributors earn Wave points, so this is people building on the code, not product demand. The running list is in [EVIDENCE.md section 14](../EVIDENCE.md#14-community-contributions-through-incentivized-programs-github-api-checked-19-nov-2026-utc).
+
 ## 8. How we review each other's pull requests
 
 Approvals between the two maintainers (@Eras256 and @M0nsxx) are often AI-assisted: Claude reads the diff and drafts the review comment. Until 15 Nov 2026 many of those comments were drafted in the author's own Claude session and pasted by the reviewer without saying so; from that date every review says `AI-assisted review (Claude)` in its first line, plus what the reviewer checked personally. Read an approval here as "a second maintainer took responsibility for this change", not as an independent audit. What you can verify on your own is authorship (each maintainer commits from their own account, and every AI-assisted commit carries a `Co-Authored-By` trailer). Details: [CONTRIBUTING.md](../CONTRIBUTING.md#ai-assisted-code-review).
