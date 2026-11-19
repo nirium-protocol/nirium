@@ -145,7 +145,7 @@ Live on **both** Stellar networks. They are not two copies of the same thing.
 | Product | Status |
 |---|---|
 | x402 | Live on mainnet ([last settled payment 18 Nov 2026](https://stellar.expert/explorer/public/account/GCLBBPON256CV7ATEHM5B54BOKNC7GX53MBINJ42MHVXGDMMZ3ZWKBHP)) |
-| Audit Trail | Live on mainnet (last anchor 12 Nov 2026) |
+| Audit Trail | Live on mainnet (last anchor 18 Nov 2026) |
 | Reporting | Live on mainnet |
 | Treasury Rebalance | Mainnet, invite-only (4 self-funded rebalances, last 6 Aug 2026) |
 | Payouts | Mainnet, invite-only (no mainnet runs yet) |
@@ -207,7 +207,7 @@ Real bugs found in code we don't control, in other people's repos, confirmed by 
 
 ### Merged pull requests in other teams' repos
 
-Checked against the GitHub API on 10 Nov 2026. Each one was reviewed and merged by that repo's own maintainers (one by Stellar's triage bot).
+Checked against the GitHub API on 19 Nov 2026. Each one was reviewed and merged by that repo's own maintainers (two by Stellar's triage bot).
 
 | Pull request | What it does | Author | Merged by |
 |---|---|---|---|
@@ -225,6 +225,9 @@ Checked against the GitHub API on 10 Nov 2026. Each one was reviewed and merged 
 | [Trustless-Work/agentic-escrow-research#11](https://github.com/Trustless-Work/agentic-escrow-research/pull/11) | "Enabled" is not activity (signer liveness) | Eras256 | techrebelgit, 4 Nov 2026 |
 | [Trustless-Work/agentic-escrow-research#12](https://github.com/Trustless-Work/agentic-escrow-research/pull/12) | Pre-sign policy hook decision states | M0nsxx | techrebelgit, 5 Nov 2026 |
 | [Trustless-Work/agentic-escrow-research#13](https://github.com/Trustless-Work/agentic-escrow-research/pull/13) | x402 and MPP Charge on one endpoint | M0nsxx | techrebelgit, 5 Nov 2026 |
+| [SorobanAgents/agentrail#68](https://github.com/SorobanAgents/agentrail/pull/68) | Optional public receipts for spends and proof-of-task | Eras256 | sparkysolutions10-pixel, 17 Nov 2026 |
+| [SorobanAgents/agentrail#70](https://github.com/SorobanAgents/agentrail/pull/70) | Opt-in `--receipt` flag for the sandbox demo | Eras256 | sparkysolutions10-pixel, 18 Nov 2026 |
+| [stellar/stellar-dev-skill#191](https://github.com/stellar/stellar-dev-skill/pull/191) | Point the Nirium card at the renamed repo | Eras256 | Stellar triage bot, 19 Nov 2026 |
 
 Also merged in x402's own core, by the same author. These are protocol-level fixes, not changes to Nirium's code:
 
