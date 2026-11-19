@@ -8,6 +8,9 @@ from .client import (  # type: ignore
     WebSocketStatus,
     X402NetworkMismatchError,
     X402SpendCapError,
+    X402PolicyError,
+    X402PolicyContext,
+    X402PolicyDecision,
 )
 
 if TYPE_CHECKING:
@@ -20,6 +23,9 @@ __all__ = [
     "WebSocketStatus",
     "X402NetworkMismatchError",
     "X402SpendCapError",
+    "X402PolicyError",
+    "X402PolicyContext",
+    "X402PolicyDecision",
     "NiriumX402Tool",
     "create_nirium_x402_tool",
 ]

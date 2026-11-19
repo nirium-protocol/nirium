@@ -13,8 +13,9 @@ import random
 import aiohttp  # type: ignore
 import websockets  # type: ignore
 import inspect
+import time
 from decimal import Decimal, InvalidOperation
-from typing import Awaitable, Callable, Dict, Any, List, Optional, Union
+from typing import Awaitable, Callable, Dict, Any, List, Optional, Union, NoReturn
 from stellar_sdk import Keypair, Network, Server, TransactionBuilder, Asset  # type: ignore
 from stellar_sdk import Account, Address, SorobanServer, scval  # type: ignore
 from stellar_sdk.xdr import SorobanTransactionData  # type: ignore
@@ -95,6 +96,142 @@ class X402SpendCapError(RuntimeError):
             "Nothing was signed or sent. Raise it with init_x402(max_amount_per_payment=...) "
             "or pass approve=... to decide case by case."
         )
+
+
+class X402PolicyError(RuntimeError):
+    """Raised when an x402 payment is refused by the pre-sign policy hook.
+
+    Raised before signing, so no signature was released.
+    """
+
+    code = "X402_POLICY_REFUSED"
+    signer_called = False
+
+    def __init__(
+        self,
+        outcome: str,
+        message: str,
+        decision: Optional[Any] = None,
+        context_hash: Optional[str] = None,
+    ):
+        self.outcome = outcome
+        self.message = message
+        self.decision = decision
+        self.context_hash = context_hash
+        super().__init__(f"x402 policy {outcome}: {message}")
+
+
+class X402PolicyDecision:
+    """Normalized policy decision returned by or parsed from the policy hook."""
+
+    def __init__(
+        self,
+        decision: str,
+        context_hash: Optional[str] = None,
+        reason: Optional[str] = None,
+        policy_version: Optional[str] = None,
+        expires_at: Optional[float] = None,
+        decision_id: Optional[str] = None,
+    ):
+        self.decision = decision.upper().strip()
+        self.context_hash = context_hash
+        self.contextHash = context_hash
+        self.reason = reason
+        self.policy_version = policy_version
+        self.policyVersion = policy_version
+        self.expires_at = expires_at
+        self.expiresAt = expires_at
+        self.decision_id = decision_id
+        self.decisionId = decision_id
+
+    def __repr__(self) -> str:
+        return (
+            f"X402PolicyDecision(decision={self.decision!r}, "
+            f"contextHash={self.contextHash!r}, "
+            f"policyVersion={self.policyVersion!r}, "
+            f"expiresAt={self.expiresAt!r}, "
+            f"reason={self.reason!r})"
+        )
+
+
+class X402PolicyContext(dict):
+    """Context object passed to the policy evaluation callback."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if "payTo" in self and "payee" not in self:
+            self["payee"] = self["payTo"]
+        if "payee" in self and "payTo" not in self:
+            self["payTo"] = self["payee"]
+        if "url" in self and "resource" not in self:
+            self["resource"] = self["url"]
+        if "resource" in self and "url" not in self:
+            self["url"] = self["resource"]
+        if "contextHash" in self and "context_hash" not in self:
+            self["context_hash"] = self["contextHash"]
+        if "context_hash" in self and "contextHash" not in self:
+            self["contextHash"] = self["context_hash"]
+        if "contextVersion" in self and "context_version" not in self:
+            self["context_version"] = self["contextVersion"]
+        if "context_version" in self and "contextVersion" not in self:
+            self["contextVersion"] = self["context_version"]
+
+    def __getattr__(self, name: str) -> Any:
+        if name in self:
+            return self[name]
+        alternatives = {
+            "context_version": "contextVersion",
+            "contextVersion": "context_version",
+            "context_hash": "contextHash",
+            "contextHash": "context_hash",
+            "pay_to": "payTo",
+            "payTo": "pay_to",
+            "payee": "payTo",
+            "resource": "url",
+            "url": "resource",
+        }
+        if name in alternatives and alternatives[name] in self:
+            return self[alternatives[name]]
+        raise AttributeError(f"'X402PolicyContext' object has no attribute {name!r}")
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        self[name] = value
+
+
+def _sha256_hex(val: Union[str, bytes]) -> str:
+    if isinstance(val, str):
+        val = val.encode("utf-8")
+    return hashlib.sha256(val).hexdigest()
+
+
+def _parse_decision(val: Any) -> Optional[X402PolicyDecision]:
+    if val is None:
+        return None
+    if isinstance(val, str):
+        v = val.upper().strip()
+        return X402PolicyDecision(decision=v)
+    if isinstance(val, dict):
+        d = val.get("decision")
+        if not d or not isinstance(d, str):
+            return None
+        return X402PolicyDecision(
+            decision=d,
+            context_hash=val.get("contextHash") or val.get("context_hash"),
+            reason=val.get("reason"),
+            policy_version=val.get("policyVersion") or val.get("policy_version"),
+            expires_at=val.get("expiresAt") or val.get("expires_at"),
+            decision_id=val.get("decisionId") or val.get("decision_id"),
+        )
+    if hasattr(val, "decision") and isinstance(val.decision, str):
+        return X402PolicyDecision(
+            decision=val.decision,
+            context_hash=getattr(val, "contextHash", getattr(val, "context_hash", None)),
+            reason=getattr(val, "reason", None),
+            policy_version=getattr(val, "policyVersion", getattr(val, "policy_version", None)),
+            expires_at=getattr(val, "expiresAt", getattr(val, "expires_at", None)),
+            decision_id=getattr(val, "decisionId", getattr(val, "decision_id", None)),
+        )
+    return None
 
 
 def _parse_usd_cap(value: Any) -> Decimal:
@@ -743,6 +880,12 @@ class Agent:
         rpc_url: str = "",
         max_amount_per_payment: Any = _X402_DEFAULT_MAX_AMOUNT,
         approve: Optional[X402Approver] = None,
+        policy: Optional[Any] = None,
+        current_version: Optional[Any] = None,
+        policy_timeout_ms: Optional[int] = None,
+        on_decision: Optional[Callable[[Dict[str, Any]], None]] = None,
+        now: Optional[Callable[[], float]] = None,
+        signer: Optional[Callable[..., Any]] = None,
     ):
         """
         Initialize the x402 pay-per-request client (protocol v2).
@@ -761,6 +904,14 @@ class Agent:
             approve: Optional callback (sync or async). It receives the payment
                 option (url, network, asset, payTo, amount) whenever the cap
                 cannot accept it on its own, and must return True to sign.
+            policy: Optional pre-sign policy hook (callable or object with evaluate).
+                Receives the payment context and returns ALLOW, DENY, or WAIT.
+                DENY and WAIT refuse the payment without calling the signer.
+            current_version: Optional callable returning current policy version for stale-check.
+            policy_timeout_ms: Hard deadline for pre-sign policy evaluation in ms (default 5000).
+            on_decision: Optional observer callback receiving record of policy outcome.
+            now: Optional callable returning epoch milliseconds, for testing.
+            signer: Optional custom signer override (e.g. for testing without keypair).
 
         A 402 whose options are all on a different network than ``network`` is
         always refused: the client never falls back to another network.
@@ -772,10 +923,27 @@ class Agent:
             )
         if approve is not None and not callable(approve):
             raise ValueError("approve must be a callable or None")
+        if policy is not None and not callable(policy) and not hasattr(policy, "evaluate"):
+            raise ValueError("init_x402: policy must be a callable or an object with an evaluate method.")
+        if current_version is not None and not callable(current_version):
+            raise ValueError("init_x402: current_version must be a callable or None.")
+        if policy_timeout_ms is not None and (not isinstance(policy_timeout_ms, int) or policy_timeout_ms <= 0):
+            raise ValueError("init_x402: policy_timeout_ms must be a positive integer (ms).")
+        if on_decision is not None and not callable(on_decision):
+            raise ValueError("init_x402: on_decision must be a callable or None.")
+        if now is not None and not callable(now):
+            raise ValueError("init_x402: now must be a callable returning epoch milliseconds.")
+
         cap = _parse_usd_cap(max_amount_per_payment)
         self._x402_cap_label = f"${cap.normalize():f}"
         self._x402_cap_atomic = int(cap * (10 ** _X402_USDC_DECIMALS))
         self._x402_approve = approve
+        self._x402_policy = policy
+        self._x402_current_version = current_version
+        self._x402_policy_timeout_ms = policy_timeout_ms or 5000
+        self._x402_on_decision = on_decision
+        self._x402_now = now
+        self._x402_signer = signer
         is_testnet = network == "stellar:testnet"
         self._x402_keypair = Keypair.from_secret(secret_key)
         self._x402_network = network
@@ -865,6 +1033,196 @@ class Agent:
                 return candidate
         raise X402SpendCapError(url, candidate, cap_label, reason)
 
+    def _x402_sign_auth_entry(self, entry: Any, max_ledger: int) -> Any:
+        signer = getattr(self, "_x402_signer", None)
+        if signer is not None and callable(signer):
+            return signer(entry, self._x402_keypair, max_ledger, self._x402_passphrase)
+        return authorize_entry(entry, self._x402_keypair, max_ledger, self._x402_passphrase)
+
+    def _x402_report_decision(
+        self,
+        outcome: str,
+        context: Optional[X402PolicyContext] = None,
+        decision: Optional[X402PolicyDecision] = None,
+        err: Optional[str] = None,
+    ) -> None:
+        policy = getattr(self, "_x402_policy", None)
+        cb = getattr(
+            policy,
+            "on_decision",
+            getattr(policy, "onDecision", getattr(self, "_x402_on_decision", None)),
+        )
+        if cb and callable(cb):
+            try:
+                rec = {
+                    "outcome": outcome,
+                    "context": context,
+                    "decision": decision,
+                    "error": err,
+                }
+                res = cb(rec)
+                if inspect.isawaitable(res):
+                    try:
+                        loop = asyncio.get_running_loop()
+                        loop.create_task(res)
+                    except RuntimeError:
+                        pass
+            except Exception:
+                pass
+
+    async def _x402_run_policy(
+        self,
+        url: str,
+        method: str,
+        accepted: Dict[str, Any],
+    ) -> X402PolicyDecision:
+        policy = getattr(self, "_x402_policy", None)
+        if policy is None:
+            return X402PolicyDecision(decision="ALLOW")
+
+        now_fn = getattr(self, "_x402_now", None) or (lambda: time.time() * 1000.0)
+        account = self._x402_keypair.public_key
+
+        timeout_sec = accepted.get("maxTimeoutSeconds", 300)
+        base_timeout_ms = getattr(
+            policy,
+            "timeout_ms",
+            getattr(policy, "timeoutMs", getattr(self, "_x402_policy_timeout_ms", 5000)),
+        )
+        if timeout_sec and timeout_sec > 0:
+            effective_timeout_ms = max(1, min(base_timeout_ms, int((timeout_sec * 1000) / 2)))
+        else:
+            effective_timeout_ms = base_timeout_ms
+
+        payload_hash = _sha256_hex(
+            f"{accepted.get('asset')}:{accepted.get('payTo')}:{accepted.get('amount')}:{self._x402_network}"
+        )
+        context_hash = _sha256_hex(
+            json.dumps({"v": 1, "url": url, "method": method, "payloadHash": payload_hash}, sort_keys=True)
+        )
+
+        auth_view = {
+            "payloadHash": payload_hash,
+            "contractId": accepted.get("asset", ""),
+            "functionName": "transfer",
+            "from": account,
+            "to": accepted.get("payTo", ""),
+            "amount": str(accepted.get("amount", "")),
+            "networkPassphrase": self._x402_passphrase,
+        }
+
+        context = X402PolicyContext(
+            contextVersion=1,
+            context_version=1,
+            url=url,
+            method=method,
+            resource=url,
+            network=self._x402_network,
+            asset=accepted.get("asset", ""),
+            payTo=accepted.get("payTo", ""),
+            payee=accepted.get("payTo", ""),
+            amount=str(accepted.get("amount", "")),
+            signer=account,
+            contextHash=context_hash,
+            context_hash=context_hash,
+            requirements=accepted,
+            authorization=auth_view,
+        )
+
+        def read_clock() -> float:
+            try:
+                t = now_fn()
+            except Exception as e:
+                refuse("CLOCK_INVALID", f"clock threw ({e})")
+            if not isinstance(t, (int, float)) or _math.isnan(t) or _math.isinf(t):
+                refuse("CLOCK_INVALID", f"clock returned {t!r}, not epoch milliseconds")
+            return float(t)
+
+        def refuse(outcome: str, msg: str, decision: Optional[X402PolicyDecision] = None) -> NoReturn:
+            self._x402_report_decision(outcome, context=context, decision=decision, err=msg)
+            raise X402PolicyError(outcome, msg, decision=decision, context_hash=context_hash)
+
+        start_time = read_clock()
+        deadline = start_time + effective_timeout_ms
+
+        eval_fn = getattr(policy, "evaluate", policy if callable(policy) else None)
+        if eval_fn is None:
+            refuse("MALFORMED", "policy is neither callable nor has evaluate method")
+
+        try:
+            eval_res = eval_fn(context)
+            if inspect.isawaitable(eval_res):
+                raw_decision = await asyncio.wait_for(eval_res, timeout=effective_timeout_ms / 1000.0)
+            else:
+                raw_decision = eval_res
+        except asyncio.TimeoutError:
+            refuse("TIMEOUT", f"no decision within {effective_timeout_ms} ms")
+        except Exception as e:
+            refuse("ENGINE_ERROR", f"policy evaluation failed: {e}")
+
+        decision = _parse_decision(raw_decision)
+        if decision is None or decision.decision not in ("ALLOW", "DENY", "WAIT"):
+            refuse("MALFORMED", f"unknown or missing verdict: {raw_decision!r}")
+
+        if decision.decision == "DENY":
+            refuse("DENY", decision.reason or "payment denied by policy", decision=decision)
+
+        if decision.decision == "WAIT":
+            refuse("WAIT", decision.reason or "payment waiting on approval", decision=decision)
+
+        # Verdict is ALLOW
+        if decision.contextHash and decision.contextHash != context_hash:
+            refuse("UNBOUND", "ALLOW is not bound to this authorization", decision=decision)
+
+        now_t = read_clock()
+        if now_t >= deadline:
+            refuse("TIMEOUT", "decision arrived after the deadline", decision=decision)
+
+        if decision.expiresAt is not None:
+            exp_t = decision.expiresAt
+            if exp_t < 1e11:
+                exp_t *= 1000.0
+            if now_t >= exp_t:
+                refuse("EXPIRED", "ALLOW expired before signing", decision=decision)
+
+        ver_fn = getattr(
+            policy,
+            "current_version",
+            getattr(policy, "currentVersion", getattr(self, "_x402_current_version", None)),
+        )
+        if ver_fn is not None:
+            if not decision.policyVersion:
+                refuse("MALFORMED", "ALLOW has no policyVersion to check against currentVersion", decision=decision)
+            try:
+                ver_res = ver_fn(context)
+                if inspect.isawaitable(ver_res):
+                    curr_ver = await asyncio.wait_for(ver_res, timeout=effective_timeout_ms / 1000.0)
+                else:
+                    curr_ver = ver_res
+            except asyncio.TimeoutError:
+                refuse("TIMEOUT", f"currentVersion timed out after {effective_timeout_ms} ms", decision=decision)
+            except Exception as e:
+                refuse("VERSION_UNAVAILABLE", f"currentVersion failed: {e}", decision=decision)
+
+            if not curr_ver:
+                refuse("VERSION_UNAVAILABLE", "currentVersion returned empty version", decision=decision)
+
+            if str(curr_ver) != str(decision.policyVersion):
+                refuse("STALE", f"ALLOW was issued under policy {decision.policyVersion}, current is {curr_ver}", decision=decision)
+
+        now_t = read_clock()
+        if decision.expiresAt is not None:
+            exp_t = decision.expiresAt
+            if exp_t < 1e11:
+                exp_t *= 1000.0
+            if now_t >= exp_t:
+                refuse("EXPIRED", "ALLOW expired before signing", decision=decision)
+
+        self._x402_report_decision("ALLOWED", context=context, decision=decision)
+        self._x402_last_policy_context = context
+        self._x402_last_policy_decision = decision
+        return decision
+
     def _x402_build_transaction(self, accepted: Dict[str, Any]) -> str:
         """
         Build the signed payment transaction for one payment requirement.
@@ -912,7 +1270,7 @@ class Agent:
         prepared = soroban.prepare_transaction(tx)
         op = prepared.transaction.operations[0]
         op.auth = [
-            authorize_entry(e, self._x402_keypair, max_ledger, self._x402_passphrase)
+            self._x402_sign_auth_entry(e, max_ledger)
             for e in (op.auth or [])
         ]
 
@@ -991,7 +1349,8 @@ class Agent:
         async with aiohttp.ClientSession() as session:
             async with session.request(method, url, **payload) as resp:
                 if resp.status != 402:
-                    return await self._x402_read_payload(resp)
+                    res = self._x402_read_payload(resp)
+                    return (await res) if inspect.isawaitable(res) else res
                 # v2 entrega los requirements en un header base64; el body va vacío.
                 raw = resp.headers.get("payment-required")
 
@@ -1008,10 +1367,32 @@ class Agent:
 
             accepted = await self._x402_select_requirement(url, accepts)
 
+            policy_decision = None
+            if getattr(self, "_x402_policy", None) is not None:
+                policy_decision = await self._x402_run_policy(url=url, method=method, accepted=accepted)
+
+            try:
+                tx_xdr = self._x402_build_transaction(accepted)
+                if policy_decision is not None:
+                    self._x402_report_decision(
+                        "SIGNED",
+                        context=getattr(self, "_x402_last_policy_context", None),
+                        decision=policy_decision,
+                    )
+            except Exception as e:
+                if policy_decision is not None and not isinstance(e, X402PolicyError):
+                    self._x402_report_decision(
+                        "SIGNER_ERROR",
+                        context=getattr(self, "_x402_last_policy_context", None),
+                        decision=policy_decision,
+                        err=str(e),
+                    )
+                raise
+
             payment = {
                 "x402Version": challenge.get("x402Version", 2),
                 "accepted": accepted,
-                "payload": {"transaction": self._x402_build_transaction(accepted)},
+                "payload": {"transaction": tx_xdr},
             }
             header = _b64.b64encode(json.dumps(payment).encode("utf-8")).decode("ascii")
 
@@ -1026,7 +1407,8 @@ class Agent:
                         f"x402 payment rejected (HTTP {paid.status}): {rejected[:300]}"
                     )
                 self._x402_store_settlement(paid.headers)
-                return await self._x402_read_payload(paid)
+                res = self._x402_read_payload(paid)
+                return (await res) if inspect.isawaitable(res) else res
 
     # ─── MPP Protocol (Charge Mode) ─────────────────────────
 
