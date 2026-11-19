@@ -1686,7 +1686,7 @@ function verifyAuditDocument(doc, cid, { expectedHash } = {}) {
     const anyFailed = hashStatus === 'mismatch' || signatureStatus === 'invalid';
     const anyPassed = hashStatus === 'match' || signatureStatus === 'valid';
     const ok = !anyFailed && anyPassed;
-    return { ok, verified: ok, cid, mode, hashMatch: hashStatus === 'match', hashStatus, expectedHash: anchoredHash, computedHash, signatureStatus, signatureScheme, signerKey, statement, declaredStatement, agentId };
+    return { ok, verified: ok, cid, mode, hashMatch: hashStatus === 'match', hashStatus, expectedHash: anchoredHash, computedHash, providedHash: expectedHash || '', signatureStatus, signatureScheme, signerKey, statement, declaredStatement, agentId };
 }
 
 // `gateways` may be a single URL string (back-compat for direct callers)
@@ -1778,7 +1778,16 @@ function formatVerifyOutput(result) {
     } else if (result.hashMatch) {
         lines.push(`✔ HASH:        MATCH (${result.expectedHash.slice(0, 16)}...)${result.mode === 'hash-only' ? ' [hash-only]' : ''}`);
     } else {
-        lines.push(`❌ HASH:        MISMATCH (Anchored: ${result.expectedHash}, Computed: ${result.computedHash})`);
+        // Name each hash once: the anchored one, the one recomputed from the
+        // record (only when it differs, i.e. the record itself was changed),
+        // and the one passed with --hash/--evidence. Before, a record that was
+        // intact but did not match --hash printed the anchored hash twice.
+        const parts = [`Anchored: ${result.expectedHash}`];
+        if (result.mode === 'record' && result.computedHash && result.computedHash !== result.expectedHash) {
+            parts.push(`Recomputed from record: ${result.computedHash}`);
+        }
+        if (result.providedHash) parts.push(`Yours (--hash/--evidence): ${result.providedHash}`);
+        lines.push(`❌ HASH:        MISMATCH (${parts.join(', ')})`);
     }
     if (result.signatureStatus === 'valid') {
         lines.push(`✔ SIGNATURE:   VALID${result.signatureScheme === 'sep53' ? ' (SEP-53)' : ''} (Signed by ${result.signerKey})`);
