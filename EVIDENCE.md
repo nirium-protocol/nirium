@@ -68,6 +68,7 @@ Not counted as users above:
 | Evidence | Network | What it proves |
 |---|---|---|
 | AgentRail, [CID](https://gateway.pinata.cloud/ipfs/QmNjUumAtr2qBqVoJTCFtQvLSGJckhbHXh7VUDiGxMQLca), [repo](https://github.com/SorobanAgents/agentrail) | testnet, 4 Nov | One signed test anchor, with a key the team describes as its contract deployer key. Not production use |
+| AgentRail, [PR #71](https://github.com/SorobanAgents/agentrail/pull/71), [tx](https://stellar.expert/explorer/testnet/tx/14e72e04051d75430933d4245cb9dbfdd14e0c79bcaff0bd58a2f2839562385b), [CID](https://gateway.pinata.cloud/ipfs/QmaYP7Lr2kRGLrdPHf1BYwLz7nSk9aC4xyU8s2ageGypm4) | testnet, 19 Nov | A pipeline spend settled by AgentRail's agent (0.998 XLM plus a 20 bps fee to its treasury; wallet funded by Friendbot) and a receipt signed with that agent's key, signature checked on 19 Nov. Written and merged by AgentRail itself, building on #68/#70. Not production use |
 | Edgar Ramírez Flores (TIA), [CID](https://gateway.pinata.cloud/ipfs/QmZZPQLJAjjNqYL7RocrKLpFtmPpveqLPi9GenkvDozb6m) | mainnet, 30 Oct | Workshop attendee, separate personal key. Already part of the TIA integration |
 
 ## 5. Evidence-gated escrow release (our pilot on Trustless Work escrow, testnet)
