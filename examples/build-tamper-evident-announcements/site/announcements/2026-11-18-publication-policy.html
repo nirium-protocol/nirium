@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Every announcement is immutable after publication</title>
+  <style>
+  :root { color-scheme: light dark; font-family: ui-sans-serif, system-ui, sans-serif; }
+  body { max-width: 52rem; margin: 0 auto; padding: 2rem 1.25rem 4rem; line-height: 1.6; }
+  h1 { line-height: 1.2; }
+  h2 { margin-top: 2rem; }
+  .meta, .muted, small { color: #667085; }
+  .card { border: 1px solid #d0d5dd; border-radius: 0.75rem; padding: 1rem 1.25rem; margin: 1.25rem 0; }
+  .card h2 { margin-top: 0; }
+  .receipt { border: 1px solid #98a2b3; border-radius: 0.75rem; padding: 0.5rem 1.25rem 1rem; margin: 2rem 0; }
+  dl { display: grid; grid-template-columns: max-content 1fr; gap: 0.35rem 1rem; }
+  dt { font-weight: 600; }
+  dd { margin: 0; overflow-wrap: anywhere; }
+  code { font-size: 0.9em; overflow-wrap: anywhere; }
+  pre { background: #f2f4f7; border-radius: 0.5rem; padding: 0.75rem; overflow-x: auto; }
+  @media (prefers-color-scheme: dark) {
+    pre { background: #1d2939; }
+    .card, .receipt { border-color: #475467; }
+  }
+</style>
+</head>
+<body>
+<p><a href="../index.html">← All announcements</a></p>
+<p class="meta">2026-11-18 · policy</p>
+<h1>Every announcement is immutable after publication</h1>
+<p>Published announcements are append-only. Correcting a typo inside a published<br>
+announcement is not allowed: the build compares the file&#39;s current hash with<br>
+the hash stored when its receipt was created.</p>
+<p>If those values differ, the generator stops before anchoring anything or<br>
+writing the site. It prints the published and current hashes so the change is<br>
+visible rather than silently republished.</p>
+<h2>Publishing a correction</h2>
+<ul>
+<li>Restore the published file if the edit was accidental.</li>
+<li>If the change is real, add a new announcement with a new filename.</li>
+<li>The new announcement gets its own hash, receipt and verification link.</li>
+</ul>
+<p>This is a demo policy for the example. It does not claim that a receipt proves<br>
+the content is true; it only makes edits detectable.</p>
+<section class="receipt">
+  <h2>Receipt</h2>
+  <dl>
+    <dt>CID</dt><dd><code>QmZgGsVuJKUVC8Rnhf6oNEcgi7AEyoVHqdVznegHPGEg5G</code></dd>
+    <dt>SHA-256</dt><dd><code>c32d16eb46cd95c52ed5cf85bac551c5d6640b42bc2e8c702c8be777e7ef2a30</code></dd>
+    <dt>Signer</dt><dd><code>GAMFEIR44BGT5WAS7MQY5R5ARCQGKAXYHGYK4HPXCJMLZAETJOTJNIYI</code></dd>
+    <dt>Anchored at</dt><dd>2026-11-19T00:31:34.775Z <small>(Nirium node clock, not a ledger time)</small></dd>
+    <dt>Tag</dt><dd><code>wave11-tamper-evident-announcements</code></dd>
+  </dl>
+  <p><a href="https://nirium.xyz/verify?cid=QmZgGsVuJKUVC8Rnhf6oNEcgi7AEyoVHqdVznegHPGEg5G">Verify this CID at nirium.xyz/verify</a></p>
+  <pre><code>npx nirium-cli verify QmZgGsVuJKUVC8Rnhf6oNEcgi7AEyoVHqdVznegHPGEg5G --hash c32d16eb46cd95c52ed5cf85bac551c5d6640b42bc2e8c702c8be777e7ef2a30</code></pre>
+  <p class="muted">Check this page's local copy of the announcement against the receipt:</p>
+  <pre><code>npx nirium-cli verify QmZgGsVuJKUVC8Rnhf6oNEcgi7AEyoVHqdVznegHPGEg5G --evidence site/announcements/2026-11-18-publication-policy.md</code></pre>
+</section>
+<footer class="muted">
+  <p>A receipt proves the announcement has not changed since it was anchored
+  and who signed it. It does not prove the announcement is true, and
+  <code>anchoredAt</code> is the Nirium node's clock, not a ledger time.</p>
+  <p>Demo on Stellar testnet. Verify independently at
+  <a href="https://nirium.xyz/verify">nirium.xyz/verify</a> or with
+  <code>npx nirium-cli verify</code>.</p>
+</footer>
+</body>
+</html>
