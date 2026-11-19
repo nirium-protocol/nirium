@@ -42,7 +42,14 @@ export interface VerifyResult {
   error?: string;
 }
 
-export interface FetchAndVerifyOptions {
+export interface VerifyOptions {
+  // When true, a document only verifies with a valid agent signature. Without it,
+  // an unsigned record passes on its hash alone (signatureStatus 'absent'), which
+  // also means a record changed, re-hashed and stripped of its signature passes.
+  requireSignature?: boolean;
+}
+
+export interface FetchAndVerifyOptions extends VerifyOptions {
   gateway?: string;
   gateways?: string[];
   fetchFn?: typeof fetch;
@@ -103,7 +110,7 @@ export function computeRecordHash(record: Record<string, unknown> | undefined): 
   return crypto.createHash('sha256').update(recordStr).digest('hex');
 }
 
-export function verifyAuditDocument(doc: AuditDocument, cid?: string): VerifyResult {
+export function verifyAuditDocument(doc: AuditDocument, cid?: string, opts: VerifyOptions = {}): VerifyResult {
   if (!doc || typeof doc !== 'object') {
     return {
       ok: false,
@@ -155,7 +162,8 @@ export function verifyAuditDocument(doc: AuditDocument, cid?: string): VerifyRes
   const hashChecked = !hashOnly && hashMatch;
   const anyFailed = !hashMatch || signatureStatus === 'invalid';
   const anyPassed = hashChecked || signatureStatus === 'valid';
-  const ok = !anyFailed && anyPassed;
+  const signatureMissing = !!opts.requireSignature && signatureStatus === 'absent';
+  const ok = !anyFailed && anyPassed && !signatureMissing;
   const nothingVerified = !anyFailed && !anyPassed;
 
   return {
@@ -172,7 +180,9 @@ export function verifyAuditDocument(doc: AuditDocument, cid?: string): VerifyRes
     agentId,
     ...(nothingVerified
       ? { error: 'Nothing verified: hash-only document without an agent signature. Its content_sha256 cannot be checked here and no signature vouches for it.' }
-      : {}),
+      : signatureMissing
+        ? { error: 'Signature required (require-signature: true), but this document has no agent signature.' }
+        : {}),
   };
 }
 
@@ -234,7 +244,7 @@ export async function fetchAndVerifyCid(
       try {
         const doc = await fetchJsonWithTimeout(url, fetchFn, timeoutMs);
         return {
-          ...verifyAuditDocument(doc, cid),
+          ...verifyAuditDocument(doc, cid, { requireSignature: options.requireSignature }),
           gateway: gw,
           url,
         };

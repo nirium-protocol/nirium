@@ -258,3 +258,59 @@ test('offline verify: a record stripped of its agent block passes on integrity o
   assert.equal(result.ok, true);
   assert.equal(result.error, undefined);
 });
+
+// require-signature: an unsigned record verifies on its hash by default. With
+// the option on, only a valid signature verifies, so a record that was changed,
+// re-hashed and stripped of its signature (holistis vector 18) no longer passes.
+test('requireSignature: a signed record still verifies', () => {
+  const result = verifyAuditDocument(validFixture, 'QmSigned', { requireSignature: true });
+  assert.equal(result.ok, true);
+  assert.equal(result.signatureStatus, 'valid');
+});
+
+test('requireSignature: a signed hash-only document still verifies', () => {
+  const result = verifyAuditDocument(hashOnlyFixture, 'QmHashOnly', { requireSignature: true });
+  assert.equal(result.ok, true);
+});
+
+test('requireSignature: an unsigned record is rejected, and passes without the option', () => {
+  const unsigned = structuredClone(validFixture);
+  delete unsigned.agent;
+
+  assert.equal(verifyAuditDocument(unsigned, 'QmUnsigned').ok, true);
+
+  const strict = verifyAuditDocument(unsigned, 'QmUnsigned', { requireSignature: true });
+  assert.equal(strict.ok, false);
+  assert.equal(strict.hashMatch, true);
+  assert.equal(strict.signatureStatus, 'absent');
+  assert.match(strict.error, /Signature required/);
+});
+
+test('requireSignature: a forged, re-hashed record without its signature is rejected', () => {
+  const forged = structuredClone(validFixture);
+  forged.record.outcome = 'refunded_to_client_forged';
+  forged.content_sha256 = crypto.createHash('sha256').update(JSON.stringify(forged.record)).digest('hex');
+  delete forged.agent;
+
+  assert.equal(verifyAuditDocument(forged, 'QmForged').ok, true);
+  assert.equal(verifyAuditDocument(forged, 'QmForged', { requireSignature: true }).ok, false);
+});
+
+test('requireSignature: an invalid signature is still rejected with its own message', () => {
+  const bad = structuredClone(validFixture);
+  bad.agent.signature = `INVALID${bad.agent.signature.slice(7)}`;
+  const result = verifyAuditDocument(bad, 'QmBad', { requireSignature: true });
+  assert.equal(result.ok, false);
+  assert.equal(result.signatureStatus, 'invalid');
+  assert.equal(result.error, undefined);
+});
+
+test('fetchAndVerifyCid passes requireSignature through', async () => {
+  const unsigned = structuredClone(validFixture);
+  delete unsigned.agent;
+  const fetchFn = async () => new Response(JSON.stringify(unsigned), { status: 200 });
+  const loose = await fetchAndVerifyCid('QmUnsigned', { gateway: 'https://gw.example/ipfs/', fetchFn });
+  const strict = await fetchAndVerifyCid('QmUnsigned', { gateway: 'https://gw.example/ipfs/', fetchFn, requireSignature: true });
+  assert.equal(loose.ok, true);
+  assert.equal(strict.ok, false);
+});
