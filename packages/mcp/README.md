@@ -85,7 +85,7 @@ Reading a DeFindex vault is free. Changing one needs the key, and ten of these e
 
 ### A note on anchoring
 
-`anchor_audit_record` is an integrity seal - it proves a piece of data existed unchanged at a point in time. It is not notarization and carries no legal presumption of authenticity.
+`anchor_audit_record` is tamper-evident, not tamper-proof: anyone can check later whether the data still matches its CID, but nothing stops someone from changing a copy. The `anchoredAt` time comes from the Nirium node's clock, not from a trusted timestamp. It is not notarization and carries no legal presumption of authenticity.
 
 Anchor a **hash** of your data rather than the data itself. IPFS content cannot be deleted, so raw personal data would outlive any erasure request.
 
