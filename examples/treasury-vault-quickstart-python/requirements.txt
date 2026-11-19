@@ -1,0 +1,5 @@
+nirium>=0.12.6
+stellar-sdk>=11.0.0,<16.0.0
+python-dotenv>=1.0.0
+pytest>=8.0.0
+pytest-asyncio>=0.23.0
