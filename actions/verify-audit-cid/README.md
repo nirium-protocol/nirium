@@ -43,7 +43,7 @@ verification even for a perfectly healthy CID.
 
 | Name | Description |
 | --- | --- |
-| `verified` | `true` when the content hash matches and no embedded agent signature is invalid. |
+| `verified` | `true` when no check failed and at least one check actually passed: the recomputed record hash (record mode) or a valid agent signature. A hash-only document without a signature is never `verified`. Read it together with `signature_valid`: in record mode an unsigned document can pass on its hash alone, which says the record matches its hash, not who declared it. |
 | `hash_match` | `true` when the recomputed record hash matches `content_sha256`. For a hash-only document (see `hash_only`) this is trivially true, since there is no `record` to recompute against. |
 | `hash_only` | `true` when the document has no `record` field (anchored by hash alone, e.g. via `/api/audit/log` without a record body). The evidence itself was never sent to Nirium; only the signature check (below) proves the signer attested to the declared hash. |
 | `signature_valid` | `valid`, `invalid`, or `absent`. |
@@ -65,9 +65,12 @@ without a record body) have nothing to recompute a hash against - the
 caller's evidence never touches Nirium, only its hash does. For these, the
 action verifies the signature directly over the document's own declared
 `content_sha256`, and reports `hash_only: true` so callers can tell the two
-cases apart. The CID's own content-addressing already guarantees the JSON
-document itself was not altered after anchoring; the signature proves the
-signer attested to that exact hash. What this action cannot verify, in
+cases apart. The signature proves the signer attested to that exact hash, so
+a hash-only document without a valid signature is reported as not verified:
+there is nothing left to check. This action fetches the document through an
+HTTP gateway and does not recompute the CID from the returned bytes; if you
+need that guarantee, fetch the bytes yourself and check them against the CID.
+What this action cannot verify, in
 either mode, is whether the declared hash matches evidence you have not
 shown it - that comparison only the holder of the original evidence can
 make, by hashing it themselves and comparing.
