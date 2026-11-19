@@ -26,28 +26,30 @@ CID="QmSSZdtt3dQ8BqUm62zrKQ85E4BUHYiVfvDgZmHfJsqU1U"
 curl -s "https://nirium.myfilebase.com/ipfs/${CID}" | jq
 ```
 
-**Expected output** (example):
+**Expected output:**
 
 ```json
 {
-  "version": "nirium-audit-v1",
-  "node": "nirium-agent.fly.dev",
-  "content_sha256": "3f15aaabd2177199e01e442b67a573d7eef74ad259121768e0195049a75d7f0e",
-  "record": {
-    "event": "treasury_rebalance_proposed",
-    "timestamp": "2026-09-15T18:30:00Z",
-    "vault": "CBTWMZCG3P72EHFAQ4ZLSEBIOFYJC244H5J6DHZIJ56FHFWJ2CFAWSZU"
-  },
+  "version": "1.1.0",
+  "node": "audit-external",
+  "content_sha256": "ab44f8883af819f7496f2cef29eaea0651f6d97af78aa8088fd8ef4dc4b753c9",
   "agent": {
-    "id": "nirium-treasury-agent",
-    "key": "GBMZGU4K3E7K5NWMR3YYF3NIFXAAKV5KXJD4Y6AFZZ6IMXVQP7F7PJWY",
+    "id": "arcusx-dispute-resolver",
+    "key": "GD5AFNPTKVZPNWZWKLOULOE7BN4E7ZC73WV5YMBCULYQXWFCGDESUNOZ",
     "alg": "ed25519",
-    "statement": "nirium-audit-v1:3f15aaabd2177199e01e442b67a573d7eef74ad259121768e0195049a75d7f0e",
-    "signature": "dGVzdHNpZ25hdHVyZWRhdGFoZXJl..."
+    "statement": "nirium-audit-v1:ab44f8883af819f7496f2cef29eaea0651f6d97af78aa8088fd8ef4dc4b753c9",
+    "signature": "kQu3tK3ZsDR0HMo1EFB13qa/bLiJa4AuX1yJSZq9/2MEgGVGJImFrtXH2SItfBWHW3bWTbB8qFeBUf/QkSkGAw=="
   },
-  "network": "stellar:testnet",
-  "tag": "treasury",
-  "anchoredAt": "2026-09-15T18:30:05.123Z"
+  "record": {
+    "schema": "arcusx.dispute.resolution.v1",
+    "dispute": "dispute-118",
+    "outcome": "released_to_worker",
+    "case_file_sha256": "1794c699bce4e06d33857cc34f2974ac2bfff500bdc41b002b219a154b698ac0",
+    "note": "Hashes only — no personal data anchored."
+  },
+  "network": "mainnet",
+  "tag": "arcusx-dispute",
+  "anchoredAt": "2026-07-30T22:26:02.857Z"
 }
 ```
 
@@ -56,18 +58,24 @@ curl -s "https://nirium.myfilebase.com/ipfs/${CID}" | jq
 Compute `SHA-256(JSON.stringify(record))`:
 
 ```bash
-echo -n '{"event":"treasury_rebalance_proposed","timestamp":"2026-09-15T18:30:00Z","vault":"CBTWMZCG3P72EHFAQ4ZLSEBIOFYJC244H5J6DHZIJ56FHFWJ2CFAWSZU"}' | shasum -a 256
+printf '%s' '{"schema":"arcusx.dispute.resolution.v1","dispute":"dispute-118","outcome":"released_to_worker","case_file_sha256":"1794c699bce4e06d33857cc34f2974ac2bfff500bdc41b002b219a154b698ac0","note":"Hashes only — no personal data anchored."}' | shasum -a 256
 ```
 
 **Output:**
 
 ```
-3f15aaabd2177199e01e442b67a573d7eef74ad259121768e0195049a75d7f0e  -
+ab44f8883af819f7496f2cef29eaea0651f6d97af78aa8088fd8ef4dc4b753c9  -
 ```
 
 Compare this value to the `content_sha256` field from the audit document. If they match, the record has not been tampered with since anchoring.
 
-**⚠️ Important:** The exact `JSON.stringify()` output matters for hash verification. Whitespace, key ordering, and escaping must match exactly. The node serializes with no extra spaces and lexicographic key order.
+**⚠️ Important:** the hash is over the exact bytes, so three things must match:
+
+- **Key order:** keep the keys in the order they appear in the stored `record`. Do not sort them: sorting changes the hash.
+- **No whitespace:** compact JSON, as `JSON.stringify(record)` produces.
+- **UTF-8, not escapes:** this record's `note` contains an em dash (`—`). Written as `\u2014`, the hash changes.
+
+In JavaScript, `JSON.stringify(doc.record)` on the parsed document gives the right 234 bytes.
 
 ## 3. Verify the Agent Signature (Optional)
 
@@ -89,10 +97,10 @@ Create `verify-audit.ts`:
 import crypto from 'node:crypto';
 import { StrKey } from '@stellar/stellar-sdk';
 
-// Example values - replace with your audit document
-const agentKey = 'GBMZGU4K3E7K5NWMR3YYF3NIFXAAKV5KXJD4Y6AFZZ6IMXVQP7F7PJWY';
-const signature = 'dGVzdHNpZ25hdHVyZWRhdGFoZXJl...'; // base64
-const computedHash = '3f15aaabd2177199e01e442b67a573d7eef74ad259121768e0195049a75d7f0e';
+// Values from the document above - replace with your own audit document
+const agentKey = 'GD5AFNPTKVZPNWZWKLOULOE7BN4E7ZC73WV5YMBCULYQXWFCGDESUNOZ';
+const signature = 'kQu3tK3ZsDR0HMo1EFB13qa/bLiJa4AuX1yJSZq9/2MEgGVGJImFrtXH2SItfBWHW3bWTbB8qFeBUf/QkSkGAw=='; // base64
+const computedHash = 'ab44f8883af819f7496f2cef29eaea0651f6d97af78aa8088fd8ef4dc4b753c9'; // from step 2
 
 function decodeStellarPublicKey(gAddress: string): Buffer {
   if (!/^G[A-Z2-7]{55}$/.test(gAddress)) {
@@ -141,7 +149,7 @@ npx tsx verify-audit.ts
 **Expected output:**
 
 ```
-Statement: nirium-audit-v1:3f15aaabd2177199e01e442b67a573d7eef74ad259121768e0195049a75d7f0e
+Statement: nirium-audit-v1:ab44f8883af819f7496f2cef29eaea0651f6d97af78aa8088fd8ef4dc4b753c9
 Signature valid: true
 ```
 
@@ -154,7 +162,7 @@ npm install -g nirium-cli
 nirium verify QmSSZdtt3dQ8BqUm62zrKQ85E4BUHYiVfvDgZmHfJsqU1U --json
 ```
 
-**Output:**
+**Output** (`nirium-cli` 3.2.4, `attempts` trimmed):
 
 ```json
 {
@@ -164,12 +172,15 @@ nirium verify QmSSZdtt3dQ8BqUm62zrKQ85E4BUHYiVfvDgZmHfJsqU1U --json
   "mode": "record",
   "hashMatch": true,
   "hashStatus": "match",
-  "expectedHash": "3f15aaabd2177199e01e442b67a573d7eef74ad259121768e0195049a75d7f0e",
-  "computedHash": "3f15aaabd2177199e01e442b67a573d7eef74ad259121768e0195049a75d7f0e",
+  "expectedHash": "ab44f8883af819f7496f2cef29eaea0651f6d97af78aa8088fd8ef4dc4b753c9",
+  "computedHash": "ab44f8883af819f7496f2cef29eaea0651f6d97af78aa8088fd8ef4dc4b753c9",
   "signatureStatus": "valid",
   "signatureScheme": "ed25519",
-  "signerKey": "GBMZGU4K3E7K5NWMR3YYF3NIFXAAKV5KXJD4Y6AFZZ6IMXVQP7F7PJWY",
-  "statement": "nirium-audit-v1:3f15aaabd2177199e01e442b67a573d7eef74ad259121768e0195049a75d7f0e"
+  "signerKey": "GD5AFNPTKVZPNWZWKLOULOE7BN4E7ZC73WV5YMBCULYQXWFCGDESUNOZ",
+  "statement": "nirium-audit-v1:ab44f8883af819f7496f2cef29eaea0651f6d97af78aa8088fd8ef4dc4b753c9",
+  "declaredStatement": "nirium-audit-v1:ab44f8883af819f7496f2cef29eaea0651f6d97af78aa8088fd8ef4dc4b753c9",
+  "agentId": "arcusx-dispute-resolver",
+  "gateway": "https://nirium.myfilebase.com"
 }
 ```
 
@@ -185,15 +196,13 @@ Or pass `--evidence <file>` to compute the hash from a local file:
 nirium verify QmHashOnlyCID --evidence ./original-evidence.json --json
 ```
 
-## Real Testnet Example
-
-Verify a real mainnet audit anchor from production:
+## A Hash-Only Example
 
 ```bash
 nirium verify QmZDVSxEfi3TLmcK1wLNydUHgGebfnTQ8i2EaEYfg2RUD6 --json
 ```
 
-This CID is from a real Nirium mainnet deployment and can be verified independently.
+A mainnet (`stellar:pubnet`) anchor signed with a demo key (`throwaway-demo-key`). It stores only `content_sha256`, so without the original evidence the CLI reports `signatureStatus: "valid"` and `hashStatus: "unchecked"`: the signature checks out, but the content can't be checked until someone presents the bytes with `--hash` or `--evidence`. That is how private evidence works: the receipt is public, the file is not.
 
 ## What This Proves
 
@@ -218,7 +227,7 @@ This CID is from a real Nirium mainnet deployment and can be verified independen
 | Problem | Fix |
 | --- | --- |
 | IPFS gateway timeout or `429` | Try another gateway. With no `--gateway`, `nirium verify` already tries Filebase, Pinata, ipfs.io and dweb.link in that order; to pick one: `--gateway https://nirium.myfilebase.com` or `--gateway https://gateway.pinata.cloud` |
-| Hash mismatch | Check that you are computing `SHA-256(JSON.stringify(record))` with exact key order and no extra whitespace |
+| Hash mismatch | Hash `JSON.stringify(record)` with the keys in their stored order (not sorted), no extra whitespace, and non-ASCII characters as UTF-8 rather than `\u` escapes |
 | Invalid signature | Verify the agent's public key (`G...` Stellar address) and that you are reconstructing the statement from the **recomputed** hash, not `agent.statement` |
 | CID not found | The CID may not have propagated to all gateways yet; wait a few minutes or try the node's own IPFS gateway |
 
