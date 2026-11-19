@@ -145,7 +145,7 @@ test('Agent payout workflow executes end-to-end with mocked HTTP layer (zero net
                 status: 200,
                 json: async () => ({
                     runId: 'mock-run-001',
-                    txHash: '38cf9456e72b43b190f8983281242d5efae8e269784e27f2c6943b174b62fef7',
+                    txHash: '0000000000000000000000000000000000000000000000000000000000000000',
                     cid: 'bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi',
                 }),
             };
@@ -179,7 +179,7 @@ test('Agent payout workflow executes end-to-end with mocked HTTP layer (zero net
         // Step 3: Submit Payout
         const submitResult = await agent.submitPayout(run.runId, signedXdr);
         assert.equal(submitResult.runId, 'mock-run-001');
-        assert.equal(submitResult.txHash, '38cf9456e72b43b190f8983281242d5efae8e269784e27f2c6943b174b62fef7');
+        assert.equal(submitResult.txHash, '0000000000000000000000000000000000000000000000000000000000000000');
 
         const submitCall = fetchCalls[1];
         assert.equal(submitCall.url, 'http://localhost:3002/api/payroll/submit');

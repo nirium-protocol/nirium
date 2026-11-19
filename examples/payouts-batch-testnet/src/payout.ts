@@ -58,7 +58,7 @@ export function reportUntrustedRecipients(untrusted: string[]): string {
         untrusted.map((addr) => `  - ${addr}`).join('\n') +
         `\nTo onboard recipients before running the payout:\n` +
         `  1. Call agent.onboardPayoutRecipient(address, { asset: 'USDC' })\n` +
-        `  2. Recipient signs the onboarding XDR\n` +
+        `  2. Recipient signs the onboarding XDR with their own secret key (ChangeTrust requires recipient's key, not payer's)\n` +
         `  3. Broadcast via agent.submitPayoutOnboard(signedXdr)\n`
     );
 }

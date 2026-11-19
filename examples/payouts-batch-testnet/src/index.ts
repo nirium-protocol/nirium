@@ -77,14 +77,23 @@ async function main(): Promise<void> {
         // Check for any recipients lacking trustlines
         if (Array.isArray(run.untrustedRecipients) && run.untrustedRecipients.length > 0) {
             console.log('\n' + reportUntrustedRecipients(run.untrustedRecipients as string[]));
-            console.log('Attempting onboarding for untrusted recipients via submitPayoutOnboard()...');
+            console.log('Onboarding untrusted recipients: Each recipient signs their own ChangeTrust XDR...');
             for (const untrustedAddr of run.untrustedRecipients as string[]) {
                 try {
                     const onboardRes = await agent.onboardPayoutRecipient(untrustedAddr, { asset: 'USDC' });
                     if (onboardRes.xdr) {
-                        const signedOnboard = signUnsignedXdr(onboardRes.xdr, secret, passphrase);
-                        await agent.submitPayoutOnboard(signedOnboard);
-                        console.log(`   Successfully onboarded trustline for: ${untrustedAddr}`);
+                        // ChangeTrust must be signed by the recipient's private key, NOT the payer's
+                        const recipientSecret =
+                            process.env[`RECIPIENT_SECRET_${untrustedAddr}`] ||
+                            process.env.RECIPIENT_SECRET_KEY;
+                        if (recipientSecret) {
+                            const signedOnboard = signUnsignedXdr(onboardRes.xdr, recipientSecret, passphrase);
+                            await agent.submitPayoutOnboard(signedOnboard);
+                            console.log(`   Successfully submitted recipient-signed trustline for: ${untrustedAddr}`);
+                        } else {
+                            console.log(`   Unsigned ChangeTrust XDR generated for recipient: ${untrustedAddr}`);
+                            console.log(`   (ChangeTrust requires recipient's key. Supply RECIPIENT_SECRET_${untrustedAddr} to auto-sign locally.)`);
+                        }
                     }
                 } catch (onboardErr) {
                     console.warn(`   Could not auto-onboard ${untrustedAddr}:`, onboardErr);
