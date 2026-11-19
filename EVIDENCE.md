@@ -1,6 +1,6 @@
 # Nirium: Evidence Index
 
-Last verified live: 16 Nov 2026, against Horizon (mainnet/testnet), the Filebase gateway, `nirium verify`, the GitHub API, npm and PyPI. Every item below links directly to its own evidence. Check any of them independently. The CID links below use the Pinata gateway; if one answers `429` (rate limit), open the same CID at `https://nirium.myfilebase.com/ipfs/<CID>`, or run `npx nirium-cli@latest verify <CID>`, which tries Filebase, Pinata, ipfs.io and dweb.link in that order.
+Last verified live: 18 Nov 2026, against Horizon (mainnet/testnet), the Filebase gateway, `nirium verify`, the GitHub API, npm and PyPI. Every item below links directly to its own evidence. Check any of them independently. The CID links below use the Pinata gateway; if one answers `429` (rate limit), open the same CID at `https://nirium.myfilebase.com/ipfs/<CID>`, or run `npx nirium-cli@latest verify <CID>`, which tries Filebase, Pinata, ipfs.io and dweb.link in that order.
 
 For what a receipt does and doesn't prove, see [`docs/DESIGN-FAQ.md`](docs/DESIGN-FAQ.md).
 
@@ -97,7 +97,7 @@ Four `rebalance()` calls on mainnet, 6 Aug 2026 01:54-02:29 UTC, from RebalanceM
 
 ## 9. Packages
 
-npm: [`nirium-cli@3.2.4`](https://www.npmjs.com/package/nirium-cli), [`nirium@0.19.6`](https://www.npmjs.com/package/nirium), [`nirium-mcp@0.6.8`](https://www.npmjs.com/package/nirium-mcp), [`nirium-pollar-adapter@0.6.5`](https://www.npmjs.com/package/nirium-pollar-adapter). PyPI: [`nirium@0.12.6`](https://pypi.org/project/nirium/). Versions checked on the registries on 18 Nov 2026. Listed on [skills.stellar.org](https://skills.stellar.org). [nirium.xyz/stats](https://nirium.xyz/stats) is live, our own source, presented as supporting data, not third-party proof.
+npm: [`nirium-cli@3.2.4`](https://www.npmjs.com/package/nirium-cli), [`nirium@0.19.6`](https://www.npmjs.com/package/nirium), [`nirium-mcp@0.6.8`](https://www.npmjs.com/package/nirium-mcp), [`nirium-pollar-adapter@0.6.5`](https://www.npmjs.com/package/nirium-pollar-adapter). PyPI: [`nirium@0.12.7`](https://pypi.org/project/nirium/). Versions checked on the registries on 18 Nov 2026. Listed on [skills.stellar.org](https://skills.stellar.org). [nirium.xyz/stats](https://nirium.xyz/stats) is live, our own source, presented as supporting data, not third-party proof.
 
 ## 10. Public recognition and community (checked 16 Nov 2026)
 
