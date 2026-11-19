@@ -4,6 +4,8 @@ All notable changes to the `nirium-cli` package are documented here.
 
 ## Unreleased
 
+## 3.2.5 - 2026-11-19
+
 `nirium verify`: when a hash check fails, the message names each hash once: the anchored one, the one recomputed from the record (only if the record itself changed) and the one you passed with `--hash`/`--evidence`. Before, an intact record that did not match `--hash` printed the anchored hash twice and never showed yours. `--json` adds `providedHash`.
 
 ## 3.2.4 - 2026-11-17
