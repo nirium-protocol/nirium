@@ -196,6 +196,12 @@ Or pass `--evidence <file>` to compute the hash from a local file:
 nirium verify QmHashOnlyCID --evidence ./original-evidence.json --json
 ```
 
+An unsigned record still passes on its recomputed hash, with `signatureStatus: "absent"`. If you only trust receipts your agents signed, add `--require-signature` (nirium-cli 3.2.6 or newer, same rule as the Action's `require-signature` input): an unsigned document then fails.
+
+```bash
+nirium verify <CID> --require-signature --json
+```
+
 ## A Hash-Only Example
 
 ```bash
