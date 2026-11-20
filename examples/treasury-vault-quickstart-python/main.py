@@ -110,7 +110,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
 from nirium import Agent
 
-from src.auth import resolve_api_key
+from src.auth import make_agent, resolve_api_key
 from src.errors import QuickstartError, explain_failure
 from src.flow import (
     build_deploy,
@@ -158,7 +158,7 @@ async def main() -> int:
         api_key = await resolve_api_key(base_url, caller)
 
         # Agent is an HTTP client. It does not receive STELLAR_SECRET_KEY.
-        agent = Agent(api_url=base_url, api_key=api_key)
+        agent = make_agent(base_url, api_key)
 
         # --- Treasury info ---
         info = await agent.get_treasury_info()

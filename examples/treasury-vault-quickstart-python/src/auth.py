@@ -65,3 +65,19 @@ async def resolve_api_key(base_url: str, caller: str) -> str:
 def attach_bearer_if_jwt(api_key: str, base_url: str) -> None:
     """Whether the key is a JWT. The Agent sets x-api-key; keep API compatibility."""
     return _looks_like_jwt(api_key)
+
+
+def make_agent(base_url: str, credential: str):
+    """Build the SDK Agent with the correct auth header for the credential type.
+
+    The public demo-auth endpoint returns a JWT, which the treasury API accepts
+    only as ``Authorization: Bearer <token>``. In the SDK that header is set when
+    the value is passed via ``token=``; ``api_key=`` always sets ``x-api-key``.
+    Real ``nrm_...`` keys keep using ``api_key=`` for backwards compatibility.
+    """
+    from nirium import Agent
+
+    cred = (credential or "").strip()
+    if cred.startswith("nrm_"):
+        return Agent(api_url=base_url, api_key=cred)
+    return Agent(api_url=base_url, token=cred)

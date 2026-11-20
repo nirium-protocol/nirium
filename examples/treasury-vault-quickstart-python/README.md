@@ -58,9 +58,17 @@ invested amounts, and a ready-to-paste hash summary at the end.
 
 | Step | Transaction | Stellar Expert |
 |------|-------------|----------------|
-| Deploy | `<hash>` | `https://stellar.expert/explorer/testnet/tx/<hash>` |
-| Deposit | `<hash>` | `https://stellar.expert/explorer/testnet/tx/<hash>` |
-| Withdraw | `<hash>` | `https://stellar.expert/explorer/testnet/tx/<hash>` |
+| Deploy | `9d3fc51ecfb22302855106b57711ebd5ab6200abf15a910471f6860483696b12` | https://stellar.expert/explorer/testnet/tx/9d3fc51ecfb22302855106b57711ebd5ab6200abf15a910471f6860483696b12 |
+| Deposit | `06573f03ce3ad2a9eefa7c6efa33baac7fc2da481c6756a823f0068ea2c4bced` | https://stellar.expert/explorer/testnet/tx/06573f03ce3ad2a9eefa7c6efa33baac7fc2da481c6756a823f0068ea2c4bced |
+| Withdraw | `6d826446826ac706b8d338b40c51860bbd19e3cb5e01e536b4dc3fd03058e422` | https://stellar.expert/explorer/testnet/tx/6d826446826ac706b8d338b40c51860bbd19e3cb5e01e536b4dc3fd03058e422 |
+
+All three were broadcast to **Stellar testnet** and each is reported `successful: true`
+by `https://horizon-testnet.stellar.org/transactions/<hash>` (ledgers 5837026,
+5837027 and 5837029). The vault created in the run was
+`CDKOOOU25N335WUIRSXNONPNOA56UPQ4FLHMFDTGQGRLN2W57PUJUVZK`, funded through
+Friendbot plus the public Blend testnet faucet; the signing key was a random
+testnet keypair generated in memory for the run and never written to disk,
+a log or this repository.
 
 *Reading the vault state is a read-only call and produces no transaction hash.*
 The script prints the real hashes at the end of every run — paste them into this

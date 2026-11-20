@@ -27,13 +27,22 @@ def _horizon_server() -> Server:
     return Server(horizon_url=HORIZON_TESTNET)
 
 
+def _account_balances(server: Server, public_key: str) -> list[dict]:
+    """Real balances from Horizon's account endpoint.
+
+    `server.load_account()` returns an `Account` with only `.sequence`; it has
+    NO `.balances` in stellar_sdk 15.x. Balances live in the account response.
+    """
+    data = server.accounts().account_id(public_key).call()
+    return [b for b in (data.get("balances") or []) if isinstance(b, dict)]
+
+
 async def usdc_balance(public_key: str) -> int:
     """Return the USDC balance in stroops (smallest unit) for the account."""
     # For Soroban contracts we'd need RPC simulation. As a proxy,
     # check the classic asset balance if it exists.
     server = _horizon_server()
-    account = server.load_account(public_key)
-    for bal in account.balances:
+    for bal in _account_balances(server, public_key):
         if bal.get("asset_type") != "native":
             if (
                 bal.get("asset_code") == USDC_ASSET_CODE
@@ -48,7 +57,7 @@ async def ensure_usdc_trustline(secret: str, public_key: str) -> str | None:
     server = _horizon_server()
     account = server.load_account(public_key)
 
-    for bal in account.balances:
+    for bal in _account_balances(server, public_key):
         if (
             bal.get("asset_type") != "native"
             and bal.get("asset_code") == USDC_ASSET_CODE
@@ -111,8 +120,7 @@ def pick_asset(info: dict) -> tuple[str, str, str]:
 async def preflight_xlm(public_key: str, min_xlm: int = 10) -> None:
     """Ensure the account has at least min_xlm stroops of XLM."""
     server = _horizon_server()
-    account = server.load_account(public_key)
-    for bal in account.balances:
+    for bal in _account_balances(server, public_key):
         if bal.get("asset_type") == "native":
             xlm = int(float(bal.get("balance", "0")) * 10_000_000)
             if xlm < min_xlm:
