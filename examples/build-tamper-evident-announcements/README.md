@@ -50,30 +50,27 @@ The deployable static site is written to `site/`. It contains the generated
 HTML, a raw Markdown copy of each announcement, and `publications.json`. Serve
 that directory from any static host, including GitHub Pages.
 
-A 32-second terminal demo is committed at
-`demo/nirium-announcements-demo.mp4`. It shows the three published receipts,
-one `npx nirium-cli verify` run, and the tamper refusal.
+The 32-second terminal demo linked from the pull request shows the three
+published receipts, one `npx nirium-cli verify` run, and the tamper refusal.
 
 ## Published demo receipts
 
-These are real `stellar:testnet` anchors, created on 19 November 2026 with a
-fresh key generated for this example. The signer is public; the secret key is
-not in this repository.
+These are real `stellar:testnet` anchors, created on 19 and 20 November 2026
+with keys generated for this example. The signers are public; their secret
+keys are not in this repository.
 
-Signer: `GAMFEIR44BGT5WAS7MQY5R5ARCQGKAXYHGYK4HPXCJMLZAETJOTJNIYI`
-
-| Announcement | SHA-256 | CID |
-|---|---|---|
-| `2026-11-17-audit-trail-testnet.md` | `5d6e4cdb4d22db850479241f89c752aed9ec719426106db4862937519522301a` | [`QmYwzPgYhUjwyUHUo8mrxuQsCePuBvRb6kbD72fUe4sB5V`](https://nirium.xyz/verify?cid=QmYwzPgYhUjwyUHUo8mrxuQsCePuBvRb6kbD72fUe4sB5V) |
-| `2026-11-18-publication-policy.md` | `c32d16eb46cd95c52ed5cf85bac551c5d6640b42bc2e8c702c8be777e7ef2a30` | [`QmZgGsVuJKUVC8Rnhf6oNEcgi7AEyoVHqdVznegHPGEg5G`](https://nirium.xyz/verify?cid=QmZgGsVuJKUVC8Rnhf6oNEcgi7AEyoVHqdVznegHPGEg5G) |
-| `2026-11-19-incident-note.md` | `17b7ffd3ba9b81decd662675cfd718c4d9a2bf57b9af316b036d629ad906ff68` | [`QmNRNwyka6RMciaz54fKLqniyHwt2CjdAY362WrjePwGS4`](https://nirium.xyz/verify?cid=QmNRNwyka6RMciaz54fKLqniyHwt2CjdAY362WrjePwGS4) |
+| Announcement | SHA-256 | CID | Signer |
+|---|---|---|---|
+| `2026-11-17-audit-trail-testnet.md` | `5d6e4cdb4d22db850479241f89c752aed9ec719426106db4862937519522301a` | [`QmYwzPgYhUjwyUHUo8mrxuQsCePuBvRb6kbD72fUe4sB5V`](https://nirium.xyz/verify?cid=QmYwzPgYhUjwyUHUo8mrxuQsCePuBvRb6kbD72fUe4sB5V) | `GAMFEIR44BGT5WAS7MQY5R5ARCQGKAXYHGYK4HPXCJMLZAETJOTJNIYI` |
+| `2026-11-18-publication-policy.md` | `12db19cd1bd3dfd546115039957b6417f8e567846d23b95257ee27dba9ff6103` | [`QmSpqbrNwioZpcMU1PyZBQsguNGCGGemM31iNa47f4ShKt`](https://nirium.xyz/verify?cid=QmSpqbrNwioZpcMU1PyZBQsguNGCGGemM31iNa47f4ShKt) | `GB72CIDC6JU2UVKIMX6TKJDPT2GYZEB3JOMBWOX5B45PWHSPYSU2Q2NI` |
+| `2026-11-19-incident-note.md` | `17b7ffd3ba9b81decd662675cfd718c4d9a2bf57b9af316b036d629ad906ff68` | [`QmNRNwyka6RMciaz54fKLqniyHwt2CjdAY362WrjePwGS4`](https://nirium.xyz/verify?cid=QmNRNwyka6RMciaz54fKLqniyHwt2CjdAY362WrjePwGS4) | `GAMFEIR44BGT5WAS7MQY5R5ARCQGKAXYHGYK4HPXCJMLZAETJOTJNIYI` |
 
 Verify each one with the existing CLI. These anchors are hash-only, so
 `--hash` compares the declaration with the hash you already have:
 
 ```bash
 npx nirium-cli verify QmYwzPgYhUjwyUHUo8mrxuQsCePuBvRb6kbD72fUe4sB5V --hash 5d6e4cdb4d22db850479241f89c752aed9ec719426106db4862937519522301a
-npx nirium-cli verify QmZgGsVuJKUVC8Rnhf6oNEcgi7AEyoVHqdVznegHPGEg5G --hash c32d16eb46cd95c52ed5cf85bac551c5d6640b42bc2e8c702c8be777e7ef2a30
+npx nirium-cli verify QmSpqbrNwioZpcMU1PyZBQsguNGCGGemM31iNa47f4ShKt --hash 12db19cd1bd3dfd546115039957b6417f8e567846d23b95257ee27dba9ff6103
 npx nirium-cli verify QmNRNwyka6RMciaz54fKLqniyHwt2CjdAY362WrjePwGS4 --hash 17b7ffd3ba9b81decd662675cfd718c4d9a2bf57b9af316b036d629ad906ff68
 ```
 
@@ -114,8 +111,8 @@ $ npm run build
 
 announcement-build: TAMPER DETECTED: a published announcement no longer matches its receipt.
   2026-11-18-publication-policy.md
-    published sha256: c32d16eb46cd95c52ed5cf85bac551c5d6640b42bc2e8c702c8be777e7ef2a30
-    current sha256:   8accab1cd491d286efc56b19da667ef82d79454eabc61a7ffd971d0f6b3c4439
+    published sha256: 12db19cd1bd3dfd546115039957b6417f8e567846d23b95257ee27dba9ff6103
+    current sha256:   d3ed18a9de1e403ae2085cf55b74aaf57d131e0b95ca7ad51c170af3afa4ce92
 Refusing to anchor or write the site. Restore the file, or publish the
 change as a new announcement with a new filename.
 

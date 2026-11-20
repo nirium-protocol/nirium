@@ -11,10 +11,10 @@
     },
     {
       "file": "2026-11-18-publication-policy.md",
-      "sha256": "c32d16eb46cd95c52ed5cf85bac551c5d6640b42bc2e8c702c8be777e7ef2a30",
-      "cid": "QmZgGsVuJKUVC8Rnhf6oNEcgi7AEyoVHqdVznegHPGEg5G",
-      "anchoredAt": "2026-11-19T00:31:34.775Z",
-      "signer": "GAMFEIR44BGT5WAS7MQY5R5ARCQGKAXYHGYK4HPXCJMLZAETJOTJNIYI",
+      "sha256": "12db19cd1bd3dfd546115039957b6417f8e567846d23b95257ee27dba9ff6103",
+      "cid": "QmSpqbrNwioZpcMU1PyZBQsguNGCGGemM31iNa47f4ShKt",
+      "anchoredAt": "2026-11-20T05:28:20.843Z",
+      "signer": "GB72CIDC6JU2UVKIMX6TKJDPT2GYZEB3JOMBWOX5B45PWHSPYSU2Q2NI",
       "tag": "wave11-tamper-evident-announcements"
     },
     {

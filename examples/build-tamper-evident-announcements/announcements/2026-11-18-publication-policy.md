@@ -1,5 +1,5 @@
 ---
-title: Every announcement is immutable after publication
+title: Any change after publication is visible
 date: 2026-11-18
 kind: policy
 ---
