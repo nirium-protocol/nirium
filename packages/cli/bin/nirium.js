@@ -179,6 +179,7 @@ program
     .option('--json', 'Output result as JSON')
     .option('--hash <hex>', 'Expected sha-256 of the evidence (hex, optional sha-256: prefix), for hash-only anchors')
     .option('--evidence <file>', 'Original evidence file; its sha-256 is compared with the anchored hash')
+    .option('--require-signature', 'Fail unless the document carries a valid agent signature (an unsigned record otherwise passes on its hash alone)')
     .description('Independently verify IPFS audit document content hash & agent ed25519 signature')
     .action(async (cid, options) => {
         let expectedHash;
@@ -203,7 +204,7 @@ program
         }
 
         const gateways = options.gateway.length > 0 ? options.gateway : DEFAULT_GATEWAYS;
-        const result = await fetchAndVerifyCid(cid, gateways, globalThis.fetch, { expectedHash, retries, timeoutMs });
+        const result = await fetchAndVerifyCid(cid, gateways, globalThis.fetch, { expectedHash, requireSignature: !!options.requireSignature, retries, timeoutMs });
         if (options.json) {
             console.log(JSON.stringify(result, null, 2));
         } else {
@@ -1642,7 +1643,7 @@ function verifyEd25519Signature(pubKeyGAddress, statement, signature) {
     }
 }
 
-function verifyAuditDocument(doc, cid, { expectedHash } = {}) {
+function verifyAuditDocument(doc, cid, { expectedHash, requireSignature } = {}) {
     const fail = (error) => ({ ok: false, verified: false, cid, hashMatch: false, hashStatus: 'mismatch', expectedHash: '', computedHash: '', signatureStatus: 'absent', error });
     if (!doc || typeof doc !== 'object') return fail('Invalid audit document format');
     const anchoredHash = typeof doc.content_sha256 === 'string' ? doc.content_sha256.toLowerCase() : '';
@@ -1652,7 +1653,12 @@ function verifyAuditDocument(doc, cid, { expectedHash } = {}) {
     // hash-only mode: the node stores the submitted hash as content_sha256 and
     // has nothing to recompute it from, so compare against --hash/--evidence
     // when given, otherwise report the hash as unchecked (not as a mismatch).
-    const mode = doc.record ? 'record' : 'hash-only';
+    // Hash-only means the `record` field is missing, same rule as the
+    // verify-audit-cid Action. A present but falsy record (null, "", 0) is a
+    // changed document, not a hash-only one: before, `record: null` with the
+    // original hash and signature kept passed here as a hash-only anchor while
+    // the Action rejected it (holistis vector 10).
+    const mode = doc.record === undefined ? 'hash-only' : 'record';
     let computedHash = '';
     let hashStatus;
     if (mode === 'record') {
@@ -1685,8 +1691,15 @@ function verifyAuditDocument(doc, cid, { expectedHash } = {}) {
     // signature absent), which is not the same as the evidence being verified.
     const anyFailed = hashStatus === 'mismatch' || signatureStatus === 'invalid';
     const anyPassed = hashStatus === 'match' || signatureStatus === 'valid';
-    const ok = !anyFailed && anyPassed;
-    return { ok, verified: ok, cid, mode, hashMatch: hashStatus === 'match', hashStatus, expectedHash: anchoredHash, computedHash, providedHash: expectedHash || '', signatureStatus, signatureScheme, signerKey, statement, declaredStatement, agentId };
+    // --require-signature (opt-in, same as the Action's require-signature
+    // input): an unsigned record otherwise passes on its hash alone, which also
+    // means a record changed, re-hashed and stripped of its signature passes.
+    const signatureMissing = !!requireSignature && signatureStatus === 'absent';
+    const ok = !anyFailed && anyPassed && !signatureMissing;
+    return {
+        ok, verified: ok, cid, mode, hashMatch: hashStatus === 'match', hashStatus, expectedHash: anchoredHash, computedHash, providedHash: expectedHash || '', signatureStatus, signatureScheme, signerKey, statement, declaredStatement, agentId,
+        ...(signatureMissing && !anyFailed ? { error: 'Signature required (--require-signature), but this document has no agent signature.' } : {}),
+    };
 }
 
 // `gateways` may be a single URL string (back-compat for direct callers)
