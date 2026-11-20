@@ -3,12 +3,13 @@
 Verifies the Python SDK provides the exact same policy hook guarantees
 as the TypeScript SDK (x402-policy.ts):
 - Policy receives the context (amount, asset, payee, resource, network, contextHash, authorization, etc.)
-- ALLOW signs and pays
+- ALLOW signs and pays only when bound to the authorization preimage contextHash
 - DENY and WAIT never call the signer (verified with a failing signer mock)
 - Fail closed when policy raises an exception
 - Stale ALLOW refused when policyVersion != currentVersion
 - Expired ALLOW refused when expiresAt has passed
-- Unbound ALLOW refused when contextHash does not match
+- Unbound ALLOW refused when contextHash does not match or is missing
+- Signer identity changed between decision and signing refused as SIGNER_CHANGED
 - Timeout enforced
 - on_decision observer receives expected records
 """
@@ -21,7 +22,8 @@ import time
 from typing import Any, Dict, List
 
 import pytest
-from stellar_sdk import Keypair
+from stellar_sdk import Keypair, Address, scval
+import stellar_sdk.xdr as stellar_xdr
 
 import nirium.client as client_mod
 from nirium import (
@@ -102,23 +104,77 @@ def make_policy_agent(monkeypatch):
 
         signer_calls = []
 
-        def mock_signer(entry, keypair, max_ledger, passphrase):
-            if fail_signer:
-                pytest.fail("SIGNER MUST NEVER BE CALLED ON DENY/WAIT/ERROR")
-            signer_calls.append({"entry": entry, "keypair": keypair, "max_ledger": max_ledger})
-            return "SIGNED_AUTH_ENTRY"
+        orig_authorize = client_mod.authorize_entry
 
-        def fake_build(accepted):
-            # When build_transaction is called, it simulates the signer invocation
+        def mock_authorize(entry, keypair, max_ledger, passphrase):
             if fail_signer:
-                pytest.fail("SIGNER / BUILD_TRANSACTION MUST NEVER BE CALLED ON DENY/WAIT/ERROR")
-            mock_signer(None, None, 100, "")
-            return "MOCK_SIGNED_TX_XDR"
+                pytest.fail("SIGNER / authorize_entry MUST NEVER BE CALLED ON DENY/WAIT/ERROR")
+            signer_calls.append({"entry": entry, "keypair": keypair, "max_ledger": max_ledger})
+            return orig_authorize(entry, keypair, max_ledger, passphrase)
+
+        monkeypatch.setattr(client_mod, "authorize_entry", mock_authorize)
+
+        def fake_prepare(accepted):
+            entry = stellar_xdr.SorobanAuthorizationEntry(
+                credentials=stellar_xdr.SorobanCredentials(
+                    type=stellar_xdr.SorobanCredentialsType.SOROBAN_CREDENTIALS_ADDRESS,
+                    address=stellar_xdr.SorobanAddressCredentials(
+                        address=Address(agent._x402_keypair.public_key).to_xdr_sc_address(),
+                        nonce=stellar_xdr.Int64(1),
+                        signature_expiration_ledger=stellar_xdr.Uint32(100),
+                        signature=stellar_xdr.SCVal(type=stellar_xdr.SCValType.SCV_VOID),
+                    ),
+                ),
+                root_invocation=stellar_xdr.SorobanAuthorizedInvocation(
+                    function=stellar_xdr.SorobanAuthorizedFunction(
+                        type=stellar_xdr.SorobanAuthorizedFunctionType.SOROBAN_AUTHORIZED_FUNCTION_TYPE_CONTRACT_FN,
+                        contract_fn=stellar_xdr.InvokeContractArgs(
+                            contract_address=Address(accepted["asset"]).to_xdr_sc_address(),
+                            function_name=stellar_xdr.SCSymbol("transfer".encode()),
+                            args=[
+                                Address(agent._x402_keypair.public_key).to_xdr_sc_val(),
+                                Address(accepted["payTo"]).to_xdr_sc_val(),
+                                scval.to_int128(int(accepted["amount"])),
+                            ],
+                        ),
+                    ),
+                    sub_invocations=[],
+                ),
+            )
+
+            class FakeOp:
+                def __init__(self, auth):
+                    self.auth = auth
+
+            class FakeTx:
+                def __init__(self, op):
+                    self.operations = [op]
+                    self.soroban_data = None
+                    self.fee = 100
+
+            class FakePrepared:
+                def __init__(self, op):
+                    self.transaction = FakeTx(op)
+
+                def to_xdr(self):
+                    return "MOCK_SIGNED_TX_XDR"
+
+            class FakeSoroban:
+                def simulate_transaction(self, prep):
+                    class FakeSim:
+                        error = None
+                        min_resource_fee = 100
+                        transaction_data = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+
+                    return FakeSim()
+
+            return FakePrepared(FakeOp([entry])), 100, FakeSoroban()
+
+        monkeypatch.setattr(agent, "_x402_prepare_transaction", fake_prepare)
 
         async def fake_read(resp):
             return resp._body
 
-        monkeypatch.setattr(agent, "_x402_build_transaction", fake_build)
         monkeypatch.setattr(agent, "_x402_read_payload", fake_read)
         monkeypatch.setattr(agent, "_x402_store_settlement", lambda h: None)
 
@@ -126,7 +182,6 @@ def make_policy_agent(monkeypatch):
             SECRET,
             network="stellar:testnet",
             policy=policy,
-            signer=mock_signer,
             **init_kwargs,
         )
         return agent, session, signer_calls
@@ -142,7 +197,7 @@ async def test_allow_callable_signs_and_settles(make_policy_agent):
 
     def allow_policy(ctx: X402PolicyContext):
         seen_context.append(ctx)
-        return "ALLOW"
+        return {"decision": "ALLOW", "contextHash": ctx.contextHash}
 
     agent, session, signer_calls = make_policy_agent(policy=allow_policy)
     res = await agent.x402_fetch(URL)
@@ -162,6 +217,8 @@ async def test_allow_callable_signs_and_settles(make_policy_agent):
     assert ctx.network == "stellar:testnet"
     assert ctx.method == "GET"
     assert ctx.contextHash is not None
+    assert ctx.authorization["functionName"] == "transfer"
+    assert ctx.authorization["payloadHash"] is not None
 
 
 async def test_allow_dict_with_conformance_fields(make_policy_agent):
@@ -181,7 +238,7 @@ async def test_allow_dict_with_conformance_fields(make_policy_agent):
 
 async def test_async_policy_allow(make_policy_agent):
     async def async_policy(ctx):
-        return "ALLOW"
+        return {"decision": "ALLOW", "contextHash": ctx.contextHash}
 
     agent, _, signer_calls = make_policy_agent(policy=async_policy)
     res = await agent.x402_fetch(URL)
@@ -272,7 +329,6 @@ async def test_policy_exception_fails_closed(make_policy_agent):
 
 
 async def test_stale_allow_refused(make_policy_agent):
-    # Policy returns version v1, but currentVersion returns v2
     def allow_policy(ctx):
         return {
             "decision": "ALLOW",
@@ -315,7 +371,7 @@ async def test_matching_version_allows_and_signs(make_policy_agent):
 
 async def test_missing_version_with_current_version_configured(make_policy_agent):
     def allow_policy(ctx):
-        return {"decision": "ALLOW"}
+        return {"decision": "ALLOW", "contextHash": ctx.contextHash}
 
     agent, _, _ = make_policy_agent(
         policy=allow_policy,
@@ -365,7 +421,43 @@ async def test_unbound_allow_refused(make_policy_agent):
     assert len(signer_calls) == 0
 
 
-# 6. Object Hook with evaluate() Method
+async def test_allow_without_context_hash_is_unbound(make_policy_agent):
+    """Bare 'ALLOW' string or ALLOW dict without contextHash must be refused as UNBOUND."""
+    # Case A: Bare string "ALLOW"
+    agent, _, signer_calls = make_policy_agent(policy=lambda ctx: "ALLOW", fail_signer=True)
+    with pytest.raises(X402PolicyError) as exc_info:
+        await agent.x402_fetch(URL)
+    assert exc_info.value.outcome == "UNBOUND"
+    assert len(signer_calls) == 0
+
+    # Case B: Dict with decision ALLOW but no contextHash
+    agent2, _, signer_calls2 = make_policy_agent(policy=lambda ctx: {"decision": "ALLOW"}, fail_signer=True)
+    with pytest.raises(X402PolicyError) as exc_info2:
+        await agent2.x402_fetch(URL)
+    assert exc_info2.value.outcome == "UNBOUND"
+    assert len(signer_calls2) == 0
+
+
+# 6. SIGNER_CHANGED refusal
+
+
+async def test_signer_changed_between_decision_and_signing(make_policy_agent):
+    """If the agent's keypair address changes during policy evaluation, refuse with SIGNER_CHANGED."""
+    def mutating_policy(ctx):
+        # Maliciously or concurrently change the signer keypair
+        agent._x402_keypair = Keypair.random()
+        return {"decision": "ALLOW", "contextHash": ctx.contextHash}
+
+    agent, _, signer_calls = make_policy_agent(policy=mutating_policy, fail_signer=True)
+
+    with pytest.raises(X402PolicyError) as exc_info:
+        await agent.x402_fetch(URL)
+
+    assert exc_info.value.outcome == "SIGNER_CHANGED"
+    assert len(signer_calls) == 0
+
+
+# 7. Object Hook with evaluate() Method
 
 
 class BudgetPolicyHook:
@@ -406,7 +498,7 @@ async def test_object_hook_denies_over_budget(make_policy_agent):
     assert len(signer_calls) == 0
 
 
-# 7. on_decision Observer
+# 8. on_decision Observer
 
 
 async def test_on_decision_observer_tracks_lifecycle(make_policy_agent):
@@ -416,7 +508,7 @@ async def test_on_decision_observer_tracks_lifecycle(make_policy_agent):
         records.append(record)
 
     def allow_policy(ctx):
-        return "ALLOW"
+        return {"decision": "ALLOW", "contextHash": ctx.contextHash}
 
     agent, _, _ = make_policy_agent(policy=allow_policy, on_decision=observer)
     await agent.x402_fetch(URL)

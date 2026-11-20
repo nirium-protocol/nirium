@@ -19,7 +19,8 @@ from typing import Awaitable, Callable, Dict, Any, List, Optional, Union, NoRetu
 from stellar_sdk import Keypair, Network, Server, TransactionBuilder, Asset  # type: ignore
 from stellar_sdk import Account, Address, SorobanServer, scval  # type: ignore
 from stellar_sdk.xdr import SorobanTransactionData  # type: ignore
-from stellar_sdk.auth import authorize_entry  # type: ignore
+from stellar_sdk.auth import authorize_entry, build_authorization_preimage, authorization_payload_hash  # type: ignore
+import stellar_sdk.xdr as stellar_xdr  # type: ignore
 import base64 as _b64
 import math as _math
 
@@ -885,7 +886,6 @@ class Agent:
         policy_timeout_ms: Optional[int] = None,
         on_decision: Optional[Callable[[Dict[str, Any]], None]] = None,
         now: Optional[Callable[[], float]] = None,
-        signer: Optional[Callable[..., Any]] = None,
     ):
         """
         Initialize the x402 pay-per-request client (protocol v2).
@@ -911,7 +911,6 @@ class Agent:
             policy_timeout_ms: Hard deadline for pre-sign policy evaluation in ms (default 5000).
             on_decision: Optional observer callback receiving record of policy outcome.
             now: Optional callable returning epoch milliseconds, for testing.
-            signer: Optional custom signer override (e.g. for testing without keypair).
 
         A 402 whose options are all on a different network than ``network`` is
         always refused: the client never falls back to another network.
@@ -943,7 +942,6 @@ class Agent:
         self._x402_policy_timeout_ms = policy_timeout_ms or 5000
         self._x402_on_decision = on_decision
         self._x402_now = now
-        self._x402_signer = signer
         is_testnet = network == "stellar:testnet"
         self._x402_keypair = Keypair.from_secret(secret_key)
         self._x402_network = network
@@ -1033,12 +1031,6 @@ class Agent:
                 return candidate
         raise X402SpendCapError(url, candidate, cap_label, reason)
 
-    def _x402_sign_auth_entry(self, entry: Any, max_ledger: int) -> Any:
-        signer = getattr(self, "_x402_signer", None)
-        if signer is not None and callable(signer):
-            return signer(entry, self._x402_keypair, max_ledger, self._x402_passphrase)
-        return authorize_entry(entry, self._x402_keypair, max_ledger, self._x402_passphrase)
-
     def _x402_report_decision(
         self,
         outcome: str,
@@ -1070,46 +1062,77 @@ class Agent:
             except Exception:
                 pass
 
-    async def _x402_run_policy(
+    async def _x402_authorize_entry_with_policy(
         self,
+        entry: Any,
+        max_ledger: int,
+        accepted: Dict[str, Any],
         url: str,
         method: str,
-        accepted: Dict[str, Any],
-    ) -> X402PolicyDecision:
+    ) -> Any:
         policy = getattr(self, "_x402_policy", None)
-        if policy is None:
-            return X402PolicyDecision(decision="ALLOW")
-
-        now_fn = getattr(self, "_x402_now", None) or (lambda: time.time() * 1000.0)
         account = self._x402_keypair.public_key
+        network_passphrase = self._x402_passphrase
 
-        timeout_sec = accepted.get("maxTimeoutSeconds", 300)
-        base_timeout_ms = getattr(
-            policy,
-            "timeout_ms",
-            getattr(policy, "timeoutMs", getattr(self, "_x402_policy_timeout_ms", 5000)),
-        )
-        if timeout_sec and timeout_sec > 0:
-            effective_timeout_ms = max(1, min(base_timeout_ms, int((timeout_sec * 1000) / 2)))
+        if self._x402_keypair.public_key != account:
+            self._x402_report_decision("SIGNER_CHANGED", err="base signer address changed before gate evaluation")
+            raise X402PolicyError("SIGNER_CHANGED", "base signer address changed before gate evaluation")
+
+        preimage = build_authorization_preimage(entry, max_ledger, network_passphrase)
+        payload_hash = authorization_payload_hash(preimage).hex()
+
+        if preimage.type == stellar_xdr.EnvelopeType.ENVELOPE_TYPE_SOROBAN_AUTHORIZATION:
+            auth = preimage.soroban_authorization
+            preimage_type = "legacy"
+        elif preimage.type == stellar_xdr.EnvelopeType.ENVELOPE_TYPE_SOROBAN_AUTHORIZATION_WITH_ADDRESS:
+            auth = preimage.soroban_authorization_with_address
+            preimage_type = "cap71"
+            bound_address = Address.from_xdr_sc_address(auth.address).address
+            if bound_address != account:
+                raise X402PolicyError("CONTEXT_MISMATCH", "CAP-71 preimage is bound to a different address than the signer")
         else:
-            effective_timeout_ms = base_timeout_ms
+            raise X402PolicyError("CONTEXT_MISMATCH", f"unsupported preimage type {preimage.type}")
 
-        payload_hash = _sha256_hex(
-            f"{accepted.get('asset')}:{accepted.get('payTo')}:{accepted.get('amount')}:{self._x402_network}"
-        )
+        fn = auth.invocation.function
+        if fn.type != stellar_xdr.SorobanAuthorizedFunctionType.SOROBAN_AUTHORIZED_FUNCTION_TYPE_CONTRACT_FN:
+            raise X402PolicyError("CONTEXT_MISMATCH", f"unexpected authorized function {fn.type}")
+
+        contract_fn = fn.contract_fn
+        contract_id = Address.from_xdr_sc_address(contract_fn.contract_address).address
+        function_name = contract_fn.function_name.sc_symbol.decode()
+        if function_name != "transfer" or len(contract_fn.args) != 3:
+            raise X402PolicyError("CONTEXT_MISMATCH", f"expected transfer(from,to,amount), got {function_name}/{len(contract_fn.args)}")
+
+        from_addr = Address.from_xdr_sc_val(contract_fn.args[0]).address
+        to_addr = Address.from_xdr_sc_val(contract_fn.args[1]).address
+        amount_val = str(scval.from_int128(contract_fn.args[2]))
+
+        if contract_id != accepted.get("asset"):
+            raise X402PolicyError("CONTEXT_MISMATCH", "asset contract differs from requirements.asset")
+        if to_addr != accepted.get("payTo"):
+            raise X402PolicyError("CONTEXT_MISMATCH", "destination differs from requirements.payTo")
+        if str(amount_val) != str(accepted.get("amount")):
+            raise X402PolicyError("CONTEXT_MISMATCH", "amount differs from requirements.amount")
+        if from_addr != account:
+            raise X402PolicyError("CONTEXT_MISMATCH", "from differs from signer address")
+
+        auth_view = {
+            "preimageXdr": preimage.to_xdr(),
+            "preimageType": preimage_type,
+            "payloadHash": payload_hash,
+            "networkPassphrase": network_passphrase,
+            "nonce": str(auth.nonce.int64),
+            "signatureExpirationLedger": int(auth.signature_expiration_ledger.uint32),
+            "contractId": contract_id,
+            "functionName": function_name,
+            "from": from_addr,
+            "to": to_addr,
+            "amount": amount_val,
+        }
+
         context_hash = _sha256_hex(
             json.dumps({"v": 1, "url": url, "method": method, "payloadHash": payload_hash}, sort_keys=True)
         )
-
-        auth_view = {
-            "payloadHash": payload_hash,
-            "contractId": accepted.get("asset", ""),
-            "functionName": "transfer",
-            "from": account,
-            "to": accepted.get("payTo", ""),
-            "amount": str(accepted.get("amount", "")),
-            "networkPassphrase": self._x402_passphrase,
-        }
 
         context = X402PolicyContext(
             contextVersion=1,
@@ -1129,20 +1152,35 @@ class Agent:
             authorization=auth_view,
         )
 
-        def read_clock() -> float:
+        now_fn = getattr(self, "_x402_now", None) or (lambda: time.time() * 1000.0)
+
+        def read_clock(decision: Optional[X402PolicyDecision] = None) -> float:
             try:
                 t = now_fn()
             except Exception as e:
-                refuse("CLOCK_INVALID", f"clock threw ({e})")
+                refuse("CLOCK_INVALID", f"clock threw ({e})", decision=decision)
             if not isinstance(t, (int, float)) or _math.isnan(t) or _math.isinf(t):
-                refuse("CLOCK_INVALID", f"clock returned {t!r}, not epoch milliseconds")
+                refuse("CLOCK_INVALID", f"clock returned {t!r}, not epoch milliseconds", decision=decision)
             return float(t)
 
         def refuse(outcome: str, msg: str, decision: Optional[X402PolicyDecision] = None) -> NoReturn:
             self._x402_report_decision(outcome, context=context, decision=decision, err=msg)
             raise X402PolicyError(outcome, msg, decision=decision, context_hash=context_hash)
 
+        if self._x402_keypair.public_key != account:
+            refuse("SIGNER_CHANGED", "signer address changed before policy evaluation")
+
         start_time = read_clock()
+        timeout_sec = accepted.get("maxTimeoutSeconds", 300)
+        base_timeout_ms = getattr(
+            policy,
+            "timeout_ms",
+            getattr(policy, "timeoutMs", getattr(self, "_x402_policy_timeout_ms", 5000)),
+        )
+        if timeout_sec and timeout_sec > 0:
+            effective_timeout_ms = max(1, min(base_timeout_ms, int((timeout_sec * 1000) / 2)))
+        else:
+            effective_timeout_ms = base_timeout_ms
         deadline = start_time + effective_timeout_ms
 
         eval_fn = getattr(policy, "evaluate", policy if callable(policy) else None)
@@ -1170,11 +1208,11 @@ class Agent:
         if decision.decision == "WAIT":
             refuse("WAIT", decision.reason or "payment waiting on approval", decision=decision)
 
-        # Verdict is ALLOW
-        if decision.contextHash and decision.contextHash != context_hash:
+        # Verdict is ALLOW: Must echo the exact contextHash (otherwise UNBOUND)
+        if not decision.contextHash or decision.contextHash != context_hash:
             refuse("UNBOUND", "ALLOW is not bound to this authorization", decision=decision)
 
-        now_t = read_clock()
+        now_t = read_clock(decision=decision)
         if now_t >= deadline:
             refuse("TIMEOUT", "decision arrived after the deadline", decision=decision)
 
@@ -1210,7 +1248,7 @@ class Agent:
             if str(curr_ver) != str(decision.policyVersion):
                 refuse("STALE", f"ALLOW was issued under policy {decision.policyVersion}, current is {curr_ver}", decision=decision)
 
-        now_t = read_clock()
+        now_t = read_clock(decision=decision)
         if decision.expiresAt is not None:
             exp_t = decision.expiresAt
             if exp_t < 1e11:
@@ -1221,31 +1259,26 @@ class Agent:
         self._x402_report_decision("ALLOWED", context=context, decision=decision)
         self._x402_last_policy_context = context
         self._x402_last_policy_decision = decision
-        return decision
 
-    def _x402_build_transaction(self, accepted: Dict[str, Any]) -> str:
-        """
-        Build the signed payment transaction for one payment requirement.
+        # Check identity before signing: SIGNER_CHANGED if account changed
+        if self._x402_keypair.public_key != account:
+            refuse("SIGNER_CHANGED", "signer address changed while the policy was evaluated", decision=decision)
 
-        Mirrors the canonical @x402/stellar client. Three details are what make
-        it settle, each verified against a TypeScript-generated reference:
+        try:
+            signed_entry = authorize_entry(entry, self._x402_keypair, max_ledger, network_passphrase)
+            self._x402_report_decision("SIGNED", context=context, decision=decision)
+            return signed_entry
+        except Exception as e:
+            self._x402_report_decision("SIGNER_ERROR", context=context, decision=decision, err=str(e))
+            raise
 
-        1. The source account is the NULL account, not the payer. The
-            facilitator replaces it with its own when it submits and pays the
-            fee. Using the payer's account makes the simulator emit
-            source-account credentials, which the facilitator cannot honour.
-        2. The auth entry must therefore carry ADDRESS credentials, signed with
-            an expiration ledger.
-        3. The transaction must be re-simulated AFTER signing: the signature
-            adds bytes, and the resource fee computed before it is too low.
-        """
+    def _x402_prepare_transaction(self, accepted: Dict[str, Any]) -> tuple[Any, int, SorobanServer]:
         extra = accepted.get("extra") or {}
         if not extra.get("areFeesSponsored"):
             raise RuntimeError("x402 exact scheme requires areFeesSponsored to be true")
 
         soroban = SorobanServer(self._x402_rpc_url)
         timeout = int(accepted.get("maxTimeoutSeconds", 300))
-        # ~5 s por ledger, el mismo supuesto del cliente canónico.
         max_ledger = soroban.get_latest_ledger().sequence + _math.ceil(timeout / 5)
 
         tx = (
@@ -1268,11 +1301,38 @@ class Agent:
         )
 
         prepared = soroban.prepare_transaction(tx)
+        return prepared, max_ledger, soroban
+
+    async def _x402_build_transaction(
+        self,
+        accepted: Dict[str, Any],
+        url: str = "",
+        method: str = "GET",
+    ) -> str:
+        """
+        Build the signed payment transaction for one payment requirement.
+
+        Prepares the Soroban transaction first, evaluates pre-sign policy over
+        the actual authorization entry (if configured), signs the entry, and
+        re-simulates for fee estimation.
+        """
+        prepared, max_ledger, soroban = self._x402_prepare_transaction(accepted)
         op = prepared.transaction.operations[0]
-        op.auth = [
-            self._x402_sign_auth_entry(e, max_ledger)
-            for e in (op.auth or [])
-        ]
+
+        signed_auth = []
+        for e in (op.auth or []):
+            if getattr(self, "_x402_policy", None) is not None:
+                signed_e = await self._x402_authorize_entry_with_policy(
+                    entry=e,
+                    max_ledger=max_ledger,
+                    accepted=accepted,
+                    url=url,
+                    method=method,
+                )
+            else:
+                signed_e = authorize_entry(e, self._x402_keypair, max_ledger, self._x402_passphrase)
+            signed_auth.append(signed_e)
+        op.auth = signed_auth
 
         sim = soroban.simulate_transaction(prepared)
         if getattr(sim, "error", None):
@@ -1349,8 +1409,7 @@ class Agent:
         async with aiohttp.ClientSession() as session:
             async with session.request(method, url, **payload) as resp:
                 if resp.status != 402:
-                    res = self._x402_read_payload(resp)
-                    return (await res) if inspect.isawaitable(res) else res
+                    return await self._x402_read_payload(resp)
                 # v2 entrega los requirements en un header base64; el body va vacío.
                 raw = resp.headers.get("payment-required")
 
@@ -1367,27 +1426,7 @@ class Agent:
 
             accepted = await self._x402_select_requirement(url, accepts)
 
-            policy_decision = None
-            if getattr(self, "_x402_policy", None) is not None:
-                policy_decision = await self._x402_run_policy(url=url, method=method, accepted=accepted)
-
-            try:
-                tx_xdr = self._x402_build_transaction(accepted)
-                if policy_decision is not None:
-                    self._x402_report_decision(
-                        "SIGNED",
-                        context=getattr(self, "_x402_last_policy_context", None),
-                        decision=policy_decision,
-                    )
-            except Exception as e:
-                if policy_decision is not None and not isinstance(e, X402PolicyError):
-                    self._x402_report_decision(
-                        "SIGNER_ERROR",
-                        context=getattr(self, "_x402_last_policy_context", None),
-                        decision=policy_decision,
-                        err=str(e),
-                    )
-                raise
+            tx_xdr = await self._x402_build_transaction(accepted, url=url, method=method)
 
             payment = {
                 "x402Version": challenge.get("x402Version", 2),
@@ -1407,8 +1446,7 @@ class Agent:
                         f"x402 payment rejected (HTTP {paid.status}): {rejected[:300]}"
                     )
                 self._x402_store_settlement(paid.headers)
-                res = self._x402_read_payload(paid)
-                return (await res) if inspect.isawaitable(res) else res
+                return await self._x402_read_payload(paid)
 
     # ─── MPP Protocol (Charge Mode) ─────────────────────────
 
