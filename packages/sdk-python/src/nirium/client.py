@@ -19,7 +19,7 @@ from typing import Awaitable, Callable, Dict, Any, List, Optional, Union, NoRetu
 from stellar_sdk import Keypair, Network, Server, TransactionBuilder, Asset  # type: ignore
 from stellar_sdk import Account, Address, SorobanServer, scval  # type: ignore
 from stellar_sdk.xdr import SorobanTransactionData  # type: ignore
-from stellar_sdk.auth import authorize_entry, build_authorization_preimage, authorization_payload_hash  # type: ignore
+from stellar_sdk.auth import authorize_entry  # type: ignore
 import stellar_sdk.xdr as stellar_xdr  # type: ignore
 import base64 as _b64
 import math as _math
@@ -1078,6 +1078,8 @@ class Agent:
             self._x402_report_decision("SIGNER_CHANGED", err="base signer address changed before gate evaluation")
             raise X402PolicyError("SIGNER_CHANGED", "base signer address changed before gate evaluation")
 
+        from stellar_sdk.auth import build_authorization_preimage, authorization_payload_hash  # type: ignore
+
         preimage = build_authorization_preimage(entry, max_ledger, network_passphrase)
         payload_hash = authorization_payload_hash(preimage).hex()
 
@@ -1131,7 +1133,7 @@ class Agent:
         }
 
         context_hash = _sha256_hex(
-            json.dumps({"v": 1, "url": url, "method": method, "payloadHash": payload_hash}, sort_keys=True)
+            json.dumps({"v": 1, "url": url, "method": method, "payloadHash": payload_hash}, separators=(",", ":"), ensure_ascii=False)
         )
 
         context = X402PolicyContext(

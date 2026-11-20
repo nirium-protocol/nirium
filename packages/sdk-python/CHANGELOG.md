@@ -5,6 +5,8 @@ All notable changes to the `nirium` (PyPI) package are documented here.
 ## Unreleased
 
 - Pre-sign policy hook (`init_x402(policy=...)`): parity with TypeScript SDK pre-sign policy hook (#355). Evaluates policy before signing; DENY and WAIT never call the signer; fail closed on exceptions; stale ALLOW invalidation via `current_version`.
+- Raised `stellar-sdk` dependency floor to `>=15.0.0` for Soroban authorization preimage and payload hash support (`build_authorization_preimage`, `authorization_payload_hash`, and address envelope constants).
+- Aligned `contextHash` wire formatting with the TypeScript SDK (`{"v":1,"url":"...","method":"...","payloadHash":"..."}` with exact key ordering and no whitespace separators).
 
 ## 0.12.7 - 2026-11-19
 

@@ -534,3 +534,22 @@ async def test_on_decision_observer_on_deny(make_policy_agent):
 
     outcomes = [r["outcome"] for r in records]
     assert outcomes == ["DENY"]
+
+
+def test_context_hash_conformance_with_typescript_sdk():
+    """Verify that Python SDK contextHash wire format and sha256hex match the TypeScript SDK exactly."""
+    # Test vector produced by TypeScript SDK:
+    # sha256hex(JSON.stringify({ v: 1, url: 'https://api.example.com/pay', method: 'POST', payloadHash: 'abcd1234ef5678' }))
+    url = "https://api.example.com/pay"
+    method = "POST"
+    payload_hash = "abcd1234ef5678"
+    expected_hash = "9619ef78d875fe02387e6d06b0d79c42d7fb9b3499ac5737e4e257f6d1bafc9d"
+
+    wire = json.dumps(
+        {"v": 1, "url": url, "method": method, "payloadHash": payload_hash},
+        separators=(",", ":"),
+        ensure_ascii=False,
+    )
+    assert wire == '{"v":1,"url":"https://api.example.com/pay","method":"POST","payloadHash":"abcd1234ef5678"}'
+    assert client_mod._sha256_hex(wire) == expected_hash
+
