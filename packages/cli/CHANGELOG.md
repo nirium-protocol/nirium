@@ -4,6 +4,8 @@ All notable changes to the `nirium-cli` package are documented here.
 
 ## Unreleased
 
+## 3.2.6 - 2026-11-20
+
 `nirium verify` now decides hash-only mode the same way as the verify-audit-cid Action: only when the `record` field is missing. Before, a document with `record: null` and the original hash and signature kept passed as a hash-only anchor (HASH NOT CHECKED, signature valid) while the Action rejected it. It now fails here too. Found by github.com/holistis in an outside check of 3.2.5 (case 10 of 21).
 
 New opt-in `--require-signature`: fail unless the document carries a valid agent signature, same as the Action's `require-signature` input. Off by default, so unsigned records keep passing on their hash.
