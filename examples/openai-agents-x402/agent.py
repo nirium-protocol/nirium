@@ -66,14 +66,17 @@ async def test_agent(server_url: str) -> None:
     except Exception as e:
         print(f"Result: {e}")
     
-    # Test 2: Expensive endpoint (above cap) - for this we'll create a modified URL
-    # Since the express server has only one endpoint, we'll test the cap by 
-    # modifying our cap or testing the actual behavior
-    print("\n📝 Test 2: Testing spend cap enforcement")
+    # Test 2: Expensive endpoint (above cap). server/ charges $2 here, so the
+    # tool must refuse before signing and the agent explains why.
+    print("\n📝 Test 2: Calling expensive endpoint (above $1 cap, must be refused)")
     print("-" * 60)
-    print("Note: The express-x402 server charges 0.02 USDC (below $1 cap).")
-    print("To test the cap, we'd need a server with a >$1 endpoint.")
-    print("The spend cap logic is tested in test_openai_tool.py offline tests.")
+    expensive_url = f"{server_url}/paid/full-report"
+
+    try:
+        result2 = await agent.run(f"Please fetch data from {expensive_url}")
+        print(f"✅ Agent response: {result2}")
+    except Exception as e:
+        print(f"Result: {e}")
     
     print("\n" + "="*60)
     print("✅ Agent tests complete!")

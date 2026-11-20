@@ -29,6 +29,7 @@ pytest-asyncio==0.24.0
 - **`requirements.txt`** — Exact dependency versions
 - **`.env.example`** — Environment template
 - **`.gitignore`** — Prevents committing secrets
+- **`server/`** — Your own `x402Serve` route on testnet (Node): `/paid/market-summary` at `X402_PRICE` (below the cap) and `/paid/full-report` at `$2` (above the cap)
 
 ## Setup
 
@@ -51,6 +52,25 @@ Generate a testnet key at: https://laboratory.stellar.org/#account-creator?netwo
 Fund it using Friendbot (automatic in Stellar Laboratory).
 
 **⚠️ NEVER commit your `.env` file or share secret keys!**
+
+### 3. Run your own x402Serve route
+
+The agent pays a route you run, with payments going to a testnet account you own. In `.env`, set:
+
+- `SELLER_PUBLIC_KEY`: a second testnet account you own (G...), not the payer. It receives the payments, so it needs a USDC trustline.
+- `FACILITATOR_API_KEY`: a free testnet key from https://channels.openzeppelin.com/testnet/gen
+
+```bash
+cd server
+npm install
+npm start        # x402Serve on http://localhost:3402 (stellar:testnet)
+```
+
+Then, in another terminal, run the agent against it:
+
+```bash
+python agent.py  # Test 1 pays /paid/market-summary, Test 2 is refused on /paid/full-report ($2 > $1 cap)
+```
 
 ## Tests
 
@@ -89,6 +109,16 @@ test_openai_tool.py::test_function_tool_decorator PASSED                 [100%]
 8. **@function_tool decorator** — Verifies FunctionTool wrapper is applied
 
 ### Testnet Evidence
+
+**Run against your own `x402Serve` route (`server/`):** PENDING. Fill in from a run with your own keys:
+
+| Step | Value |
+|---|---|
+| Seller account (`SELLER_PUBLIC_KEY`, receives the payment) | PENDING |
+| Paid call `/paid/market-summary` through `@function_tool` | PENDING: tx hash on Stellar Expert (testnet) |
+| Refused call `/paid/full-report` ($2 > $1 cap) | Refused before signing with `X402SpendCapError`, no transaction (paste the agent's message) |
+
+**Earlier run against Nirium's testnet endpoint** (before `server/` existed; the payee `GC4Q5TWW…` is Nirium's, not yours):
 
 **Test account:** [GCE3GDLLGGKOVDDAZ4OHD6JC5FCD6CZZCADC4CFKQ66NKCB5U6XFOI6Z](https://stellar.expert/explorer/testnet/account/GCE3GDLLGGKOVDDAZ4OHD6JC5FCD6CZZCADC4CFKQ66NKCB5U6XFOI6Z)
 
