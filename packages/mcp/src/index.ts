@@ -68,9 +68,9 @@ const PKG_VERSION: string = require('../package.json').version;
 export function createNiriumMcpServer(options: NiriumMcpOptions = {}): McpServer {
     // ─── Configuration ────────────────────────────────────────────
 
-    const API_URL        = options.apiUrl        ?? process.env.AGENT_API_URL       ?? 'http://127.0.0.1:3002';
-    const STELLAR_KEY    = options.stellarKey    ?? process.env.STELLAR_SECRET_KEY  ?? '';
-    const NIRIUM_API_KEY = options.niriumApiKey ?? process.env.NIRIUM_API_KEY      ?? '';
+    const API_URL        = options.apiUrl        ?? (process.env.AGENT_API_URL       || 'http://127.0.0.1:3002');
+    const STELLAR_KEY    = options.stellarKey    ?? (process.env.STELLAR_SECRET_KEY  || '');
+    const NIRIUM_API_KEY = options.niriumApiKey ?? (process.env.NIRIUM_API_KEY      || '');
     const IS_MAINNET     = options.isMainnet     ?? (process.env.STELLAR_NETWORK === 'mainnet');
     const STELLAR_NET    = (IS_MAINNET
         ? 'stellar:pubnet'
@@ -82,12 +82,12 @@ export function createNiriumMcpServer(options: NiriumMcpOptions = {}): McpServer
     // pubnet y el pago fallaba de forma confusa, con fondos reales. El RPC lo pone
     // quien corre el server — el endpoint dedicado de Nirium lleva token y vive
     // como secreto del backend, nunca dentro de un paquete publicado.
-    const RPC_URL = options.rpcUrl ?? process.env.SOROBAN_RPC_URL
-        ?? (IS_MAINNET ? '' : DEFAULT_TESTNET_RPC_URL);
+    const RPC_URL = options.rpcUrl ?? (process.env.SOROBAN_RPC_URL
+        || (IS_MAINNET ? '' : DEFAULT_TESTNET_RPC_URL));
 
     // Sin RPC válido no se puede firmar un pago; las herramientas gratuitas siguen vivas.
-    const PAYMENTS_ENABLED = options.paidFetch != null || (!!STELLAR_KEY && !!RPC_URL);
-    const PAYMENTS_DISABLED_REASON = PAYMENTS_ENABLED
+    let paymentsEnabled = options.paidFetch != null || (!!STELLAR_KEY && !!RPC_URL);
+    let paymentsDisabledReason = paymentsEnabled
         ? ''
         : !STELLAR_KEY
             ? 'STELLAR_SECRET_KEY is not set — paid tools need a funded Stellar wallet.'
@@ -117,24 +117,37 @@ export function createNiriumMcpServer(options: NiriumMcpOptions = {}): McpServer
     const fetchFn = options.fetchFn ?? fetch;
 
     // ─── x402 Payment Client ──────────────────────────────────────
+    //
+    // Set up once; reused for all x402 premium tool calls.
+    // Requires STELLAR_SECRET_KEY env var with funded testnet wallet.
+    //
+
     let paidFetch: typeof fetch = options.paidFetch ?? fetchFn;
-    if (!options.paidFetch && PAYMENTS_ENABLED) {
+    if (!options.paidFetch && paymentsEnabled) {
         try {
             const signer = createEd25519Signer(STELLAR_KEY, STELLAR_NET);
             const client = new x402Client()
                 .register(STELLAR_NET, new ExactStellarScheme(signer, { url: RPC_URL }));
             paidFetch = wrapFetchWithPayment(fetchFn, client) as typeof fetch;
             console.error(`[Nirium MCP] x402 wallet: ${signer.address} | network: ${STELLAR_NET}`);
-        } catch {
-            // Keep default
+        } catch (err) {
+            paymentsEnabled = false;
+            paymentsDisabledReason = `Failed to initialize x402 signer: ${err instanceof Error ? err.message : String(err)}`;
+            console.error(`[Nirium MCP] Paid tools disabled — ${paymentsDisabledReason}`);
         }
-    } else if (!PAYMENTS_ENABLED && !options.paidFetch) {
-        console.error(`[Nirium MCP] Paid tools disabled — ${PAYMENTS_DISABLED_REASON}`);
+    } else if (!paymentsEnabled && !options.paidFetch) {
+        console.error(`[Nirium MCP] Paid tools disabled — ${paymentsDisabledReason}`);
     }
 
     // ─── MPP Payment Client ───────────────────────────────────────
+    //
+    // MPP Charge mode: per-request Soroban SAC transfer.
+    // No external facilitator — server verifies directly.
+    // Same STELLAR_SECRET_KEY funds both x402 and MPP payments.
+    //
+
     let mppFetch: typeof fetch = options.mppFetch ?? fetchFn;
-    if (!options.mppFetch && PAYMENTS_ENABLED) {
+    if (!options.mppFetch && paymentsEnabled) {
         try {
             const mppx = MppxClient.create({
                 methods: [
@@ -146,11 +159,13 @@ export function createNiriumMcpServer(options: NiriumMcpOptions = {}): McpServer
             });
             mppFetch = mppx.fetch as typeof fetch;
             console.error(`[Nirium MCP] MPP Charge enabled | network: ${STELLAR_NET}`);
-        } catch {
-            // Keep default
+        } catch (err) {
+            paymentsEnabled = false;
+            paymentsDisabledReason = `Failed to initialize MPP charge client: ${err instanceof Error ? err.message : String(err)}`;
+            console.error(`[Nirium MCP] MPP tools disabled — ${paymentsDisabledReason}`);
         }
-    } else if (!PAYMENTS_ENABLED && !options.mppFetch) {
-        console.error(`[Nirium MCP] MPP tools disabled — ${PAYMENTS_DISABLED_REASON}`);
+    } else if (!paymentsEnabled && !options.mppFetch) {
+        console.error(`[Nirium MCP] MPP tools disabled — ${paymentsDisabledReason}`);
     }
 
     // ─── Server ───────────────────────────────────────────────────
@@ -169,7 +184,7 @@ export function createNiriumMcpServer(options: NiriumMcpOptions = {}): McpServer
     // Un pago sin wallet o sin RPC de mainnet no puede firmarse: decirlo aquí evita
     // que el modelo reciba un 402 opaco y lo reporte como "el servidor falló".
     const paymentsUnavailable = (): ToolResult | null =>
-        PAYMENTS_ENABLED ? null : fail(`Payment tools unavailable: ${PAYMENTS_DISABLED_REASON}`);
+        paymentsEnabled ? null : fail(`Payment tools unavailable: ${paymentsDisabledReason}`);
 
     // Los nodos gratuitos comparten forma: GET/POST → JSON, error legible.
     async function callJson(
@@ -289,9 +304,9 @@ export function createNiriumMcpServer(options: NiriumMcpOptions = {}): McpServer
             rpcUrl: RPC_URL || null,
             agentApiUrl: API_URL,
             niriumApiKeySet: !!NIRIUM_API_KEY,
-            x402Enabled: PAYMENTS_ENABLED,
-            mppEnabled: PAYMENTS_ENABLED,
-            ...(PAYMENTS_ENABLED ? {} : { paymentsDisabledReason: PAYMENTS_DISABLED_REASON }),
+            x402Enabled: paymentsEnabled,
+            mppEnabled: paymentsEnabled,
+            ...(paymentsEnabled ? {} : { paymentsDisabledReason }),
             freeTools: [
                 'get_market_state', 'get_loop_status', 'execute_demo', 'get_nodes',
                 'anchor_audit_record', 'get_reporting_summary',
@@ -358,6 +373,14 @@ export function createNiriumMcpServer(options: NiriumMcpOptions = {}): McpServer
     );
 
     // ─── PAID TOOLS (MPP) ─────────────────────────────────────────
+    //
+    // MPP Charge mode: no external facilitator.
+    // The payment transaction is a direct Soroban SAC invocation
+    // signed by the agent's STELLAR_SECRET_KEY, verified by the server.
+    //
+    // Advantage over x402: no Coinbase facilitator dependency.
+    // Both x402 and MPP tools are available — client chooses.
+    //
 
     server.tool(
         'get_mpp_signals',
@@ -380,6 +403,16 @@ export function createNiriumMcpServer(options: NiriumMcpOptions = {}): McpServer
     );
 
     // ─── TREASURY (DeFindex) ───────────────────────────────────────
+    //
+    // Nirium never holds these funds. It holds the RebalanceManager role of a
+    // DeFindex vault the client deploys and owns. The four read tools below hit
+    // public GET routes — free, no key required. The write tools hit routes
+    // behind the agent's own auth (NIRIUM_API_KEY) and every one of them returns
+    // an UNSIGNED XDR *except* execute_treasury_rebalance, which is the one
+    // route the agent signs itself, with its own server-side key — never the
+    // caller's. Even then it cannot withdraw: rebalance() takes no destination
+    // address, so the funds never leave the vault.
+    //
 
     server.tool(
         'get_treasury_info',
@@ -548,11 +581,10 @@ export function createNiriumMcpServer(options: NiriumMcpOptions = {}): McpServer
     return server;
 }
 
-export const server = createNiriumMcpServer();
-
 // ─── Start ────────────────────────────────────────────────────
 
 export async function main(): Promise<void> {
+    const server = createNiriumMcpServer();
     const transport = new StdioServerTransport();
     await server.connect(transport);
     console.error(`[Nirium MCP] v${PKG_VERSION} running on stdio`);

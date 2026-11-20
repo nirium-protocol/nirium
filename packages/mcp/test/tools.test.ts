@@ -384,6 +384,32 @@ test('Nirium MCP Server: paid tools refuse when wallet/RPC is unset (zero keys)'
     await client.close();
 });
 
+test('Nirium MCP Server: paid tools refuse when STELLAR_SECRET_KEY is invalid (signer error handling)', async () => {
+    const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+    // Server with invalid key that causes signer creation to throw
+    const server = createNiriumMcpServer({
+        fetchFn: mockAgentApiFetch,
+        stellarKey: 'S_INVALID_KEY_NOT_ED25519',
+        rpcUrl: 'https://soroban-testnet.stellar.org',
+    });
+    const client = new Client({ name: 'test-client', version: '1.0.0' });
+
+    await Promise.all([server.connect(serverTransport), client.connect(clientTransport)]);
+
+    const res = await client.callTool({
+        name: 'get_premium_signals',
+        arguments: {},
+    });
+
+    assert.equal(res.isError, true, 'Paid tool must return isError=true when secret key is invalid');
+    assert.ok(
+        String(res.content[0].text).includes('Failed to initialize x402 signer'),
+        `Expected error mentioning failed signer initialization, got: ${res.content[0].text}`,
+    );
+
+    await client.close();
+});
+
 test('Nirium MCP Server: end-to-end client lists all 25 tools over InMemoryTransport', async () => {
     const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
     const server = createNiriumMcpServer({ fetchFn: mockAgentApiFetch });
