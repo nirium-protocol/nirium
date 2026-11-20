@@ -5,8 +5,11 @@ A complete Python loop against a **live Stellar testnet** DeFindex vault:
 1. `deploy_treasury_vault` → sign the unsigned XDR with **your** key → `submit_treasury_tx`
 2. `deposit_to_treasury_vault` → sign → `submit_treasury_tx`
 3. `get_treasury_vault` → print the idle / invested split
+4. `withdraw_from_treasury_vault` → sign → `submit_treasury_tx`
 
-This is the Python equivalent of `examples/treasury-vault-quickstart` (TypeScript).
+Every XDR returned by the API is signed locally with your own testnet key before
+`submit_treasury_tx` broadcasts it. This is the Python equivalent of
+`examples/treasury-vault-quickstart` (TypeScript).
 
 ## Why this is non-custodial
 
@@ -20,8 +23,8 @@ This is the Python equivalent of `examples/treasury-vault-quickstart` (TypeScrip
   revoke rebalance). Nirium, if present at all, only holds `RebalanceManager`,
   which cannot withdraw.
 
-This example is **deploy + deposit only**. It does not call `execute_treasury_rebalance`
-or the RebalanceManager endpoints.
+This example runs the full deploy → deposit → read state → withdraw loop. It does
+not call `execute_treasury_rebalance` or the RebalanceManager endpoints.
 
 ## Prerequisites
 
@@ -47,8 +50,9 @@ pip install -r requirements.txt
 python main.py
 ```
 
-The script prints two `https://stellar.expert/explorer/testnet/tx/<hash>` links
-(deploy + deposit) and the vault's idle / invested amounts.
+The script prints a `https://stellar.expert/explorer/testnet/tx/<hash>` link for
+each submitted transaction (deploy, deposit, withdraw), the vault's idle /
+invested amounts, and a ready-to-paste hash summary at the end.
 
 ### Transaction hashes (testnet)
 
@@ -56,8 +60,13 @@ The script prints two `https://stellar.expert/explorer/testnet/tx/<hash>` links
 |------|-------------|----------------|
 | Deploy | `<hash>` | `https://stellar.expert/explorer/testnet/tx/<hash>` |
 | Deposit | `<hash>` | `https://stellar.expert/explorer/testnet/tx/<hash>` |
+| Withdraw | `<hash>` | `https://stellar.expert/explorer/testnet/tx/<hash>` |
 
-*(Fill in after a successful run)*
+*Reading the vault state is a read-only call and produces no transaction hash.*
+The script prints the real hashes at the end of every run — paste them into this
+table when you run it with your own funded testnet account. Hashes are never
+fabricated: a deploy/deposit/withdraw only produces a hash after a real testnet
+submission.
 
 ## Environment
 
@@ -68,6 +77,7 @@ The script prints two `https://stellar.expert/explorer/testnet/tx/<hash>` links
 | `NIRIUM_BASE_URL` | no | `https://nirium-agent.fly.dev` |
 | `VAULT_ASSET` | no | `usdc` (from treasury info) |
 | `DEPOSIT_AMOUNT_STROOPS` | no | `10000000` (1.0 with 7 decimals) |
+| `WITHDRAW_SHARES_STROOPS` | no | empty (withdraw the full balance) |
 | `INVEST` | no | `false` (deposit stays idle so the split is obvious) |
 | `VAULT_ID` | no | Reuse an already-deployed vault and skip deploy |
 | `VAULT_MANAGER` | no | defaults to caller (your G-address) |
@@ -102,6 +112,8 @@ Tests cover:
 - XDR signing with testnet passphrase
 - Refusal to sign under public passphrase
 - Error classification (insufficient balance, unfunded account, missing trustline, passphrase mismatch)
+- **Request bodies contain only signed XDR and never the secret** (`test/request_body_test.py`,
+  real `Agent` with `aiohttp.ClientSession` mocked, no network)
 
 ## Secret handling
 

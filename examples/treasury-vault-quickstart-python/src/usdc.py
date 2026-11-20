@@ -4,14 +4,15 @@ from __future__ import annotations
 
 import os
 import urllib.request
-import json
 
-from stellar_sdk import Asset, Keypair, TransactionBuilder, Networks, Server
+from stellar_sdk import Asset, Keypair, TransactionBuilder, Network, Server
+
+from src.errors import InsufficientBalanceError, UnfundedAccountError
 
 # Blend testnet USDC (not Circle USDC)
-USDC_CONTRACT = "CAQCFVLOBQ5JZXKM6Q7Y5Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q6Q"
+USDC_CONTRACT = "CAQCFVLOBK5GIULPNZRGATJJMIZL5BSP7X5YJVMGCPTUEPFM4AVSRCJU"
 USDC_ASSET_CODE = "USDC"
-USDC_ISSUER = "GATALTG..."  # placeholder, we use contract address via Soroban
+BLEND_USDC_ISSUER = "GATALTGTWIOT6BUDBCZM3Q4OQ4BO2COLOAZ7IYSKPLC2PMSOPPGF5V56"
 
 # For classic Stellar assets (not Soroban), the issuer is different.
 # This example uses the Soroban USDC contract on testnet.
@@ -26,10 +27,6 @@ def _horizon_server() -> Server:
     return Server(horizon_url=HORIZON_TESTNET)
 
 
-def _load_account(public_key: str):
-    return _horizon_server().load_account(public_key)
-
-
 async def usdc_balance(public_key: str) -> int:
     """Return the USDC balance in stroops (smallest unit) for the account."""
     # For Soroban contracts we'd need RPC simulation. As a proxy,
@@ -38,10 +35,10 @@ async def usdc_balance(public_key: str) -> int:
     account = server.load_account(public_key)
     for bal in account.balances:
         if bal.get("asset_type") != "native":
-            asset_code = bal.get("asset_code", "")
-            asset_issuer = bal.get("asset_issuer", "")
-            # Blend USDC on testnet has a specific issuer
-            if asset_code == USDC_ASSET_CODE:
+            if (
+                bal.get("asset_code") == USDC_ASSET_CODE
+                and bal.get("asset_issuer") == BLEND_USDC_ISSUER
+            ):
                 return int(float(bal.get("balance", "0")) * 10_000_000)
     return 0
 
@@ -51,19 +48,22 @@ async def ensure_usdc_trustline(secret: str, public_key: str) -> str | None:
     server = _horizon_server()
     account = server.load_account(public_key)
 
-    # Check if trustline already exists
     for bal in account.balances:
-        if bal.get("asset_type") != "native" and bal.get("asset_code") == USDC_ASSET_CODE:
+        if (
+            bal.get("asset_type") != "native"
+            and bal.get("asset_code") == USDC_ASSET_CODE
+            and bal.get("asset_issuer") == BLEND_USDC_ISSUER
+        ):
             return None  # already has trustline
 
-    # Build trustline operation
     keypair = Keypair.from_secret(secret)
-    usdc_asset = Asset(USDC_ASSET_CODE, USDC_ISSUER)
+    # Blend testnet USDC issuer — NOT Circle. Mirrors the TypeScript quickstart.
+    usdc_asset = Asset(USDC_ASSET_CODE, BLEND_USDC_ISSUER)
 
     tx = (
         TransactionBuilder(
             source_account=account,
-            network_passphrase=Networks.TESTNET,
+            network_passphrase=Network.TESTNET_NETWORK_PASSPHRASE,
             base_fee=100,
         )
         .append_change_trust_op(asset=usdc_asset)
@@ -89,19 +89,22 @@ def missing_usdc_error(have: int, need: int) -> str:
 
 def pick_asset(info: dict) -> tuple[str, str, str]:
     """Pick the vault asset from treasury info. Returns (asset, strategy, label)."""
-    # info.defindex has usdc, cetes, strategies
     defindex = info.get("defindex", {})
+    choice = os.environ.get("VAULT_ASSET", "usdc").strip().lower()
     usdc = defindex.get("usdc")
     strategies = defindex.get("strategies", {})
     usdc_blend = strategies.get("usdcBlend")
 
+    if choice == "cetes":
+        cetes = defindex.get("cetes")
+        cetes_blend = strategies.get("cetesBlend")
+        if cetes and cetes_blend:
+            return cetes, cetes_blend, "cetes-blend"
+        raise RuntimeError("CETES not available in treasury info")
+    if choice != "usdc":
+        raise RuntimeError(f"VAULT_ASSET must be 'usdc' or 'cetes', got '{choice}'.")
     if usdc and usdc_blend:
         return usdc, usdc_blend, "usdc-blend"
-    # Fallback to cetes if available
-    cetes = defindex.get("cetes")
-    cetes_blend = strategies.get("cetesBlend")
-    if cetes and cetes_blend:
-        return cetes, cetes_blend, "cetes-blend"
     raise RuntimeError("No supported vault asset found in treasury info")
 
 
