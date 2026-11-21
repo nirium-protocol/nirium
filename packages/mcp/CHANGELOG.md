@@ -4,6 +4,15 @@ All notable changes to the `nirium-mcp` package are documented here.
 
 ## Unreleased
 
+## 0.6.10 - 2026-11-21
+
+From #388 (thanks to @sparkysolutions10-pixel):
+
+- An empty `AGENT_API_URL`, `STELLAR_SECRET_KEY`, `NIRIUM_API_KEY` or `SOROBAN_RPC_URL` now counts as unset and falls back to the default. Before, an empty `SOROBAN_RPC_URL` turned testnet payments off and an empty `AGENT_API_URL` broke every call. Options passed in code still win.
+- If the x402 signer or the MPP client can't start (for example, a malformed `STELLAR_SECRET_KEY`), paid tools are turned off and say why ("Payment tools unavailable: Failed to initialize ...") instead of failing later with an opaque error.
+- The server is built by an exported `createNiriumMcpServer(options)`, which the new test suite uses. `npx nirium-mcp` starts the same way as before.
+- A test for every tool, run in CI together with the clean-install check.
+
 ## 0.6.9 - 2026-11-19
 
 `anchor_audit_record`: the tool description no longer says "immutable integrity seal". It now says tamper-evident, not tamper-proof (a changed document no longer matches its CID). README: same wording, and says `anchoredAt` comes from the node's clock.
