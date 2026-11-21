@@ -1308,8 +1308,8 @@ class Agent:
     async def _x402_build_transaction(
         self,
         accepted: Dict[str, Any],
-        url: Optional[str] = None,
-        method: Optional[str] = None,
+        url: str = "",
+        method: str = "GET",
     ) -> str:
         """
         Build the signed payment transaction for one payment requirement.
@@ -1318,11 +1318,6 @@ class Agent:
         the actual authorization entry (if configured), signs the entry, and
         re-simulates for fee estimation.
         """
-        if url is None:
-            url = getattr(self, "_current_x402_url", "")
-        if method is None:
-            method = getattr(self, "_current_x402_method", "GET")
-
         prepared, max_ledger, soroban = self._x402_prepare_transaction(accepted)
         op = prepared.transaction.operations[0]
 
@@ -1433,31 +1428,7 @@ class Agent:
 
             accepted = await self._x402_select_requirement(url, accepts)
 
-            self._current_x402_url = url
-            self._current_x402_method = method
-
-            build_fn = self._x402_build_transaction
-            try:
-                sig = inspect.signature(build_fn)
-                params = sig.parameters
-                accepts_url = "url" in params or any(
-                    p.kind == inspect.Parameter.VAR_KEYWORD for p in params.values()
-                )
-            except (ValueError, TypeError):
-                accepts_url = True
-
-            if accepts_url:
-                try:
-                    res = build_fn(accepted, url=url, method=method)
-                except TypeError:
-                    res = build_fn(accepted)
-            else:
-                res = build_fn(accepted)
-
-            if inspect.isawaitable(res):
-                tx_xdr = await res
-            else:
-                tx_xdr = res
+            tx_xdr = await self._x402_build_transaction(accepted, url=url, method=method)
 
             payment = {
                 "x402Version": challenge.get("x402Version", 2),
