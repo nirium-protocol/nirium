@@ -183,6 +183,46 @@ agent.init_x402(secret_key="S...", network="stellar:pubnet", approve=approve)
 
 Why the default stays low: an agent pays whatever a server's 402 asks for, so a low cap limits the damage from a mispriced or malicious endpoint. `NiriumX402Tool` accepts the same `max_amount_per_payment` and `approve` options.
 
+#### Pre-sign policy hook
+
+Pass `policy` to `init_x402()` and every `x402_fetch()` asks your policy before anything is signed. The question is asked before signing, so the policy sees exactly what would be signed: amount, destination, asset, resource URL, and network.
+
+The policy can be a simple callable (sync or async) or an object implementing `evaluate(ctx)`:
+
+```python
+from nirium import Agent, X402PolicyError
+
+async def policy(ctx):
+    # ctx provides amount, asset, payee, resource, network, contextHash, etc.
+    if int(ctx.amount) <= 1_000_000:  # 0.1 USDC
+        return {
+            "decision": "ALLOW",
+            "contextHash": ctx.contextHash,
+            "policyVersion": "v1",
+            "expiresAt": (time.time() + 2) * 1000,
+        }
+    return {"decision": "DENY", "reason": "over limit"}
+
+agent = Agent()
+agent.init_x402(
+    secret_key="S...",
+    network="stellar:pubnet",
+    policy=policy,
+    current_version=lambda ctx: "v1",  # optional: source of current policy version
+)
+
+try:
+    res = await agent.x402_fetch(url)
+except X402PolicyError as e:
+    print(e.outcome)  # 'DENY', 'WAIT', 'STALE', 'EXPIRED', 'TIMEOUT', 'ENGINE_ERROR', ...
+```
+
+Only an `ALLOW` reaches the signer. Everything else signs nothing: `DENY`, `WAIT`, an unhandled exception (fails closed), no answer before the deadline (`policy_timeout_ms`, default 5000 ms, never more than half the payment's `maxTimeoutSeconds`), a malformed answer, or an `ALLOW` past its `expiresAt`. Without `policy`, `x402_fetch()` behaves exactly as before.
+
+**Stale ALLOW.** With `current_version` set, it is read after the `ALLOW` and right before signing, and the `ALLOW` signs only if its `policyVersion` matches. A rejected, empty or late read signs nothing. This check narrows the window to the step between the read and the signer call.
+
+**What this does not do.** It is a check on the agent side, not account-level enforcement: code in the same process that holds the raw secret key can still sign directly, and nothing on-chain enforces the policy. It does not solve pending-capacity reservation (concurrent requests that observe the same remaining capacity): two calls evaluated at the same time can each fit a limit that together they exceed, and an aggregate cap must be held by your policy store.
+
 ### LangChain tool - pay x402 from any agent
 
 `NiriumX402Tool` is a LangChain `BaseTool` that wraps the same `init_x402` / `x402_fetch` client. A ReAct-style agent can pay a protected Stellar endpoint as a normal tool call. The Stellar secret is constructor/env configuration only: it never appears in the tool description, args schema, error text, or return value.
