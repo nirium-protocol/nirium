@@ -42,6 +42,19 @@ jobs:
       - name: Assert live verification passed
         run: test "${{ steps.live.outputs.verified }}" = "true"
 
+      - name: Verify known-good live CID with require-signature
+        id: live_signed
+        uses: ./actions/verify-audit-cid
+        with:
+          cid: QmSSZdtt3dQ8BqUm62zrKQ85E4BUHYiVfvDgZmHfJsqU1U
+          gateway: https://gateway.pinata.cloud/ipfs/
+          require-signature: "true"
+
+      - name: Assert signed live CID passes with require-signature
+        run: |
+          test "${{ steps.live_signed.outputs.verified }}" = "true"
+          test "${{ steps.live_signed.outputs.signature_valid }}" = "valid"
+
       - name: Start fixture IPFS gateway
         working-directory: actions/verify-audit-cid
         run: |

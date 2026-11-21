@@ -79,6 +79,21 @@ anchor = await agent.anchor_audit_record(
 print(anchor["cid"], anchor["attestedBy"])
 ```
 
+### Keep your own copy
+
+The receipt lives on IPFS only while someone pins it. `anchor_audit_record()` returns the exact `document` that was pinned (nodes deployed after 21 Nov 2026); save it, and `receipt_cid()` shows any time that your copy is the original. If IPFS ever loses it, add the same bytes again (`ipfs add --cid-version=0`) and you get the same CID.
+
+```python
+import json
+from nirium import receipt_cid
+
+anchor = await agent.anchor_audit_record(hash=hash, tag="invoice-batch-jul")
+if "document" in anchor:
+    data = json.dumps(anchor["document"], separators=(",", ":"), ensure_ascii=False).encode()
+    open("receipt.json", "wb").write(data)          # exactly what was pinned
+    assert receipt_cid(open("receipt.json", "rb").read()) == anchor["cid"]
+```
+
 ### Verify any receipt, without trusting Nirium
 
 ```bash
@@ -93,7 +108,7 @@ npx nirium-cli verify <cid> --hash <64-hex-sha256>
 
 The Python SDK includes a hardened, self-healing WebSocket signals client with exponential backoff, randomized jitter, configurable retry caps, automatic deduplication, and typed status/error channels.
 
-> The hosted stream (`wss://nirium-agent.fly.dev/ws/signals`) did not accept connections when checked on 18 Nov 2026. Point the client at an agent you run yourself to use it.
+> The hosted stream (`wss://nirium-agent.fly.dev/ws/signals`) did not accept connections when checked on 21 Nov 2026. Point the client at an agent you run yourself to use it.
 
 ```python
 from nirium import Agent, WebSocketMaxRetriesExceeded, WebSocketStatus
@@ -251,7 +266,7 @@ This is not fixed in the version published today. Use x402 (`init_x402()` / `x40
 |---|---|
 | **Public** (no key) | `health`, `loop/status`, `execute-demo`, `signals/recent`, `skills` list |
 | **Protected** (API key) | `execute`, `market`, `loop/start\|stop\|scan`, `subscriptions`, `skills/install`, `webhooks` |
-| **WebSocket** (JWT) | `/ws/signals` - signal stream. The hosted endpoint did not accept connections when checked on 18 Nov 2026; run your own agent to use it. |
+| **WebSocket** (JWT) | `/ws/signals` - signal stream. The hosted endpoint did not accept connections when checked on 21 Nov 2026; run your own agent to use it. |
 | **x402 Premium** | `/api/v1/premium/signals` ($0.02 USDC), `/api/v1/premium/market` ($0.05 USDC) |
 | **MPP Charge** | `/api/v1/mpp/signals`, `/api/v1/mpp/market` (testnet verified with the TypeScript client on 15 Oct 2026, mainnet untested; `mpp_fetch()` does not work in this version) |
 

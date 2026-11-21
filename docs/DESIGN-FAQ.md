@@ -71,6 +71,19 @@ checked with the signer's public key. `nirium verify` (open source) reads from
 a dedicated Filebase gateway and falls back to Pinata, ipfs.io and dweb.link.
 What would stop is new anchoring through our API.
 
+One limit: a document stays on IPFS only while someone pins it. Today we pin
+every receipt on Pinata. A second copy on Filebase is built and deployed, but
+it is not active: Filebase's pinning API needs a paid plan, and that account
+is still on the free one (checked 21 Nov 2026). `GET /api/audit/info` reports
+which copies are live.
+
+So keep your own copy. The anchor response includes the exact `document` that
+was pinned; `nirium anchor --save receipt.json` writes it for you. The CID is
+the hash of those bytes, so `nirium cid receipt.json --expect <CID>` (or
+`receiptCid()` / `receipt_cid()` in the SDKs) shows it is the original, and
+`ipfs add --cid-version=0 receipt.json` puts it back on IPFS with the same CID,
+even if every pin we pay for disappears.
+
 ## Does Nirium hold funds or keys?
 
 No. The client signs every payment with its own key, independent partners

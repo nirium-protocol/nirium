@@ -1,6 +1,6 @@
 {
   "name": "nirium-mcp",
-  "version": "0.6.8",
+  "version": "0.6.10",
   "description": "MCP server that lets an AI assistant (Claude, Cursor, VS Code Copilot) use Nirium on Stellar: paid x402 endpoints in USDC, receipts anyone can verify and treasury vault tools. MPP tools are experimental.",
   "main": "dist/index.js",
   "bin": {
@@ -29,7 +29,8 @@
     "prepublishOnly": "npm run build",
     "build": "tsc",
     "start": "node dist/index.js",
-    "dev": "tsc --watch"
+    "dev": "tsc --watch",
+    "test": "tsx --test test/*.test.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.27.1",

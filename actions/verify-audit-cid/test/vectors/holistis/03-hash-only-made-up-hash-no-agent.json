@@ -1,0 +1,25 @@
+{
+  "id": "hash-only-made-up-hash-no-agent",
+  "kind": "reject",
+  "why": "A hash-only document with a made-up content_sha256 and no agent block. Nothing was checked, so it must not verify (the case behind PR 396).",
+  "document": {
+    "version": "1.1.0",
+    "node": "audit-external",
+    "content_sha256": "e5b21b260272357d73dd307562b9f2cec9ec47e5da3099c00ab274e2a32c238e",
+    "network": "stellar:pubnet",
+    "tag": "tia-quote",
+    "anchoredAt": "2026-10-18T22:46:41.076Z"
+  },
+  "expected": {
+    "ok": false,
+    "hashMatch": true,
+    "hashOnly": true,
+    "signatureStatus": "absent"
+  },
+  "source": {
+    "by": "github.com/holistis",
+    "date": "2026-11-19",
+    "suite": "agent-receipt-verify/vectors/nirium-verify-audit-cid",
+    "expected_from": "nirium-protocol/nirium verifyAuditDocument at merge commit f350e205af057c6bc724b1c7bcce5cb8a4d5337e (PR 396), run with @stellar/stellar-base"
+  }
+}

@@ -22,6 +22,7 @@ import {
     type X402BaseSigner, type X402PolicyHook, type X402PaymentRequirementsView,
 } from './x402-policy';
 import { captureRequirements, toSpendCapError, type X402OfferedRequirement } from './x402-spend-cap';
+export { receiptCid } from './receipt-cid';
 
 export interface AgentConfig {
     apiKey: string;
@@ -376,6 +377,12 @@ export interface AuditAnchor {
     anchoredAt: string;
     /** Present when the anchor carried a verified agent attestation. */
     attestedBy?: string;
+    /**
+     * The exact document pinned to IPFS (nodes deployed after 21 Nov 2026).
+     * Keep it: `JSON.stringify(document)`, with no trailing newline, gives back
+     * the same CID if you ever add it to IPFS again.
+     */
+    document?: Record<string, unknown>;
     [key: string]: unknown;
 }
 

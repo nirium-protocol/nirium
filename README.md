@@ -7,7 +7,7 @@ Open-source verifiable receipts (Audit Trail), agentic payments (x402/MPP) and t
 
 This repository contains the TypeScript and Python SDKs, the MCP server, the CLI, examples and quickstarts that let any developer:
 
-- **Anchor immutable audit trails**: SHA-256 content hash pinned to IPFS, optionally carrying an ed25519 signature that proves *who* declared the fact, not just that it is unaltered. Records are pinned with Pinata. To read them back, `nirium verify` and the `verify-audit-cid` Action try a dedicated Filebase gateway first and fall back to shared public gateways, which often answer `429` under load.
+- **Anchor tamper-evident audit trails**: SHA-256 content hash pinned to IPFS, optionally carrying an ed25519 signature that proves *who* declared the fact, not just that it is unaltered. Records are pinned with Pinata. To read them back, `nirium verify` and the `verify-audit-cid` Action try a dedicated Filebase gateway first and fall back to shared public gateways, which often answer `429` under load.
 - **Get paid by AI agents**: put your own API behind an x402 pay-gate in one call with `x402Serve()`, or pay for someone else's with `initX402()`.
 - **Cap what your own agent can spend**: both SDKs refuse a payment above $1 of USDC by default unless you raise the cap (TypeScript through `@x402/core`, Python since 0.12.0, which also refuses a 402 offered on another network). On top of that, an experimental pre-sign policy hook (`initX402({ policy })`, shipped in 0.16.0) asks your own ALLOW/DENY policy before any payment is signed - see [`packages/sdk/README.md#pre-sign-policy-hook-experimental`](./packages/sdk/README.md#pre-sign-policy-hook-experimental) for its real scope and what it does not cover.
 - **Automate on-chain treasury**: a Nirium agent moves idle capital into a CETES strategy (tokenized Mexican T-bills via Etherfuse) and back, over a vault **you** own. The agent can propose a rebalance without ever holding a signing key. On mainnet, deploying, depositing, proposals and autonomous execution (the agent signs) are invite-only until we have a written legal opinion; withdrawing is always open.
@@ -42,7 +42,7 @@ sequenceDiagram
     S->>F: verify and settle
     F->>X: submit, facilitator pays the network fee
     S-->>A: 200 + the data
-    A->>N: anchor the receipt hash (optional, any side can)
+    A->>N: anchor a receipt (optional) for what the ledger can't show: the policy decision and what the call was for, a DENY too
     N->>I: pin
     N-->>A: CID
     V->>I: fetch the CID, recompute the hash, check the signature
@@ -207,7 +207,7 @@ Real bugs found in code we don't control, in other people's repos, confirmed by 
 
 ### Merged pull requests in other teams' repos
 
-Checked against the GitHub API on 19 Nov 2026. Each one was reviewed and merged by that repo's own maintainers (two by Stellar's triage bot).
+Checked against the GitHub API on 21 Nov 2026. Each one was reviewed and merged by that repo's own maintainers (two by Stellar's triage bot).
 
 | Pull request | What it does | Author | Merged by |
 |---|---|---|---|

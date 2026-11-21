@@ -1,0 +1,32 @@
+{
+  "id": "record-forged-and-rehashed-agent-removed",
+  "kind": "accept-by-design",
+  "why": "A forged record with a recomputed hash and no agent block verifies on integrity alone, signature absent. This is what verified means: read it with the signature status.",
+  "document": {
+    "version": "1.1.0",
+    "node": "audit-external",
+    "content_sha256": "69237fc5ab31f3eeb2a7cfeb38c59983d466f9a35a7f48054da602cd010ce756",
+    "record": {
+      "schema": "arcusx.dispute.resolution.v1",
+      "dispute": "dispute-118",
+      "outcome": "released_to_client",
+      "case_file_sha256": "1794c699bce4e06d33857cc34f2974ac2bfff500bdc41b002b219a154b698ac0",
+      "note": "Hashes only — no personal data anchored."
+    },
+    "network": "mainnet",
+    "tag": "arcusx-dispute",
+    "anchoredAt": "2026-07-30T22:26:02.857Z"
+  },
+  "expected": {
+    "ok": true,
+    "hashMatch": true,
+    "hashOnly": false,
+    "signatureStatus": "absent"
+  },
+  "source": {
+    "by": "github.com/holistis",
+    "date": "2026-11-19",
+    "suite": "agent-receipt-verify/vectors/nirium-verify-audit-cid",
+    "expected_from": "nirium-protocol/nirium verifyAuditDocument at merge commit f350e205af057c6bc724b1c7bcce5cb8a4d5337e (PR 396), run with @stellar/stellar-base"
+  }
+}

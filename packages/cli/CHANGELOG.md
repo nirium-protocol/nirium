@@ -4,6 +4,22 @@ All notable changes to the `nirium-cli` package are documented here.
 
 ## Unreleased
 
+## 3.2.7 - 2026-11-21
+
+Keep your own copy of a receipt. `nirium anchor --save <file>` writes the exact anchored document, byte for byte, after checking that it gives back the anchored CID (it uses the `document` the node returns, or the gateway on older nodes). New `nirium cid <file> [--expect <cid>]` recomputes a file's CIDv0 locally with no IPFS node, so a saved copy can be shown to be the original and re-added to IPFS with the same CID.
+
+## 3.2.6 - 2026-11-20
+
+`nirium verify` now decides hash-only mode the same way as the verify-audit-cid Action: only when the `record` field is missing. Before, a document with `record: null` and the original hash and signature kept passed as a hash-only anchor (HASH NOT CHECKED, signature valid) while the Action rejected it. It now fails here too. Found by github.com/holistis in an outside check of 3.2.5 (case 10 of 21).
+
+New opt-in `--require-signature`: fail unless the document carries a valid agent signature, same as the Action's `require-signature` input. Off by default, so unsigned records keep passing on their hash.
+
+New test runs the 21 holistis vectors through the real CLI.
+
+## 3.2.5 - 2026-11-19
+
+`nirium verify`: when a hash check fails, the message names each hash once: the anchored one, the one recomputed from the record (only if the record itself changed) and the one you passed with `--hash`/`--evidence`. Before, an intact record that did not match `--hash` printed the anchored hash twice and never showed yours. `--json` adds `providedHash`.
+
 ## 3.2.4 - 2026-11-17
 
 README: a short note on what a receipt adds over the ledger, with a link to the design FAQ. No code change.

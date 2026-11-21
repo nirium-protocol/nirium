@@ -1,0 +1,32 @@
+{
+  "id": "receipt-hash-only-as-published",
+  "kind": "accept",
+  "why": "The second receipt exactly as published: hash only, no record, valid ed25519 signature over the declared hash.",
+  "document": {
+    "version": "1.1.0",
+    "node": "audit-external",
+    "content_sha256": "0f60f3cee44ed7c0e1ca72f75acfdb7f7ff063e9f6598a1952da848c66325e11",
+    "agent": {
+      "id": "tia-api",
+      "key": "GATT3MOLOCTDOUGS3FDNZUYV3UKDLIQE4PN7JJ4JYZBYJOOXBVJV4KXI",
+      "alg": "ed25519",
+      "statement": "nirium-audit-v1:0f60f3cee44ed7c0e1ca72f75acfdb7f7ff063e9f6598a1952da848c66325e11",
+      "signature": "AX71VHpVSCQ6w9E8SiRmqbPEcDiGBDY9dZ1J2L7d/AxmtkDHZIvW4XGcFdlhD2RLDPRlcvABlkw7Tns/QZ4+Bg=="
+    },
+    "network": "stellar:pubnet",
+    "tag": "tia-quote",
+    "anchoredAt": "2026-10-18T22:46:41.076Z"
+  },
+  "expected": {
+    "ok": true,
+    "hashMatch": true,
+    "hashOnly": true,
+    "signatureStatus": "valid"
+  },
+  "source": {
+    "by": "github.com/holistis",
+    "date": "2026-11-19",
+    "suite": "agent-receipt-verify/vectors/nirium-verify-audit-cid",
+    "expected_from": "nirium-protocol/nirium verifyAuditDocument at merge commit f350e205af057c6bc724b1c7bcce5cb8a4d5337e (PR 396), run with @stellar/stellar-base"
+  }
+}

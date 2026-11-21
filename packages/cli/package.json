@@ -1,6 +1,6 @@
 {
   "name": "nirium-cli",
-  "version": "3.2.4",
+  "version": "3.2.7",
   "description": "Nirium from the terminal: pay or serve an x402 API on Stellar, anchor and verify receipts, check an agent and export reports.",
   "main": "bin/nirium.js",
   "type": "module",
@@ -9,7 +9,7 @@
   },
   "scripts": {
     "prepublishOnly": "node --check bin/nirium.js",
-    "test": "node --test test/doctor-seller.test.js test/config-secret.test.js test/serve-api-key.test.js test/verify-hash-only.test.js test/verify-retry-gateway.test.js test/pay-agent-construction.test.js test/pay-status-and-cap.test.js test/pay-payment-response-parsing.test.js test/status.test.js test/anchor.test.js test/anchor-sign.test.js test/report.test.js"
+    "test": "node --test test/doctor-seller.test.js test/config-secret.test.js test/serve-api-key.test.js test/verify-hash-only.test.js test/verify-holistis-vectors.test.js test/keep-receipt.test.js test/verify-retry-gateway.test.js test/pay-agent-construction.test.js test/pay-status-and-cap.test.js test/pay-payment-response-parsing.test.js test/status.test.js test/anchor.test.js test/anchor-sign.test.js test/report.test.js"
   },
   "keywords": [
     "stellar",

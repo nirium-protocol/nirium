@@ -1,0 +1,22 @@
+{
+  "name": "nirium-build-model-provenance-example",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Provenance for an AI model or dataset: a private record and a public, signed Audit Trail receipt (testnet).",
+  "scripts": {
+    "keygen": "node src/cli.mjs keygen",
+    "demo-data": "node src/cli.mjs demo-data",
+    "record": "node src/cli.mjs record",
+    "anchor": "node src/cli.mjs anchor",
+    "check-model": "node src/cli.mjs check-model",
+    "test": "node --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "@stellar/stellar-sdk": "^14.5.0"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "Apache-2.0"
+}
