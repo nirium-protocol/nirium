@@ -207,7 +207,7 @@ Real bugs found in code we don't control, in other people's repos, confirmed by 
 
 ### Merged pull requests in other teams' repos
 
-Checked against the GitHub API on 19 Nov 2026. Each one was reviewed and merged by that repo's own maintainers (two by Stellar's triage bot).
+Checked against the GitHub API on 21 Nov 2026. Each one was reviewed and merged by that repo's own maintainers (two by Stellar's triage bot).
 
 | Pull request | What it does | Author | Merged by |
 |---|---|---|---|
