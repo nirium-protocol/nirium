@@ -1,0 +1,30 @@
+{
+  "name": "nirium-build-autonomous-grants-example",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Autonomous grants: an agent verifies a milestone and proposes a payout; a 2-of-3 DAO multisig signs it, on stellar:testnet.",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test test/*.test.ts",
+    "setup": "node --import tsx src/cli.ts setup",
+    "status": "node --import tsx src/cli.ts status",
+    "propose": "node --import tsx src/cli.ts propose",
+    "inspect": "node --import tsx src/cli.ts inspect",
+    "sign": "node --import tsx src/cli.ts sign",
+    "submit": "node --import tsx src/cli.ts submit",
+    "demo-one-signature": "node --import tsx src/cli.ts demo-one-signature"
+  },
+  "dependencies": {
+    "@stellar/stellar-sdk": "^14.5.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.30",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "license": "Apache-2.0"
+}
