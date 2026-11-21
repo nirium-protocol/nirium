@@ -4,6 +4,10 @@ All notable changes to the `nirium` package are documented here.
 
 ## Unreleased
 
+## 0.19.7 - 2026-11-21
+
+New `receiptCid(document)`: recomputes a receipt's IPFS CID (CIDv0) locally, with no IPFS node and no new dependency, so a copy you kept can be shown to be the original. Accepts the saved bytes, a string, or the `document` object.
+
 `AuditAnchor` gains an optional `document`: the exact JSON pinned to IPFS, returned by Audit Trail nodes deployed after 21 Nov 2026. Keeping it lets you re-add the receipt to IPFS with the same CID.
 
 ## 0.19.6 - 2026-11-17

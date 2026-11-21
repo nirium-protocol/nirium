@@ -79,6 +79,21 @@ anchor = await agent.anchor_audit_record(
 print(anchor["cid"], anchor["attestedBy"])
 ```
 
+### Keep your own copy
+
+The receipt lives on IPFS only while someone pins it. `anchor_audit_record()` returns the exact `document` that was pinned (nodes deployed after 21 Nov 2026); save it, and `receipt_cid()` shows any time that your copy is the original. If IPFS ever loses it, add the same bytes again (`ipfs add --cid-version=0`) and you get the same CID.
+
+```python
+import json
+from nirium import receipt_cid
+
+anchor = await agent.anchor_audit_record(hash=hash, tag="invoice-batch-jul")
+if "document" in anchor:
+    data = json.dumps(anchor["document"], separators=(",", ":"), ensure_ascii=False).encode()
+    open("receipt.json", "wb").write(data)          # exactly what was pinned
+    assert receipt_cid(open("receipt.json", "rb").read()) == anchor["cid"]
+```
+
 ### Verify any receipt, without trusting Nirium
 
 ```bash
