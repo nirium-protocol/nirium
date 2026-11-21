@@ -22,6 +22,7 @@ import {
     type X402BaseSigner, type X402PolicyHook, type X402PaymentRequirementsView,
 } from './x402-policy';
 import { captureRequirements, toSpendCapError, type X402OfferedRequirement } from './x402-spend-cap';
+export { receiptCid } from './receipt-cid';
 
 export interface AgentConfig {
     apiKey: string;
