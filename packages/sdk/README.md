@@ -77,6 +77,22 @@ const anchor = await agent.anchorAuditRecord({
 console.log(anchor.cid, anchor.attestedBy);
 ```
 
+### Keep your own copy
+
+The receipt lives on IPFS only while someone pins it. `anchorAuditRecord()` returns the exact `document` that was pinned (nodes deployed after 21 Nov 2026); save it, and `receiptCid()` shows any time that your copy is the original. If IPFS ever loses it, add the same bytes again (`ipfs add --cid-version=0`) and you get the same CID.
+
+```typescript
+import { receiptCid } from 'nirium';
+import fs from 'node:fs';
+
+const anchor = await agent.anchorAuditRecord({ hash, tag: 'invoice-batch-jul' });
+if (anchor.document) {
+  const bytes = JSON.stringify(anchor.document);   // exactly what was pinned, no trailing newline
+  fs.writeFileSync('receipt.json', bytes);
+  console.log(receiptCid(fs.readFileSync('receipt.json')) === anchor.cid);   // true
+}
+```
+
 ### Verify any receipt, without trusting Nirium
 
 ```bash

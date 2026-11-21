@@ -1,6 +1,6 @@
 {
   "name": "nirium",
-  "version": "0.19.6",
+  "version": "0.19.7",
   "description": "Charge or pay per request in USDC on Stellar (x402), with receipts anyone can verify. For apps, backends and AI agents. Non-custodial.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
