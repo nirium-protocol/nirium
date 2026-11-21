@@ -32298,7 +32298,7 @@ function computeRecordHash(record) {
     const recordStr = record ? JSON.stringify(record) : '';
     return external_node_crypto_.createHash('sha256').update(recordStr).digest('hex');
 }
-function verifyAuditDocument(doc, cid) {
+function verifyAuditDocument(doc, cid, opts = {}) {
     if (!doc || typeof doc !== 'object') {
         return {
             ok: false,
@@ -32335,7 +32335,19 @@ function verifyAuditDocument(doc, cid) {
         const isValidSig = verifyEd25519Signature(signerKey, statement, doc.agent.signature);
         signatureStatus = isValidSig ? 'valid' : 'invalid';
     }
-    const ok = hashMatch && signatureStatus !== 'invalid';
+    // A pass needs at least one check that actually ran and passed, same rule
+    // as nirium-cli. "Nothing failed" is not enough: a hash-only document has
+    // no record to recompute, so hashMatch above is trivially true, and with
+    // no agent block nothing was checked at all. Before this, an unsigned
+    // hash-only document with any content_sha256 came back verified: true.
+    // In record mode the recomputed hash is a real check, so an unsigned
+    // record still passes on integrity alone (signature_valid says absent).
+    const hashChecked = !hashOnly && hashMatch;
+    const anyFailed = !hashMatch || signatureStatus === 'invalid';
+    const anyPassed = hashChecked || signatureStatus === 'valid';
+    const signatureMissing = !!opts.requireSignature && signatureStatus === 'absent';
+    const ok = !anyFailed && anyPassed && !signatureMissing;
+    const nothingVerified = !anyFailed && !anyPassed;
     return {
         ok,
         cid,
@@ -32348,6 +32360,11 @@ function verifyAuditDocument(doc, cid) {
         statement,
         declaredStatement,
         agentId,
+        ...(nothingVerified
+            ? { error: 'Nothing verified: hash-only document without an agent signature. Its content_sha256 cannot be checked here and no signature vouches for it.' }
+            : signatureMissing
+                ? { error: 'Signature required (require-signature: true), but this document has no agent signature.' }
+                : {}),
     };
 }
 async function fetchJsonWithTimeout(url, fetchFn, timeoutMs) {
@@ -32397,7 +32414,7 @@ async function fetchAndVerifyCid(cid, options = {}) {
             try {
                 const doc = await fetchJsonWithTimeout(url, fetchFn, timeoutMs);
                 return {
-                    ...verifyAuditDocument(doc, cid),
+                    ...verifyAuditDocument(doc, cid, { requireSignature: options.requireSignature }),
                     gateway: gw,
                     url,
                 };
@@ -32456,6 +32473,11 @@ function setFailed(message) {
 function parseBooleanInput(value) {
     const normalized = value.trim().toLowerCase();
     return normalized === '' || normalized === 'true' || normalized === '1' || normalized === 'yes';
+}
+// Opt-in flags: empty means false (unlike fail-on-error, whose empty means true).
+function parseOptInFlag(value) {
+    const normalized = value.trim().toLowerCase();
+    return normalized === 'true' || normalized === '1' || normalized === 'yes';
 }
 function boolOutput(value) {
     return value ? 'true' : 'false';
@@ -32552,9 +32574,11 @@ async function run() {
             .filter(Boolean)
         : undefined;
     const failOnError = parseBooleanInput(getInput('fail-on-error') || 'true');
+    const requireSignature = parseOptInFlag(getInput('require-signature'));
     const result = await fetchAndVerifyCid(cid, {
         gateway: gateway || undefined,
         gateways,
+        requireSignature,
     });
     await setOutputs(result);
     await writeSummary(result);

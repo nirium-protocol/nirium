@@ -334,7 +334,7 @@ export function createNiriumMcpServer(options: NiriumMcpOptions = {}): McpServer
 
     server.tool(
         'anchor_audit_record',
-        'Anchor evidence to IPFS and get back a CID (immutable integrity seal, not notarization). '
+        'Anchor evidence to IPFS and get back a CID. Tamper-evident, not tamper-proof: a changed document no longer matches its CID. Not notarization. '
         + 'Pass `hash` (sha-256 hex of your own file/event) or `record` (small JSON object, max 8KB). '
         + 'Anchor hashes rather than raw personal data — IPFS content cannot be deleted. Free during open beta.',
         {

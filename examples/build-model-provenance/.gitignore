@@ -1,0 +1,5 @@
+node_modules/
+# Private records, demo artifacts and the signer key never get committed.
+.provenance/
+demo/
+.env

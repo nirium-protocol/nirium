@@ -114,6 +114,7 @@ nirium verify <cid> --gateway https://gateway.pinata.cloud --gateway https://ipf
 | `--json` | machine-readable result | off |
 | `--hash <hex>` | expected evidence hash for a hash-only anchor (`sha-256:` prefix optional) | none |
 | `--evidence <file>` | file whose SHA-256 is compared with the anchored hash | none |
+| `--require-signature` | fail unless the document has a valid agent signature | off |
 
 If every gateway comes back 404 after exhausting retries, that's
 reported as **NOT YET AVAILABLE** (`availability: "not_yet_available"`
@@ -128,6 +129,13 @@ of the two checks actually ran and succeeded, a matching `--hash`/
 (an unsigned hash-only anchor with no `--hash` or `--evidence`), nothing
 was verified, so `verify` prints `NOTHING VERIFIED`, exits non-zero, and
 sets `verified: false` in `--json`, instead of reporting a pass.
+
+An unsigned record still passes on its recomputed hash, with the
+signature reported as ABSENT. That also means someone can change a
+record, re-hash it and drop the signature, and it still passes. If you
+only trust receipts your agents signed, add `--require-signature`: an
+unsigned document then fails with a "Signature required" error. Same
+rule as the `require-signature` input of the verify-audit-cid Action.
 
 ## Charge for your API in five minutes
 

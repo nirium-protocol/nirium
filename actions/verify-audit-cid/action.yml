@@ -24,6 +24,15 @@ inputs:
       gateways (HTTP 429) under load, while a dedicated gateway does not.
     required: false
     default: ""
+  require-signature:
+    description: >-
+      Set to "true" to fail unless the document carries a valid agent
+      signature. By default an unsigned record verifies on its hash alone
+      (signature_valid: absent), so a record that was changed, re-hashed and
+      stripped of its signature also verifies. Turn this on when your
+      receipts are always signed.
+    required: false
+    default: "false"
   fail-on-error:
     description: Fail the workflow step when verification fails.
     required: false
@@ -31,7 +40,7 @@ inputs:
 
 outputs:
   verified:
-    description: "true when the document hash matches and no embedded agent signature is invalid."
+    description: "true when no check failed and at least one check actually passed: the recomputed record hash (record mode) or a valid agent signature. A hash-only document without a signature is never verified. Read it together with signature_valid: in record mode an unsigned document can pass on its hash alone, unless require-signature is true."
   hash_match:
     description: "true when SHA-256(JSON.stringify(record)) matches content_sha256. For a hash-only document (no `record` field), this is trivially true since there is nothing to recompute against; see `hash_only`."
   hash_only:

@@ -4,6 +4,10 @@ All notable changes to the `nirium-mcp` package are documented here.
 
 ## Unreleased
 
+## 0.6.9 - 2026-11-19
+
+`anchor_audit_record`: the tool description no longer says "immutable integrity seal". It now says tamper-evident, not tamper-proof (a changed document no longer matches its CID). README: same wording, and says `anchoredAt` comes from the node's clock.
+
 ## 0.6.8 - 2026-11-17
 
 README: a short note on what a receipt adds over the ledger, with a link to the design FAQ. No code change.

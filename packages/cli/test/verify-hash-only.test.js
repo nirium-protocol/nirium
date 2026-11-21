@@ -178,3 +178,43 @@ test('human output says NOT CHECKED, not MISMATCH, for hash-only without --hash'
     assert.doesNotMatch(r.out, /MISMATCH/);
     assert.match(r.out, /VERIFICATION PASSED/);
 });
+
+function verifyHuman(fixture, ...extra) {
+    return new Promise((resolve) => {
+        const child = spawn(process.execPath, [cli, 'verify', fixture, '--gateway', gateway, ...extra]);
+        let out = '';
+        child.stdout.on('data', (d) => { out += d; });
+        child.on('close', (code) => resolve({ code, out }));
+    });
+}
+
+const mismatchLine = (out) => out.split('\n').find((l) => l.includes('MISMATCH'));
+
+test('record mode, intact record but --hash differs: names the anchored hash once and shows yours', async () => {
+    const other = 'a'.repeat(64);
+    const j = await verify('record', '--hash', other);
+    assert.equal(j.code, 1);
+    assert.equal(j.json.hashStatus, 'mismatch');
+    assert.equal(j.json.providedHash, other);
+    const line = mismatchLine((await verifyHuman('record', '--hash', other)).out);
+    assert.ok(line);
+    assert.equal(line.split(j.json.expectedHash).length - 1, 1, line);
+    assert.ok(line.includes(`Yours (--hash/--evidence): ${other}`), line);
+    assert.ok(!line.includes('Recomputed from record'), line);
+});
+
+test('record mode, tampered record: shows the recomputed hash next to the anchored one', async () => {
+    const j = await verify('record-tampered');
+    const line = mismatchLine((await verifyHuman('record-tampered')).out);
+    assert.ok(line);
+    assert.ok(line.includes(`Anchored: ${j.json.expectedHash}`), line);
+    assert.ok(line.includes(`Recomputed from record: ${j.json.computedHash}`), line);
+    assert.ok(!line.includes('Yours'), line);
+});
+
+test('hash-only, --hash differs: shows the anchored hash and yours', async () => {
+    const other = 'b'.repeat(64);
+    const line = mismatchLine((await verifyHuman('hash-only-base64', '--hash', other)).out);
+    assert.ok(line);
+    assert.ok(line.includes(`Anchored: ${HASH}, Yours (--hash/--evidence): ${other}`), line);
+});

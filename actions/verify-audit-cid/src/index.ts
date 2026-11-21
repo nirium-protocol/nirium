@@ -41,6 +41,12 @@ function parseBooleanInput(value: string): boolean {
   return normalized === '' || normalized === 'true' || normalized === '1' || normalized === 'yes';
 }
 
+// Opt-in flags: empty means false (unlike fail-on-error, whose empty means true).
+function parseOptInFlag(value: string): boolean {
+  const normalized = value.trim().toLowerCase();
+  return normalized === 'true' || normalized === '1' || normalized === 'yes';
+}
+
 function boolOutput(value: boolean): string {
   return value ? 'true' : 'false';
 }
@@ -142,10 +148,12 @@ export async function run(): Promise<void> {
         .filter(Boolean)
     : undefined;
   const failOnError = parseBooleanInput(getInput('fail-on-error') || 'true');
+  const requireSignature = parseOptInFlag(getInput('require-signature'));
 
   const result = await fetchAndVerifyCid(cid, {
     gateway: gateway || undefined,
     gateways,
+    requireSignature,
   });
   await setOutputs(result);
   await writeSummary(result);
