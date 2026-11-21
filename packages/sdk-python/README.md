@@ -93,7 +93,7 @@ npx nirium-cli verify <cid> --hash <64-hex-sha256>
 
 The Python SDK includes a hardened, self-healing WebSocket signals client with exponential backoff, randomized jitter, configurable retry caps, automatic deduplication, and typed status/error channels.
 
-> The hosted stream (`wss://nirium-agent.fly.dev/ws/signals`) did not accept connections when checked on 18 Nov 2026. Point the client at an agent you run yourself to use it.
+> The hosted stream (`wss://nirium-agent.fly.dev/ws/signals`) did not accept connections when checked on 21 Nov 2026. Point the client at an agent you run yourself to use it.
 
 ```python
 from nirium import Agent, WebSocketMaxRetriesExceeded, WebSocketStatus
@@ -211,7 +211,7 @@ This is not fixed in the version published today. Use x402 (`init_x402()` / `x40
 |---|---|
 | **Public** (no key) | `health`, `loop/status`, `execute-demo`, `signals/recent`, `skills` list |
 | **Protected** (API key) | `execute`, `market`, `loop/start\|stop\|scan`, `subscriptions`, `skills/install`, `webhooks` |
-| **WebSocket** (JWT) | `/ws/signals` - signal stream. The hosted endpoint did not accept connections when checked on 18 Nov 2026; run your own agent to use it. |
+| **WebSocket** (JWT) | `/ws/signals` - signal stream. The hosted endpoint did not accept connections when checked on 21 Nov 2026; run your own agent to use it. |
 | **x402 Premium** | `/api/v1/premium/signals` ($0.02 USDC), `/api/v1/premium/market` ($0.05 USDC) |
 | **MPP Charge** | `/api/v1/mpp/signals`, `/api/v1/mpp/market` (testnet verified with the TypeScript client on 15 Oct 2026, mainnet untested; `mpp_fetch()` does not work in this version) |
 

@@ -4,7 +4,7 @@ An example of the `ResilientSignalClient` from the [`nirium`](https://www.npmjs.
 
 It reconnects on its own with exponential backoff + jitter, refreshes tokens through a hook, and deduplicates burst signals.
 
-> **Hosted stream status (checked 18 Nov 2026):** the hosted endpoint `wss://nirium-agent.fly.dev/ws/signals` did not accept WebSocket connections in our check (the same path answers HTTP 404), and it requires a JWT (`?token=`) when it does. To try this client, point `NIRIUM_WS_URL` at an agent you run yourself (`ws://localhost:3002/ws/signals`).
+> **Hosted stream status (checked 21 Nov 2026):** the hosted endpoint `wss://nirium-agent.fly.dev/ws/signals` did not accept WebSocket connections in our check (the same path answers HTTP 404), and it requires a JWT (`?token=`) when it does. To try this client, point `NIRIUM_WS_URL` at an agent you run yourself (`ws://localhost:3002/ws/signals`).
 
 ## Features
 
