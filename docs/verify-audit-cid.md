@@ -214,7 +214,7 @@ A mainnet (`stellar:pubnet`) anchor signed with a demo key (`throwaway-demo-key`
 
 - **Hash match**: The record has not been altered since anchoring.
 - **Valid signature** (if present): The agent with the specified Stellar public key declared this specific content hash at anchor time.
-- **IPFS immutability**: The CID cryptographically binds to the content; you cannot change the document without changing its CID.
+- **Content addressing**: The CID is derived from the document's bytes, so a changed document gets a different CID. The change shows; it is not prevented (tamper-evident, not tamper-proof).
 
 ## What This Does NOT Prove
 
