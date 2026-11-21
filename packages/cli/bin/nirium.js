@@ -227,9 +227,21 @@ program
     .option('--sign', 'Attach an ed25519 attestation of which key produced this anchor')
     .option('--key-env <VAR>', 'Environment variable holding the Stellar secret key to sign with (--sign only; default: the config store\'s secretKey)')
     .option('-u, --url <url>', 'Agent URL', 'https://nirium-agent.fly.dev')
+    .option('--save <file>', 'Save your own copy of the anchored document; its bytes give back the same CID if IPFS ever loses it')
     .option('--json', 'Output result as JSON')
     .action(async (options) => {
         await executeAnchorCommand(options);
+    });
+
+// --- COMMAND: cid ---
+program
+    .command('cid')
+    .argument('<file>', 'A saved receipt (from `nirium anchor --save`) or any file up to 256 KiB')
+    .option('--expect <cid>', 'Exit non-zero unless the file gives back this CID')
+    .option('--json', 'Output result as JSON')
+    .description('Recompute a file\'s IPFS CID (CIDv0) locally, no IPFS node needed: proves a saved copy is the original')
+    .action((file, options) => {
+        executeCidCommand(file, options);
     });
 
 // --- COMMAND: doctor ---
@@ -1825,6 +1837,94 @@ function formatVerifyOutput(result) {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// cid — CIDv0 of a small file, computed locally
+// ═══════════════════════════════════════════════════════════════
+//
+// A receipt is one IPFS block: a dag-pb node wrapping a UnixFS File whose data
+// is the whole document (files up to 256 KiB fit in one block). Its CIDv0 is
+// base58btc(0x12 0x20 || sha256(node)), the same result `ipfs add` gives with its
+// defaults (CIDv0, 256 KiB chunks). Checked on 21 Nov 2026 against three real
+// mainnet receipts. No IPFS library needed.
+
+const UNIXFS_BLOCK_BYTES = 262144;
+const BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+
+function protobufVarint(n) {
+    const out = [];
+    while (n >= 0x80) { out.push((n & 0x7f) | 0x80); n = Math.floor(n / 128); }
+    out.push(n);
+    return Buffer.from(out);
+}
+
+function protobufBytesField(tag, buf) {
+    return Buffer.concat([Buffer.from([tag]), protobufVarint(buf.length), buf]);
+}
+
+function base58btc(buf) {
+    let n = BigInt('0x' + buf.toString('hex'));
+    let out = '';
+    while (n > 0n) { out = BASE58_ALPHABET[Number(n % 58n)] + out; n /= 58n; }
+    for (const b of buf) { if (b !== 0) break; out = '1' + out; }
+    return out;
+}
+
+function cidV0OfSmallFile(bytes) {
+    if (bytes.length === 0) throw new Error('The file is empty.');
+    if (bytes.length > UNIXFS_BLOCK_BYTES) {
+        throw new Error(`The file is ${bytes.length} bytes; this check covers single-block files up to ${UNIXFS_BLOCK_BYTES} bytes (every Audit Trail receipt fits).`);
+    }
+    const unixfs = Buffer.concat([Buffer.from([0x08, 0x02]), protobufBytesField(0x12, bytes), Buffer.from([0x18]), protobufVarint(bytes.length)]);
+    const node = protobufBytesField(0x0a, unixfs);
+    const digest = crypto.createHash('sha256').update(node).digest();
+    return base58btc(Buffer.concat([Buffer.from([0x12, 0x20]), digest]));
+}
+
+function executeCidCommand(file, options) {
+    let cid;
+    try {
+        cid = cidV0OfSmallFile(fs.readFileSync(file));
+    } catch (err) {
+        const error = err?.code === 'ENOENT' ? `File not found: ${file}` : (err?.message || String(err));
+        if (options.json) console.log(JSON.stringify({ ok: false, error }));
+        else console.error(`❌ ${error}`);
+        process.exit(1);
+    }
+    const expected = options.expect ? String(options.expect).trim() : undefined;
+    const matches = expected === undefined ? undefined : cid === expected;
+    if (options.json) {
+        console.log(JSON.stringify({ ok: matches !== false, cid, ...(expected ? { expected, matches } : {}) }, null, 2));
+    } else {
+        console.log(`CID: ${cid}`);
+        if (expected) console.log(matches ? `✔ MATCH: this file is the document behind ${expected}` : `❌ MISMATCH: expected ${expected}`);
+    }
+    if (matches === false) process.exit(1);
+}
+
+// Writes the anchored document to `file`, byte for byte. Uses the `document` the
+// node returns; older nodes don't return it, so fall back to the gateway, which
+// serves the same bytes. Only writes when the bytes give back the anchored CID.
+async function saveReceiptCopy(data, file) {
+    const fromDocument = data.document && typeof data.document === 'object';
+    let bytes;
+    try {
+        if (fromDocument) {
+            bytes = Buffer.from(JSON.stringify(data.document), 'utf8');
+        } else {
+            const url = data.gatewayUrl || `https://nirium.myfilebase.com/ipfs/${data.cid}`;
+            const res = await fetch(url, { signal: AbortSignal.timeout(15000) });
+            if (!res.ok) throw new Error(`gateway answered HTTP ${res.status}`);
+            bytes = Buffer.from(await res.arrayBuffer());
+        }
+        const cid = cidV0OfSmallFile(bytes);
+        if (cid !== data.cid) return { path: file, saved: false, cid, error: `the copy gives ${cid}, not ${data.cid}; not saved` };
+        fs.writeFileSync(file, bytes);
+        return { path: file, saved: true, cid, source: fromDocument ? 'response' : 'gateway' };
+    } catch (err) {
+        return { path: file, saved: false, error: err?.message || String(err) };
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════
 // anchor — anchor a hash or small record to IPFS via the Audit Trail node
 // ═══════════════════════════════════════════════════════════════
 
@@ -1927,8 +2027,11 @@ async function executeAnchorCommand(options) {
         return;
     }
 
+    const saved = options.save ? await saveReceiptCopy(data, options.save) : undefined;
+    if (saved && !saved.saved) process.exitCode = 1;
+
     if (options.json) {
-        console.log(JSON.stringify({ ok: true, ...data }, null, 2));
+        console.log(JSON.stringify({ ok: true, ...data, ...(saved ? { saved } : {}) }, null, 2));
         return;
     }
 
@@ -1938,7 +2041,13 @@ async function executeAnchorCommand(options) {
     if (data.gatewayUrl) console.log(`   Gateway URL:    ${data.gatewayUrl}`);
     if (data.attestedBy) console.log(`   Attested by:    ${data.attestedBy}`);
     console.log(`   Anchored at:    ${data.anchoredAt}`);
+    if (saved?.saved) {
+        console.log(`   Saved copy:     ${saved.path} (gives back ${saved.cid})`);
+    } else if (saved) {
+        console.log(`   ⚠ Not saved:    ${saved.error}`);
+    }
     console.log(`\n   Verify independently: nirium verify ${data.cid}`);
+    if (saved?.saved) console.log(`   Check your copy any time: nirium cid ${saved.path} --expect ${data.cid}`);
 }
 
 // Returns the `agent` object for the request body, `undefined` when

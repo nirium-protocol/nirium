@@ -4,6 +4,8 @@ All notable changes to the `nirium-cli` package are documented here.
 
 ## Unreleased
 
+Keep your own copy of a receipt. `nirium anchor --save <file>` writes the exact anchored document, byte for byte, after checking that it gives back the anchored CID (it uses the `document` the node returns, or the gateway on older nodes). New `nirium cid <file> [--expect <cid>]` recomputes a file's CIDv0 locally with no IPFS node, so a saved copy can be shown to be the original and re-added to IPFS with the same CID.
+
 ## 3.2.6 - 2026-11-20
 
 `nirium verify` now decides hash-only mode the same way as the verify-audit-cid Action: only when the `record` field is missing. Before, a document with `record: null` and the original hash and signature kept passed as a hash-only anchor (HASH NOT CHECKED, signature valid) while the Action rejected it. It now fails here too. Found by github.com/holistis in an outside check of 3.2.5 (case 10 of 21).

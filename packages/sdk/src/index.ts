@@ -376,6 +376,12 @@ export interface AuditAnchor {
     anchoredAt: string;
     /** Present when the anchor carried a verified agent attestation. */
     attestedBy?: string;
+    /**
+     * The exact document pinned to IPFS (nodes deployed after 21 Nov 2026).
+     * Keep it: `JSON.stringify(document)`, with no trailing newline, gives back
+     * the same CID if you ever add it to IPFS again.
+     */
+    document?: Record<string, unknown>;
     [key: string]: unknown;
 }
 
