@@ -48,7 +48,8 @@ npm run check
 
 The deployable static site is written to `site/`. It contains the generated
 HTML, a raw Markdown copy of each announcement, and `publications.json`. Serve
-that directory from any static host, including GitHub Pages.
+that directory from any static host, including GitHub Pages. `site/` is a build
+output; generate it locally and do not commit it to the repository.
 
 The 32-second terminal demo linked from the pull request shows the three
 published receipts, one `npx nirium-cli verify` run, and the tamper refusal.
