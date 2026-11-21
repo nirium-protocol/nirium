@@ -89,7 +89,7 @@ def make_agent(monkeypatch):
         agent.init_x402(SECRET, network=init_kwargs.pop("network", "stellar:testnet"), **init_kwargs)
         signed: List[Dict[str, Any]] = []
 
-        def fake_build(accepted):
+        async def fake_build(accepted, **_):
             signed.append(accepted)
             return "SIGNED_XDR"
 
