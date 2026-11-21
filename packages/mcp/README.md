@@ -2,7 +2,7 @@
 
 Model Context Protocol server for [Nirium](https://nirium.xyz) - lets any MCP-compatible AI (Claude, GPT, Cursor, VS Code Copilot, and others) anchor verifiable receipts to IPFS with Audit Trail, pay x402 endpoints (MPP tools are experimental), read market data and control the treasury loop.
 
-Every receipt the `anchor_audit_record` tool returns can be re-checked by anyone with `npx nirium-cli verify <cid>` or at [nirium.xyz/verify](https://nirium.xyz/verify).
+Every receipt the `anchor_audit_record` tool returns can be re-checked by anyone with `npx nirium-cli verify <cid>` or at [nirium.xyz/verify](https://nirium.xyz/verify). Since 21 Nov 2026 the result also includes `document`, the exact JSON that was pinned: keep it, and `npx nirium-cli cid` shows a saved copy is the original.
 
 **What a receipt adds over the ledger:** a Stellar payment is already public, so a receipt that only repeats payer, payee and amount proves nothing new; link the transaction instead. Receipts are for what the ledger doesn't hold: policy decisions (including refused payments that were never signed), what a payment was for, off-chain records, and who declared them. More in the [design FAQ](https://github.com/nirium-protocol/nirium/blob/main/docs/DESIGN-FAQ.md).
 
