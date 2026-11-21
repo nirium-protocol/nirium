@@ -4,6 +4,8 @@ All notable changes to the `nirium` package are documented here.
 
 ## Unreleased
 
+`AuditAnchor` gains an optional `document`: the exact JSON pinned to IPFS, returned by Audit Trail nodes deployed after 21 Nov 2026. Keeping it lets you re-add the receipt to IPFS with the same CID.
+
 ## 0.19.6 - 2026-11-17
 
 README: a short note on what a receipt adds over the ledger, with a link to the design FAQ. No code change.

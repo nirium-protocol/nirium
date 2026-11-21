@@ -210,6 +210,20 @@ nirium verify QmZDVSxEfi3TLmcK1wLNydUHgGebfnTQ8i2EaEYfg2RUD6 --json
 
 A mainnet (`stellar:pubnet`) anchor signed with a demo key (`throwaway-demo-key`). It stores only `content_sha256`, so without the original evidence the CLI reports `signatureStatus: "valid"` and `hashStatus: "unchecked"`: the signature checks out, but the content can't be checked until someone presents the bytes with `--hash` or `--evidence`. That is how private evidence works: the receipt is public, the file is not.
 
+## If IPFS Loses a Receipt
+
+A CID is the hash of the document, so the document can come back from any copy.
+Keep the receipt when you anchor it (`nirium anchor ... --save receipt.json`; the
+API's `POST /api/audit/log` response also includes the exact `document`), then:
+
+```bash
+nirium cid receipt.json --expect <CID>   # recomputes the CID locally
+ipfs add --cid-version=0 receipt.json    # puts it back on IPFS, same CID
+```
+
+Save the bytes as they are. `JSON.stringify(document)` with no trailing newline
+is exactly what was pinned; any reformatting changes the CID.
+
 ## What This Proves
 
 - **Hash match**: The record has not been altered since anchoring.

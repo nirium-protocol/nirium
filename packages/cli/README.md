@@ -46,11 +46,28 @@ client-supplied network field is rejected server-side anyway.
 | `--sign` | attach an ed25519 attestation of which key produced this anchor | off |
 | `--key-env <VAR>` | env var holding the secret key to sign with (`--sign` only) | config store's `secretKey` |
 | `-u, --url <url>` | agent URL | `https://nirium-agent.fly.dev` |
+| `--save <file>` | save your own copy of the anchored document (see below) | off |
 | `--json` | machine-readable result | off |
 
 On success, prints the CID, the content hash, the gateway URL, and a
 `nirium verify <cid>` suggestion so the anchor can be independently
 re-checked right away.
+
+### Keep your own copy
+
+```bash
+nirium anchor --hash <64-hex> --save receipt.json
+nirium cid receipt.json --expect <CID>      # any time later, no IPFS node needed
+```
+
+The receipt lives on IPFS only while someone keeps it pinned. Nirium pins it,
+but cannot promise that forever. `--save` writes the exact document that was
+anchored, byte for byte, and only after checking that those bytes give back the
+anchored CID. `nirium cid` recomputes the CID of a saved copy locally, so you
+can show it is the original. If IPFS ever loses the receipt, add the file again
+with `ipfs add --cid-version=0 receipt.json` (or any pinning service) and you
+get the same CID back. Don't reformat the file: a changed space or a trailing
+newline gives a different CID.
 
 ### Attesting who produced an anchor
 
