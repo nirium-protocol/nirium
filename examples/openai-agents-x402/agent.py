@@ -15,7 +15,7 @@ import os
 import sys
 from typing import Any
 
-from agents import Agent as OpenAIAgent
+from agents import Agent as OpenAIAgent, Runner
 from dotenv import load_dotenv
 
 from nirium_tool import initialize_nirium_x402, nirium_x402_fetch
@@ -61,8 +61,8 @@ async def test_agent(server_url: str) -> None:
     cheap_url = f"{server_url}/paid/market-summary"
     
     try:
-        result1 = await agent.run(f"Please fetch data from {cheap_url}")
-        print(f"✅ Agent response: {result1}")
+        result1 = await Runner.run(agent, f"Please fetch data from {cheap_url}")
+        print(f"✅ Agent response: {result1.final_output}")
     except Exception as e:
         print(f"Result: {e}")
     
@@ -73,8 +73,8 @@ async def test_agent(server_url: str) -> None:
     expensive_url = f"{server_url}/paid/full-report"
 
     try:
-        result2 = await agent.run(f"Please fetch data from {expensive_url}")
-        print(f"✅ Agent response: {result2}")
+        result2 = await Runner.run(agent, f"Please fetch data from {expensive_url}")
+        print(f"✅ Agent response: {result2.final_output}")
     except Exception as e:
         print(f"Result: {e}")
     

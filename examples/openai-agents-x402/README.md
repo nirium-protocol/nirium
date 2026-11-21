@@ -110,13 +110,13 @@ test_openai_tool.py::test_function_tool_decorator PASSED                 [100%]
 
 ### Testnet Evidence
 
-**Run against your own `x402Serve` route (`server/`):** PENDING. Fill in from a run with your own keys:
+**Run against my own `x402Serve` route (`server/`, stellar:testnet, Nov 21 2026):**
 
 | Step | Value |
 |---|---|
-| Seller account (`SELLER_PUBLIC_KEY`, receives the payment) | PENDING |
-| Paid call `/paid/market-summary` through `@function_tool` | PENDING: tx hash on Stellar Expert (testnet) |
-| Refused call `/paid/full-report` ($2 > $1 cap) | Refused before signing with `X402SpendCapError`, no transaction (paste the agent's message) |
+| Seller account (`SELLER_PUBLIC_KEY`, receives the payment) | [GDYJA25NGJWWMGTAC73LG4J2X6FCVSTC7CTVJZKT3EZSBUYM5WOKIV5Z](https://stellar.expert/explorer/testnet/account/GDYJA25NGJWWMGTAC73LG4J2X6FCVSTC7CTVJZKT3EZSBUYM5WOKIV5Z) |
+| Paid call `/paid/market-summary` through `@function_tool` | [2d9235ab60a8908735cdc9cb4ab49f82dc48a9ae2b59c245cf94ffcafec9b0a6](https://stellar.expert/explorer/testnet/tx/2d9235ab60a8908735cdc9cb4ab49f82dc48a9ae2b59c245cf94ffcafec9b0a6): 0.02 USDC from payer GBTBTAO3…RIY5 to the seller above |
+| Refused call `/paid/full-report` ($2 > $1 cap) | Refused before signing with `X402SpendCapError`, no transaction. Agent: "The payment request for the data from the URL exceeded the per-payment cap of \$1. The server requested a payment of 20,000,000 stroops (approximately \$2). As a result, the payment was refused." |
 
 **Earlier run against Nirium's testnet endpoint** (before `server/` existed; the payee `GC4Q5TWW…` is Nirium's, not yours):
 
