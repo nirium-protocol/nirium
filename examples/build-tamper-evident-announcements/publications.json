@@ -1,0 +1,29 @@
+{
+  "schema": "nirium.announcements.v1",
+  "announcements": [
+    {
+      "file": "2026-11-17-audit-trail-testnet.md",
+      "sha256": "5d6e4cdb4d22db850479241f89c752aed9ec719426106db4862937519522301a",
+      "cid": "QmYwzPgYhUjwyUHUo8mrxuQsCePuBvRb6kbD72fUe4sB5V",
+      "anchoredAt": "2026-11-19T00:31:35.676Z",
+      "signer": "GAMFEIR44BGT5WAS7MQY5R5ARCQGKAXYHGYK4HPXCJMLZAETJOTJNIYI",
+      "tag": "wave11-tamper-evident-announcements"
+    },
+    {
+      "file": "2026-11-18-publication-policy.md",
+      "sha256": "12db19cd1bd3dfd546115039957b6417f8e567846d23b95257ee27dba9ff6103",
+      "cid": "QmSpqbrNwioZpcMU1PyZBQsguNGCGGemM31iNa47f4ShKt",
+      "anchoredAt": "2026-11-20T05:28:20.843Z",
+      "signer": "GB72CIDC6JU2UVKIMX6TKJDPT2GYZEB3JOMBWOX5B45PWHSPYSU2Q2NI",
+      "tag": "wave11-tamper-evident-announcements"
+    },
+    {
+      "file": "2026-11-19-incident-note.md",
+      "sha256": "17b7ffd3ba9b81decd662675cfd718c4d9a2bf57b9af316b036d629ad906ff68",
+      "cid": "QmNRNwyka6RMciaz54fKLqniyHwt2CjdAY362WrjePwGS4",
+      "anchoredAt": "2026-11-19T00:31:33.651Z",
+      "signer": "GAMFEIR44BGT5WAS7MQY5R5ARCQGKAXYHGYK4HPXCJMLZAETJOTJNIYI",
+      "tag": "wave11-tamper-evident-announcements"
+    }
+  ]
+}
