@@ -1,0 +1,8 @@
+# Exact versions tested (Python 3.12)
+nirium==0.12.7
+crewai==1.15.44
+python-dotenv==1.2.2
+
+# Testing
+pytest==8.3.0
+pytest-asyncio==0.24.0
