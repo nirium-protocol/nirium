@@ -42,7 +42,7 @@ sequenceDiagram
     S->>F: verify and settle
     F->>X: submit, facilitator pays the network fee
     S-->>A: 200 + the data
-    A->>N: anchor the receipt hash (optional, any side can)
+    A->>N: anchor a receipt (optional) for what the ledger can't show: the policy decision and what the call was for, a DENY too
     N->>I: pin
     N-->>A: CID
     V->>I: fetch the CID, recompute the hash, check the signature
