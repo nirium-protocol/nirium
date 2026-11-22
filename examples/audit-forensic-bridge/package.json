@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx src/server.ts",
     "export": "tsx src/export.ts",
-    "test": "tsx --test test/bridge.test.ts",
+    "test": "tsx --test test/*.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
