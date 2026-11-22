@@ -142,6 +142,8 @@ Live on **both** Stellar networks. They are not two copies of the same thing.
 
 ### Status at a glance
 
+Uptime of nirium.xyz and the public mainnet and testnet endpoints is checked on a schedule by GitHub Actions at [nirium-protocol.github.io/status](https://nirium-protocol.github.io/status) ([repo](https://github.com/nirium-protocol/status): the results and history are committed there in public). It measures availability, not payments or usage.
+
 | Product | Status |
 |---|---|
 | x402 | Live on mainnet ([last settled payment 18 Nov 2026](https://stellar.expert/explorer/public/account/GCLBBPON256CV7ATEHM5B54BOKNC7GX53MBINJ42MHVXGDMMZ3ZWKBHP)) |
