@@ -16,6 +16,11 @@ Real JSON, no auth, right now: the live status of every execution node
 (Settlement, Audit Trail, Treasury Rebalance, Payouts, Reporting), which
 network each runs on, and which endpoints back it.
 
+Uptime history for the same endpoints is public at
+[nirium-protocol.github.io/status](https://nirium-protocol.github.io/status)
+([repo](https://github.com/nirium-protocol/status): results and history are committed
+there by GitHub Actions). It shows availability, not payments or usage.
+
 ## 2. A payment receipt you can verify without us
 
 This is the core of what Nirium builds: a signed receipt of a payment that
