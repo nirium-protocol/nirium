@@ -57,7 +57,7 @@ anchor = await agent.anchor_audit_record(
 print(anchor["cid"])
 ```
 
-Anchor a **hash** rather than the data itself: IPFS content cannot be deleted, so raw personal data would outlive any erasure request.
+Anchor a **hash** rather than the data itself: nobody can guarantee that something is deleted from IPFS (anyone with the CID may have kept a copy), so raw personal data could outlive any erasure request.
 
 ### Signed receipts: prove who declared it
 

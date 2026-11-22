@@ -25,7 +25,7 @@ Confirmed against `GET /api/audit/info` on the public nodes:
   string field, so pass `process.env.NIRIUM_API_KEY ?? ''` (or omit the header
   and call `POST /api/audit/log` yourself).
 
-Anchor a **hash**, not personal data: IPFS content cannot be deleted.
+Anchor a **hash**, not personal data: nobody can guarantee that something is deleted from IPFS, since anyone with the CID may have kept a copy.
 
 ## Why fire-and-forget fails on serverless
 

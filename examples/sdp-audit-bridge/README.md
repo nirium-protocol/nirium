@@ -207,7 +207,7 @@ evidence that a previously verified transaction changed.
   or printed. Transaction hashes are public references and allow an auditor to
   recover public on-chain destinations from Horizon; this bridge does not promise
   recipient anonymity.
-- IPFS content cannot be deleted. Do not add personal data to the record schema.
+- Nobody can guarantee that something is deleted from IPFS (anyone with the CID may have kept a copy). Do not add personal data to the record schema.
 
 ## Development
 
