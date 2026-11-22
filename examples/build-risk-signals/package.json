@@ -1,0 +1,28 @@
+{
+  "name": "nirium-build-risk-signals",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Read-only vault concentration monitor that raises threshold signals while only the vault owner key signs any move",
+  "scripts": {
+    "monitor": "tsx src/cli.ts monitor",
+    "owner:move": "tsx src/cli.ts owner-move",
+    "demo": "tsx src/cli.ts demo",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test test/*.test.ts"
+  },
+  "dependencies": {
+    "@stellar/stellar-sdk": "^14.5.0",
+    "dotenv": "^17.2.3",
+    "nirium": "^0.19.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "license": "Apache-2.0"
+}
