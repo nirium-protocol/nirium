@@ -149,7 +149,7 @@ Live on **both** Stellar networks. They are not two copies of the same thing.
 | Reporting | Live on mainnet |
 | Treasury Rebalance | Mainnet, invite-only (4 self-funded rebalances, last 6 Aug 2026) |
 | Payouts | Mainnet, invite-only (no mainnet runs yet) |
-| Policy hook (pre-sign `ALLOW`/`DENY`) | Experimental |
+| Policy hook (pre-sign `ALLOW`/`DENY`) | Experimental (TypeScript SDK; Python SDK since 0.12.9) |
 | MPP Charge | Testnet only |
 
 The tables below back each row with a transaction hash or a live endpoint - this one is just the summary.
