@@ -80,7 +80,7 @@ The Soroban contracts, the frontend at nirium.xyz and the agent API at nirium-ag
 - Prompt injection sanitization on all LLM inputs
 - Prototype pollution guard
 - HMAC-SHA256 webhook signature validation
-- Sliding-window rate limiting (60/30/300 rpm by tier)
+- Rate limiting per API-key tier (free: 10 requests/min and 100/day; sandbox: 60/min; institutional: 300/min) and per route (public routes 100/min; Audit Trail anchoring and escrow routes 20/min). **Update, 2026-11-22 (checked against the agent code):** this line previously read "60/30/300 rpm by tier", which did not match the configured limits
 - domainLock and response obfuscation modules exist in the repo but are not mounted on any route. **Update, 2026-10-12 (checked against the agent codebase that day):** this line previously also listed "AML screening" as a live control. The AML middleware was never imported or mounted on any route and has been removed as dead code.
 
 **Infrastructure:**
