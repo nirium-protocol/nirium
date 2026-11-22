@@ -1,5 +1,5 @@
 """Sign and anchor a run-record hash through the Nirium Audit Trail (client only)."""
-import base64, json, os
+import asyncio, base64, json, os
 from pathlib import Path
 
 NODE = "https://nirium-agent.fly.dev"   # testnet node, POST /api/audit/log
@@ -11,19 +11,19 @@ def stellar_sign(secret, record_hash):
     sig = kp.sign((PREFIX + record_hash).encode())
     return kp.public_key, base64.b64encode(sig).decode()
 
-def sdk_anchor(payload):
-    # TODO(check SDK docs): confirm the exact anchor_audit_record signature.
-    from nirium import anchor_audit_record
-    return anchor_audit_record(**payload)
+def sdk_anchor(kwargs):
+    """Call the published SDK: Agent(...).anchor_audit_record(hash=, tag=, agent=)."""
+    from nirium import Agent
+    return asyncio.run(Agent(api_url=NODE).anchor_audit_record(**kwargs))
 
 def anchor(record, record_hash, tag, secret=None, signer=stellar_sign, client=sdk_anchor):
     if not tag.startswith("wave11-"):
         raise ValueError("tag must start with 'wave11-'")
     secret = secret or os.environ["STELLAR_TESTNET_SECRET"]  # never commit keys
-    agent, signature = signer(secret, record_hash)
-    resp = client({"hash": record_hash, "agent": agent, "statement": PREFIX + record_hash,
-                   "signature": signature, "tag": tag, "node": NODE})
-    return {"cid": resp["cid"], "hash": record_hash, "agent": agent, "tag": tag,
+    key, signature = signer(secret, record_hash)
+    resp = client({"hash": record_hash, "tag": tag,
+                   "agent": {"key": key, "signature": signature}})
+    return {"cid": resp["cid"], "hash": record_hash, "agent": key, "tag": tag,
             "anchoredAt": resp.get("anchoredAt"), "record": record}
 
 def save_receipt(receipt, directory="receipts"):
