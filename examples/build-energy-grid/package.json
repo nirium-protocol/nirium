@@ -1,0 +1,29 @@
+{
+  "name": "nirium-build-energy-grid-example",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A testnet energy market: simulated solar producers sell kWh allocations over x402 to a budget-limited storage agent.",
+  "scripts": {
+    "keys": "tsx src/cli.ts keys",
+    "market": "tsx src/cli.ts market",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test test/*.test.ts"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "nirium": "file:../../packages/sdk"
+  },
+  "devDependencies": {
+    "@stellar/stellar-sdk": "^16.3.0",
+    "@types/express": "^5.0.6",
+    "@types/node": "^22.19.30",
+    "tsx": "^4.23.12",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "license": "Apache-2.0"
+}
