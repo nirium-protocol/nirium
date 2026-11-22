@@ -36,7 +36,9 @@ A receipt is for what the ledger doesn't hold:
 
 To check a receipt yourself, paste its CID at
 [nirium.xyz/verify](https://nirium.xyz/verify). No account needed, and the page
-shows what the ledger already proves and what the receipt adds.
+shows what the ledger already proves and what the receipt adds. The page
+recomputes the CID in your browser, but checks the signature on our server; for
+a check that relies on nothing of ours, run `npx nirium-cli verify <CID>`.
 
 ## Then why make a receipt for a plain payment?
 
@@ -95,15 +97,19 @@ settle, and Nirium never holds client funds or a key that can move them.
 No. The hook (experimental since 0.16.0) asks *your* policy, in your process,
 before anything is signed. DENY or WAIT means nothing is signed. Nirium is
 never the policy owner and never answers ALLOW or DENY for someone else's
-payment. Its real scope and what it does not cover are in
-[`packages/sdk/README.md`](../packages/sdk/README.md#pre-sign-policy-hook-experimental).
+payment. It is in the TypeScript SDK and, since 0.12.9 (22 Nov 2026), in the
+Python SDK. Its real scope and what it does not cover are in
+[`packages/sdk/README.md`](../packages/sdk/README.md#pre-sign-policy-hook-experimental)
+and [`packages/sdk-python/README.md`](../packages/sdk-python/README.md#pre-sign-policy-hook).
 
 ## Who checks receipts today?
 
 Honestly, few people yet. TIA anchors signed receipts on mainnet with its own
-keys, AgentLedger reports running the pre-sign hook on testnet (its public
-ledger shows the payments but doesn't name the hook), and a Trustless Work
-escrow pilot on testnet refused tampered evidence and released valid
-evidence. All of it is listed with hashes in [`EVIDENCE.md`](../EVIDENCE.md).
+keys. AgentLedger ran the pre-sign hook on mainnet on 18 Nov 2026 and anchored
+five signed receipts for its decisions; its founder has worked with Nirium
+part-time since October 2026, so we count that as team activity, not outside
+use. An outside reviewer (holistis) checked two receipts with their own code,
+without our tools, on 19 Nov 2026. And a Trustless Work escrow pilot on testnet
+refused tampered evidence and released valid evidence. All of it is listed with hashes in [`EVIDENCE.md`](../EVIDENCE.md).
 We don't have organic third-party verification at scale, and we say so rather
 than imply it.
