@@ -4,6 +4,10 @@ All notable changes to the `nirium-mcp` package are documented here.
 
 ## Unreleased
 
+## 0.6.11 - 2026-11-22
+
+README: the Audit Trail note said IPFS content "cannot be deleted". Corrected: nobody can guarantee deletion from IPFS, because anyone with the CID may have kept a copy; the advice is unchanged (anchor a hash, not personal data). No code change.
+
 ## 0.6.10 - 2026-11-21
 
 From #388 (thanks to @sparkysolutions10-pixel):

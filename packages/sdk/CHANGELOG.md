@@ -4,6 +4,10 @@ All notable changes to the `nirium` package are documented here.
 
 ## Unreleased
 
+## 0.19.8 - 2026-11-22
+
+README: the Audit Trail note said IPFS content "cannot be deleted". Corrected: nobody can guarantee deletion from IPFS, because anyone with the CID may have kept a copy; the advice is unchanged (anchor a hash, not personal data). No code change.
+
 ## 0.19.7 - 2026-11-21
 
 New `receiptCid(document)`: recomputes a receipt's IPFS CID (CIDv0) locally, with no IPFS node and no new dependency, so a copy you kept can be shown to be the original. Accepts the saved bytes, a string, or the `document` object.

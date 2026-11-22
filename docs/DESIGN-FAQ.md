@@ -56,8 +56,9 @@ to get paid.
 ## What exactly gets stored?
 
 A SHA-256 hash of your record, a tag, and an optional signature, pinned to
-IPFS. We ask integrators to send a hash, not the record itself: IPFS content
-can't be deleted, so raw personal data would outlive any erasure request.
+IPFS. We ask integrators to send a hash, not the record itself: nobody can
+guarantee that something is deleted from IPFS (anyone with the CID may have kept
+a copy), so raw personal data could outlive any erasure request.
 
 A receipt is an integrity seal: it shows the record hasn't changed since it
 was anchored and, if signed, who declared it. It does not prove the record is
