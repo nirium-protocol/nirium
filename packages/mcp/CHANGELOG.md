@@ -4,6 +4,10 @@ All notable changes to the `nirium-mcp` package are documented here.
 
 ## Unreleased
 
+## 0.6.12 - 2026-11-22
+
+`anchor_audit_record` tool description: it said IPFS content "cannot be deleted". Corrected: nobody can guarantee that something is deleted from IPFS. The advice is unchanged (anchor a hash, not raw personal data). No behavior change.
+
 ## 0.6.11 - 2026-11-22
 
 README: the Audit Trail note said IPFS content "cannot be deleted". Corrected: nobody can guarantee deletion from IPFS, because anyone with the CID may have kept a copy; the advice is unchanged (anchor a hash, not personal data). No code change.
