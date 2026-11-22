@@ -1,11 +1,9 @@
 import { spawn } from 'node:child_process';
 import fs from 'node:fs/promises';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import dotenv from 'dotenv';
 import { DEFAULT_LOG_PATH, readAnchors, type AnchoredReceipt } from './anchors.js';
-
-dotenv.config();
 
 export interface CliVerification {
   verified: boolean;
@@ -37,7 +35,14 @@ export function verifyCid(cid: string): Promise<CliVerification> {
     const args = windows
       ? ['/d', '/s', '/c', `npx --yes nirium-cli@latest verify ${cid} --json`]
       : ['--yes', 'nirium-cli@latest', 'verify', cid, '--json'];
-    const child = spawn(command, args, { stdio: ['ignore', 'pipe', 'pipe'] });
+    const verificationEnv = { ...process.env };
+    delete verificationEnv.STELLAR_SECRET_KEY;
+    delete verificationEnv.NIRIUM_API_KEY;
+    const child = spawn(command, args, {
+      cwd: os.tmpdir(),
+      env: verificationEnv,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
     let stdout = '';
     let stderr = '';
     child.stdout.setEncoding('utf8').on('data', (chunk: string) => { stdout += chunk; });
