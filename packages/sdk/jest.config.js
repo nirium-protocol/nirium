@@ -6,4 +6,9 @@ module.exports = {
   testMatch: ['**/*.test.ts'],
   // #126: no test may open a real outbound connection.
   setupFilesAfterEnv: ['<rootDir>/jest.no-network.js'],
+  globals: {
+    'ts-jest': {
+      tsconfig: 'tsconfig.test.json',
+    },
+  },
 };

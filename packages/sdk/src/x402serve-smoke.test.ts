@@ -32,7 +32,7 @@ jest.mock('@stellar/mpp/charge/client', () => ({
 // x402-policy.ts. Only the constants read at module load are needed here.
 jest.mock('@stellar/stellar-sdk', () => ({
   Networks: { TESTNET: 'Test SDF Network ; September 2015', PUBLIC: 'Public Global Stellar Network ; September 2015' },
-}));
+}), { virtual: true });
 
 import { x402Serve } from './index';
 import { x402Metrics } from './metrics';

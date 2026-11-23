@@ -40,7 +40,7 @@ jest.mock('@stellar/mpp/charge/client', () => ({
 }));
 jest.mock('@stellar/stellar-sdk', () => ({
   Networks: { TESTNET: 'Test SDF Network ; September 2015', PUBLIC: 'Public Global Stellar Network ; September 2015' },
-}));
+}), { virtual: true });
 
 let capturedRoutes: Record<string, any> | undefined;
 

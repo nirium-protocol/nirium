@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@stellar/stellar-sdk": ["__mocks__/stellar-sdk"]
+    }
+  },
+  "include": [
+    "src/**/*",
+    "__mocks__/**/*"
+  ]
+}
