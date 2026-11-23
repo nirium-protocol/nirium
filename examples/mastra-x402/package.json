@@ -6,6 +6,7 @@
   "scripts": {
     "start": "tsx src/demo.ts",
     "agent": "tsx src/agent.ts",
+    "refused": "tsx src/refused.ts",
     "server": "tsx server/server.ts",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test test/*.test.ts"
