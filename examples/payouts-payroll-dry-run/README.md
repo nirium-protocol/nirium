@@ -69,8 +69,7 @@ SHA256 plan digest: ceacea123986595db08c9251db270716c4c4c5810724b0e67938b5aecb16
 DRY RUN: no keys read, no network requests, no ledger writes.
 ```
 
-**These three Friendbot hashes are account-funding transactions, NOT contractor payout transactions.** The payer-signed Nirium payout remains **NOT RUN** after a security restriction on the tool invocation. Thus the real-run output, own payer-signed payout hash, screen recording and PR are pending, not represented as complete. Offline suite after fee guard: `npm run typecheck` PASS, `npm test` 6/6 PASS.
-
+**These three Friendbot hashes are account-funding transactions, NOT contractor payout transactions.** The payer-signed Nirium payout remains **NOT RUN** after the execution tool's security restriction. The real-run output, payout hash, and screen recording are pending. [Draft PR #498](https://github.com/nirium-protocol/nirium/pull/498) is open for early review; the bounty is **not completed**. Offline suite after the fee guard: `npm run typecheck` PASS, `npm test` 6/6 PASS.
 ## Duplicate-payment protection and recovery
 
 `ledger/YYYY-MM.json` (ignored by Git) is written **before** any network request. Any second invocation for the same month fails closed, regardless of CSV modifications. A `pending` record (including timeouts and unknown submission outcomes) blocks all automatic retries; reconcile the transaction on testnet using the local run ID and your payer's transaction history before a deliberate operator-controlled recovery. The lock file protects concurrent runs; a crash may leave a lock, which also blocks automatic repeat payments. Do not delete or reset a pending ledger/lock to retry blindly. Back up your local ledger: losing it also loses this client-side protection. This is local, single-host idempotency, not a blockchain-wide payment registry.
@@ -86,11 +85,10 @@ The tests create test-only ephemeral Stellar keypairs and XDR locally; they stub
 
 ## Testnet evidence / maintainers
 
-- [ ] Payer and recipient keypairs generated locally, and account funding verified
-- [ ] Same numbered rows from dry run and real run shown in README, with command outputs
-- [ ] Actual payer-signed transaction hash(es) linked on Stellar Expert (testnet)
-- [ ] Local offline tests and typecheck pass, results recorded
-- [ ] Demo recording <=2 minutes attached or linked in PR description, with explicit sharing permission
-- [ ] PR links `Closes #456` and discloses any AI assistance accurately
-
+- [x] Payer and recipient keypairs generated locally, Friendbot returned HTTP 200 for all three funding requests
+- [ ] Same numbered rows from dry run and actual Nirium real run shown in README, with command outputs
+- [ ] Actual payer-signed payout transaction hash(es) linked on Stellar Expert (testnet)
+- [x] Local offline tests and typecheck pass, results recorded (6/6 tests)
+- [ ] Demo recording <=2 minutes attached or linked in PR description; permission to share is currently **not granted**
+- [x] [Draft PR #498](https://github.com/nirium-protocol/nirium/pull/498) links `Closes #456` and the AI-assistance commit trailer is present
 The program keeps all seed keys out of tracked files and will never send them to a Nirium node.
