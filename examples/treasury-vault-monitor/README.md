@@ -1,6 +1,6 @@
 # Nirium Treasury Vault Monitor (Stellar Testnet)
 
-A lightweight, non-custodial CLI monitor for DeFindex treasury vaults on Stellar testnet using `@nirium/sdk`. It polls vault states via `getTreasuryVault()` and `getTreasuryVaults()` every $N$ minutes, alerting via `stdout` and optional HTTP webhooks whenever total balances or strategy allocation ratios move beyond configured thresholds.
+A lightweight, non-custodial CLI monitor for DeFindex treasury vaults on Stellar testnet using the `nirium` SDK (npm: `nirium`). It polls vault states via `getTreasuryVault()` and `getTreasuryVaults()` every $N$ minutes, alerting via `stdout` and optional HTTP webhooks whenever total balances or strategy allocation ratios move beyond configured thresholds.
 
 ---
 
