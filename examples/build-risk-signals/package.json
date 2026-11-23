@@ -5,11 +5,10 @@
   "type": "module",
   "description": "Read-only vault concentration monitor that raises threshold signals while only the vault owner key signs any move",
   "scripts": {
-    "monitor": "tsx src/cli.ts monitor",
-    "owner:move": "tsx src/cli.ts owner-move",
-    "demo": "tsx src/cli.ts demo",
+    "monitor": "node --import tsx src/cli.ts monitor",
+    "owner:move": "node --import tsx src/cli.ts owner-move",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test test/*.test.ts"
+    "test": "node --import tsx --test test/*.test.ts"
   },
   "dependencies": {
     "@stellar/stellar-sdk": "^14.5.0",
