@@ -1,0 +1,19 @@
+{
+  "cid": "QmWRJetpVMX8DtwgMFK3GqL6YKzs6oJ3GhCeKtkWJbcRTz",
+  "hash": "8fb6bf393c1e9d552e8a81b0858204d6b4877c82224c6c9b5d2d5658b2ef13bd",
+  "agent": "GC3ADSZYQZWOQASTNZQ4PWA7GR6FAETSQBS4Q4EGZZXNZQYST3JXH5XT",
+  "tag": "wave11-reproducible-notebook",
+  "anchoredAt": "2026-11-23T00:19:33.802Z",
+  "record": {
+    "version": "nirium-run-record-v1",
+    "inputs": {
+      "data/run2.txt": "0b2a04baf2fb45f9efd2e31510ab7e39fb025c310306add1783aa174e9e2881d"
+    },
+    "code": {
+      "run_analysis.py": "cc28ac12ac4ac2f24e26ff0878f743487b440700807f472972254eaa9aaa2f86"
+    },
+    "outputs": {
+      "results/run2.json": "1219930bcd9070f673ceca33956c294aba64f36968ab2bb320896af9cb85a044"
+    }
+  }
+}
