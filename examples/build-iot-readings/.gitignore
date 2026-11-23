@@ -1,0 +1,6 @@
+node_modules/
+.env
+.batches/
+.batches_tampered/
+dist/
+*.log
