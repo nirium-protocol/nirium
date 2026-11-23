@@ -4,7 +4,7 @@ This quickstart shows how an agent or script pays a Nirium x402 endpoint from Ty
 
 ## What You Need
 
-- Node.js >=22.12.0 - `@stellar/stellar-sdk` 16.x (a dependency of `nirium`) requires it; an older Node silently resolves an incompatible older SDK instead of failing.
+- Node.js >=22.12.0 - `@stellar/stellar-sdk` 17.x (a dependency of `nirium`) requires it; an older Node silently resolves an incompatible older SDK instead of failing.
 - A Stellar testnet account with XLM (from Friendbot), a USDC trustline and testnet USDC from [faucet.circle.com](https://faucet.circle.com). Use a throwaway testnet account only. The steps are in the [Spanish guide, section 2](./es/quickstart-x402.md#2-crear-y-financiar-una-clave-stellar); the commands are the same.
 - A clean project where you can install `nirium`.
 
