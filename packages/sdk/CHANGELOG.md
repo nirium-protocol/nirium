@@ -4,6 +4,8 @@ All notable changes to the `nirium` package are documented here.
 
 ## Unreleased
 
+Known issue in 0.20.0: the MPP Charge client (`initMpp()` / `mppFetch()`) fails with `TypeError: prepared.toEnvelope(...).v1 is not a function`. It comes from `@stellar/mpp` 0.7.1, the latest release on npm, which still targets `@stellar/stellar-sdk` 15/16; upstream already moved to 17 on main (stellar/stellar-mpp-sdk#99, #102) but has not published it. x402, Audit Trail and Reporting are not affected. Until a fixed `@stellar/mpp` ships, use `nirium@0.19.8` with `@stellar/stellar-sdk@16` for MPP. Checked on testnet on 23 Nov 2026 (our own test payments, not usage): 0.20.0 + stellar-sdk 17.4.0 failed on MPP and paid over x402 (`85b41e0bade9bf5fc7656c12e50be1a67b7c593ae3c1ad0b6223cd8f84ca5e95`); 0.19.8 + stellar-sdk 16.4.1 paid over MPP (`4495861d68c78baae41f969ead2b0d8b79cfdf34055f7f908cb8beecdfcebecb`).
+
 ## 0.20.0 - 2026-11-23
 
 Dependencies move to `@stellar/stellar-sdk` ^17.4.0 (was ^16.3.0) and `@x402/*` ^2.32.0 (was ^2.28.0), after Protocol 30 reached mainnet. `@x402/stellar` 2.32 already required stellar-sdk 17, so a fresh install of 0.19.8 carried two SDK copies; this release carries one.
