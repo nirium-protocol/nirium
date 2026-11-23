@@ -78,7 +78,7 @@ Issues labeled [`Stellar Wave`](https://github.com/nirium-protocol/nirium/issues
 
 Only merged work counts. The running list is in [EVIDENCE.md](EVIDENCE.md), section 14.
 
-Questions about an issue, or want to show what you are building? Join the community on [Telegram](https://t.me/+SbqIpneqUZc2NjJh) or [Discord](https://discord.gg/gAAznKrSQZ). New Wave issues and updates are posted there too. Applications and assignments still happen on Drips, and reviews on GitHub.
+Questions about an issue, or want to show what you are building? Join the community on [Telegram](https://t.me/+SbqIpneqUZc2NjJh) or [Discord](https://discord.gg/gAAznKrSQZ), and follow [@Niriumstellar on X](https://x.com/Niriumstellar). New Wave issues and updates are posted there too. Applications and assignments still happen on Drips, and reviews on GitHub.
 
 ### Commit Convention
 
