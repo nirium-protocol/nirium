@@ -41,8 +41,10 @@ def usd_to_atomic(price: str) -> str:
         value = Decimal(str(price).strip().lstrip("$"))
     except InvalidOperation:
         raise ValueError(f"price must be a USD amount like '$0.01', got {price!r}") from None
+    if not value.is_finite() or value <= 0:
+        raise ValueError(f"price must be a positive USD amount, got {price!r}")
     atomic = value * (10 ** USDC_DECIMALS)
-    if value <= 0 or atomic != atomic.to_integral_value():
+    if atomic != atomic.to_integral_value():
         raise ValueError(f"price must be positive with at most 7 decimals, got {price!r}")
     return str(int(atomic))
 
@@ -88,7 +90,7 @@ class FacilitatorClient:
         except ValueError:
             data = None
         # /verify and /settle answer 4xx with a normal body when a payment is invalid.
-        if resp.status_code >= 500 or resp.status_code in (401, 403) or not isinstance(data, dict):
+        if resp.status_code >= 500 or resp.status_code in (401, 403, 429) or not isinstance(data, dict):
             raise FacilitatorError(f"{path}: HTTP {resp.status_code}")
         return data
 

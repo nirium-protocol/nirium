@@ -236,6 +236,22 @@ def test_failed_settlement_gets_402_and_no_data() -> None:
     assert fac.paths() == ["supported", "verify", "settle"]
 
 
+def test_replayed_payment_gets_402_the_second_time() -> None:
+    """The facilitator rejects a payment whose auth nonce was already used; no second serving."""
+    fac = FakeFacilitator()
+    client = make_client(fac)
+    header = payment_header(challenge(client)["accepts"][0])
+
+    first = client.get(PAID_ROUTE, headers={"PAYMENT-SIGNATURE": header})
+    fac.verify_answer = {"isValid": False, "invalidReason": "invalid_exact_stellar_payload_simulation_failed"}
+    second = client.get(PAID_ROUTE, headers={"PAYMENT-SIGNATURE": header})
+
+    assert first.status_code == 200
+    assert second.status_code == 402
+    assert_no_data(second)
+    assert fac.paths() == ["supported", "verify", "settle", "verify"]
+
+
 # ─── Malformed payments ─────────────────────────────────────────────────────
 
 
@@ -267,7 +283,7 @@ def test_unreachable_facilitator_returns_503_without_data() -> None:
     assert_no_data(resp)
 
 
-@pytest.mark.parametrize("status", [401, 500, 503])
+@pytest.mark.parametrize("status", [401, 429, 500, 503])
 def test_facilitator_error_on_verify_returns_502_without_data(status: int) -> None:
     fac = FakeFacilitator(fail_with=status)
     client = make_client(fac)
@@ -306,7 +322,7 @@ def test_usd_to_atomic(price: str, atomic: str) -> None:
     assert usd_to_atomic(price) == atomic
 
 
-@pytest.mark.parametrize("price", ["$0", "-1", "abc", "$0.00000001"])
+@pytest.mark.parametrize("price", ["$0", "-1", "abc", "$0.00000001", "NaN", "Infinity"])
 def test_usd_to_atomic_rejects_bad_prices(price: str) -> None:
     with pytest.raises(ValueError):
         usd_to_atomic(price)

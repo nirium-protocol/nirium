@@ -11,7 +11,7 @@ Testnet only: no real funds, no mainnet, no custody. Every key stays with whoeve
 
 ## Package Versions Tested
 
-Python 3.12, from `requirements.txt`:
+Python 3.11+ (FastAPI 0.165 needs 3.11). Tested on 3.11, 3.12 and 3.13, from `requirements.txt`:
 
 ```
 fastapi==0.165.0
@@ -27,7 +27,7 @@ pytest==9.2.0
 
 - **`x402_seller.py`**: the reusable part. `X402Seller.paid(price)` is a FastAPI dependency that issues the 402 challenge, matches the offer, and calls the facilitator's `/verify` and `/settle`. `FacilitatorClient` is a small `httpx` client for `/supported`, `/verify` and `/settle`.
 - **`app.py`**: the app: `/health` (free) and `/paid/forecast` (paid, `$0.01` by default).
-- **`pay.py`**: the payer, using the Nirium Python SDK (`Agent.init_x402` + `x402_fetch`). `--unpaid`, `--underpaid` and `--short-transfer` show the 402 cases (`--short-transfer` uses the SDK's internal `_x402_build_transaction` to sign a smaller transfer on purpose).
+- **`pay.py`**: the payer, using the Nirium Python SDK (`Agent.init_x402` + `x402_fetch`). `--unpaid`, `--underpaid`, `--short-transfer` and `--replay` show the 402 cases (the last two use the SDK's internal `_x402_build_transaction` to sign by hand: a smaller transfer, or one payment sent twice).
 - **`setup_testnet.py`**: one-time setup of your own payer and seller testnet accounts.
 - **`tests/`**: offline tests (mocked facilitator, no network).
 - **`requirements.txt`**, **`pytest.ini`**, **`.env.example`**, **`.gitignore`**
@@ -67,6 +67,7 @@ Terminal 2, the payer:
 python pay.py --unpaid     # 402 + payment requirements, no data
 python pay.py --underpaid  # offers half the price: 402, no data, facilitator not called
 python pay.py --short-transfer  # signs half the price, claims the full price: /verify rejects it, 402
+python pay.py --replay     # sends one signed payment twice: 200, then 402 (nonce already used)
 python pay.py              # Nirium SDK pays $0.01, prints the data and the settlement tx
 ```
 
@@ -87,8 +88,9 @@ pytest -v
 - underpaid transfer that echoes the right amount: `/verify` rejects it, 402, never settled
 - different `payTo`, network, asset or scheme: 402
 - failed settlement: 402, no data
+- the same payment sent again: the facilitator rejects the used nonce, 402, served once
 - malformed headers (not base64, not JSON, x402 v1, v1 `X-PAYMENT`, oversized): 402
-- facilitator down or answering 401/5xx: 503/502, no data
+- facilitator down or answering 401/429/5xx: 503/502, no data
 - a secret key (`S...`) as `payTo` is refused at startup; the example refuses any network but testnet
 
 `tests/test_nirium_sdk_offline.py` runs the app under uvicorn on `127.0.0.1` and pays it with the **real Nirium SDK** (`Agent.x402_fetch`). Only the SDK's Soroban signing step is replaced, because it needs a testnet RPC. It checks that the SDK pays the route and reads the settlement, and that a `$2` route is refused by the SDK's default `$1` cap before anything is signed.
@@ -131,7 +133,11 @@ Run on `stellar:testnet`, Nov 23 2026, with my own keys (Friendbot), against the
 | `python pay.py --unpaid` | **402**, requirements in `PAYMENT-REQUIRED`, no data | none |
 | `python pay.py --underpaid` (offers `50000`) | **402** `amount_mismatch`, facilitator not called | none |
 | `python pay.py --short-transfer` (signs `50000`, claims `100000`) | **402** `verify_failed: invalid_exact_stellar_payload_wrong_amount` | none (not settled) |
+| `python pay.py --replay`, first send / replay | **200** and settled, then **402** `verify_failed: invalid_exact_stellar_payload_simulation_failed` | [`6a0d80be…c5ee08`](https://stellar.expert/explorer/testnet/tx/6a0d80be541e853216111008a807517874533360def8cfbb9a399c70a5c5ee08) (once) |
 | `python pay.py`, paid call 1 | **200** + data, 0.01 USDC payer → seller | [`163d65d8…cdb1d8`](https://stellar.expert/explorer/testnet/tx/163d65d8c365a69d91c314c1c70bd95bbecfe034a3d1f28b4cc93e346dcdb1d8) |
-| `python pay.py`, paid call 2 (demo recording) | **200** + data, 0.01 USDC payer → seller | [`6bf1c790…f78dc5`](https://stellar.expert/explorer/testnet/tx/6bf1c790840df219b3d6dd76d223eab8fab9608b8557e2e8d0fdafd71ef78dc5) |
+| `python pay.py`, paid call 2 | **200** + data, 0.01 USDC payer → seller | [`6bf1c790…f78dc5`](https://stellar.expert/explorer/testnet/tx/6bf1c790840df219b3d6dd76d223eab8fab9608b8557e2e8d0fdafd71ef78dc5) |
+| Demo video run: `--replay` first send, then `python pay.py` | **200** + data each, 0.01 USDC payer → seller | [`28bc7281…f82fb7`](https://stellar.expert/explorer/testnet/tx/28bc7281a18bd9f284156b4194eda27afd1487ea13fbdd006649707173f82fb7), [`d9ab4c61…952de2`](https://stellar.expert/explorer/testnet/tx/d9ab4c61c2d86890e9a202f92a909772a2ccf0cf57d9bc227982493c04952de2) |
 
-In both paid calls the payer's key signs the Soroban authorization for `transfer(payer, seller, 100000)` on the USDC contract. The facilitator submits the transaction and pays the network fee, so the payer spent no XLM and the seller signed nothing. Horizon's effects for each paid transaction show `account_debited` 0.0100000 USDC on the payer and `account_credited` 0.0100000 USDC on the seller.
+In every paid call the payer's key signs the Soroban authorization for `transfer(payer, seller, 100000)` on the USDC contract. The facilitator submits the transaction and pays the network fee, so the payer spent no XLM and the seller signed nothing. Horizon's effects for each paid transaction show `account_debited` 0.0100000 USDC on the payer and `account_credited` 0.0100000 USDC on the seller.
+
+Also checked from a fresh clone of this branch with plain `pip install -r requirements.txt`: the tests pass, `setup_testnet.py` creates and funds two new accounts, and a paid call settles ([`235aa165…268400`](https://stellar.expert/explorer/testnet/tx/235aa1659ebbfc20a3b3a8e666febf5f85f41847dc281aee6246228d14268400)).

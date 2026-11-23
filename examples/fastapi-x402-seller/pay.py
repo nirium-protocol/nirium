@@ -6,6 +6,7 @@
     python pay.py --short-transfer
         # signs a transfer of half the price but claims the full price:
         # the facilitator's /verify rejects it, 402, nothing settled
+    python pay.py --replay     # sends one signed payment twice: 200 once, then 402
 """
 
 from __future__ import annotations
@@ -67,6 +68,20 @@ async def short_transfer(url: str) -> None:
     show_402(httpx.get(url, headers={"PAYMENT-SIGNATURE": header}, timeout=60))
 
 
+async def replay(url: str) -> None:
+    challenge = json.loads(base64.b64decode(httpx.get(url).headers["payment-required"]))
+    accepted = challenge["accepts"][0]
+    # SDK internal: one signed payment, sent twice by hand.
+    xdr = await payer()._x402_build_transaction(accepted)
+    payment = {"x402Version": 2, "accepted": accepted, "payload": {"transaction": xdr}}
+    header = base64.b64encode(json.dumps(payment).encode()).decode()
+    for attempt in ("first send", "replay"):
+        resp = httpx.get(url, headers={"PAYMENT-SIGNATURE": header}, timeout=60)
+        receipt = resp.headers.get("payment-response")
+        tx = json.loads(base64.b64decode(receipt))["transaction"] if receipt else None
+        print(f"{attempt}: HTTP {resp.status_code}", f"settled {EXPERT_TX}{tx}" if tx else resp.text)
+
+
 async def pay(url: str) -> None:
     agent = payer()
     data = await agent.x402_fetch(url)
@@ -84,6 +99,7 @@ def main() -> None:
     mode.add_argument("--unpaid", action="store_true")
     mode.add_argument("--underpaid", action="store_true")
     mode.add_argument("--short-transfer", action="store_true")
+    mode.add_argument("--replay", action="store_true")
     args = parser.parse_args()
     if args.unpaid:
         unpaid(args.url)
@@ -91,6 +107,8 @@ def main() -> None:
         underpaid(args.url)
     elif args.short_transfer:
         asyncio.run(short_transfer(args.url))
+    elif args.replay:
+        asyncio.run(replay(args.url))
     else:
         asyncio.run(pay(args.url))
 
