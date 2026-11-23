@@ -36,9 +36,9 @@
   },
   "dependencies": {
     "@stellar/mpp": "^0.7.1",
-    "@stellar/stellar-sdk": "^16.3.0",
-    "@x402/fetch": "^2.28.0",
-    "@x402/stellar": "^2.28.0",
+    "@stellar/stellar-sdk": "^17.4.0",
+    "@x402/fetch": "^2.32.0",
+    "@x402/stellar": "^2.32.0",
     "mppx": "^0.6.31",
     "viem": "^2.55.19",
     "ws": "^8.21.3"
@@ -61,9 +61,9 @@
     "@types/jest": "^30.0.0",
     "@types/node": "^26.2.0",
     "@types/ws": "^8.18.1",
-    "@x402/core": "^2.28.0",
-    "@x402/express": "^2.28.0",
-    "@x402/extensions": "^2.28.0",
+    "@x402/core": "^2.32.0",
+    "@x402/express": "^2.32.0",
+    "@x402/extensions": "^2.32.0",
     "jest": "^30.4.2",
     "ts-jest": "^29.4.12",
     "typescript": "^5.9.3"

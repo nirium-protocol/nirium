@@ -113,7 +113,7 @@ export function policyConformanceCases(
     const entry = (r: X402PaymentRequirementsView) => new xdr.SorobanAuthorizationEntry({
         credentials: xdr.SorobanCredentials.sorobanCredentialsAddress(new xdr.SorobanAddressCredentials({
             address: new Address(payer.publicKey()).toScAddress(),
-            nonce: xdr.Int64.fromString(String(nonceSeq++)),
+            nonce: BigInt(nonceSeq++),
             signatureExpirationLedger: 0,
             signature: xdr.ScVal.scvVoid(),
         })),
@@ -175,8 +175,8 @@ export function policyConformanceCases(
             address: payer.publicKey(),
             signAuthEntry: async (preimageXdr) => {
                 seen.signerCalls++;
-                const pre = xdr.HashIdPreimage.fromXDR(preimageXdr, 'base64');
-                return { signedAuthEntry: payer.sign(hash(pre.toXDR())).toString('base64'), signerAddress: payer.publicKey() };
+                const pre = xdr.HashIdPreimage.fromXdr(preimageXdr, 'base64');
+                return { signedAuthEntry: Buffer.from(payer.sign(hash(pre.toXdr()))).toString('base64'), signerAddress: payer.publicKey() };
             },
         };
         const r = requirements(p);
@@ -186,7 +186,7 @@ export function policyConformanceCases(
             // What stellar-sdk's signAuthEntries does: it also verifies the
             // returned signature against sha256(preimage).
             await authorizeEntry(entry(r), async (preimage: any) => {
-                const { signedAuthEntry } = await gated.signAuthEntry(preimage.toXDR('base64'), { address: payer.publicKey() });
+                const { signedAuthEntry } = await gated.signAuthEntry(preimage.toXdr('base64'), { address: payer.publicKey() });
                 return Buffer.from(signedAuthEntry, 'base64');
             }, 1_000_000, Networks.TESTNET);
             seen.signed = true;
