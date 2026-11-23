@@ -258,6 +258,7 @@ const response = await agent.mppFetch('https://your-mpp-server.example/resource'
 
 **Testnet: verified. Mainnet: not tested. Still experimental, not for production.**
 
+- **Known issue in 0.20.0:** this client fails with `prepared.toEnvelope(...).v1 is not a function`, because `@stellar/mpp` 0.7.1 (the latest on npm) does not support `@stellar/stellar-sdk` 17 yet. For MPP, use `nirium@0.19.8` with `@stellar/stellar-sdk@16` until a fixed `@stellar/mpp` is published; 0.19.8 paid Nirium's testnet endpoint over MPP on 23 Nov 2026 ([`4495861d…`](https://stellar.expert/explorer/testnet/tx/4495861d68c78baae41f969ead2b0d8b79cfdf34055f7f908cb8beecdfcebecb)). x402 and Audit Trail are not affected.
 - On 15 October 2026 (UTC) we paid Nirium's hosted **testnet** endpoint with this client (`nirium@0.16.1`), once in `pull` and once in `push` mode. Both settled on Stellar testnet and the server returned the resource: [`b8c4ed56…`](https://stellar.expert/explorer/testnet/tx/b8c4ed568f6eb41321b97d251d7f3727c57570a226d187e3675a9df03496e3ed) (pull), [`96d43d6f…`](https://stellar.expert/explorer/testnet/tx/96d43d6f4cf38fbd3a4df2c2bb6625e650c0d0509184d86c1e42c7e6ebdf242c) (push). The `402 Verification Failed` we saw on 1 October no longer reproduces.
 - We have **not tested the mainnet endpoint** (it would spend real USDC), so we cannot tell you it works there.
 - In `push` mode the payment settles on-chain before the server verifies it, so a request the server rejects is **not refunded**.
