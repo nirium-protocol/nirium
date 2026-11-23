@@ -6,7 +6,8 @@ from anchor import anchor, save_receipt
 
 def analyse(inp, out):
     nums = [float(x) for x in Path(inp).read_text().split()]
-    Path(out).write_text(json.dumps({"n": len(nums), "mean": statistics.mean(nums)}, indent=2))
+    result = {"n": len(nums), "mean": statistics.mean(nums)}
+    Path(out).write_text(json.dumps(result, indent=2) + "\n")
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
