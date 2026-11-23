@@ -6,7 +6,7 @@ Verifiable receipts, agentic payments and treasury execution for **Nirium Protoc
 - **x402 payments, both directions:** pay for other APIs with `initX402()` and charge for your own with `x402Serve()`. An MPP Charge client is included, experimental.
 - **Treasury:** a Nirium agent can move a vault you own between idle cash and its strategy (USDC, or tokenized CETES issued by Etherfuse). Nothing is swapped. It runs on its own on testnet. On mainnet, deploying, depositing, proposals and autonomous execution are invite-only, and withdrawing is always open.
 
-**Status:** x402 and Audit Trail run on Stellar mainnet; MPP Charge is verified on testnet and untested on mainnet; Treasury on mainnet is invite-only (withdrawing stays open). Every claim, with its network, date and transaction hash: [EVIDENCE.md](https://github.com/nirium-protocol/nirium/blob/main/EVIDENCE.md).
+**Status:** x402 and Audit Trail run on Stellar mainnet; MPP Charge is verified on testnet and untested on mainnet, and its client fails on 0.20.0 until `@stellar/mpp` supports stellar-sdk 17 (use 0.19.8 for MPP, see [MPP Charge](#mpp-charge-experimental)); Treasury on mainnet is invite-only (withdrawing stays open). Every claim, with its network, date and transaction hash: [EVIDENCE.md](https://github.com/nirium-protocol/nirium/blob/main/EVIDENCE.md).
 
 ## Install
 
