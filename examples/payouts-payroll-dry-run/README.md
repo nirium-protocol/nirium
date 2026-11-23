@@ -98,7 +98,7 @@ Receipt CID: QmTnncskA1Pe6o3yVLfE3Boi8hu2oRWGNZnE3XUdwX1VhU
 
 **Live ledger replay-guard check (no second broadcast):** Calling `executePayroll()` for the same month with a client spy and existing ledger rejects with `Payroll 2026-11 already submitted (...); no duplicate payment.` **Zero** client method calls were made; the ledger remained completed and the lock was removed. The offline test suite also covers replay protection. Do not reset or delete the month ledger.
 
-**Screen recording:** Captured locally on the Mac as a 36.15-second MOV on 2026-11-23. Duration is within the required 2-minute limit. The video still needs to be uploaded/linked to PR #498 and reviewed for readable content. Sharing permission for Nirium channels is **not granted** until the author approves it.
+**Screen recording:** Captured locally on the Mac as a 36.15-second MOV on 2026-11-23. Duration is within the required 2-minute limit. Video frames were visually reviewed for readable dry-run/real-run output and absence of exposed secrets. Uploaded and posted as [PR #498 comment](https://github.com/nirium-protocol/nirium/pull/498#issuecomment-7110539564), with the [GitHub video asset](https://github.com/user-attachments/assets/df1fad7f-6d5d-4c29-8edb-b11721379ca1). Sharing permission for Nirium's external channels is **not granted**. PR #498 is ready for maintainer review; final acceptance/CI approval remains pending.
 
 ## Duplicate-payment protection and recovery
 
@@ -119,6 +119,6 @@ The tests create test-only ephemeral Stellar keypairs and XDR locally; they stub
 - [x] Same numbered rows from dry run and actual Nirium real run shown in README, with command outputs
 - [x] Actual payer-signed payout transaction hash linked on Stellar Expert (testnet), operations independently verified via Horizon
 - [x] Local offline tests and typecheck pass, results recorded (6/6 tests)
-- [ ] 36-second demo recording exists on the contributor's Mac but must be attached or linked in PR description; permission to share is currently **not granted**
-- [x] [Draft PR #498](https://github.com/nirium-protocol/nirium/pull/498) links `Closes #456` and the AI-assistance commit trailer is present
+- [x] 36-second demo recording attached in [PR comment](https://github.com/nirium-protocol/nirium/pull/498#issuecomment-7110539564) and linked from the PR description; external sharing permission **not granted**
+- [x] [PR #498](https://github.com/nirium-protocol/nirium/pull/498) marked **ready for review**, links `Closes #456`, and includes the AI-assistance commit trailer; awaiting maintainer approval and CI
 The program keeps all seed keys out of tracked files and will never send them to a Nirium node.
