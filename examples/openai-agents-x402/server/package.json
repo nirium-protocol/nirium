@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Testnet x402Serve route for the OpenAI Agents SDK example: one route below the agent's cap, one above.",
   "scripts": {
-    "start": "node server.mjs"
+    "start": "node init && node server.mjs"
   },
   "dependencies": {
     "@x402/core": "2.32.0",

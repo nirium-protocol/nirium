@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Read-only testnet treasury vault monitor with balance & allocation alerts (zero private keys)",
   "scripts": {
-    "start": "tsx src/index.ts",
+    "start": "node init && tsx src/index.ts",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test test/*.test.ts"
   },

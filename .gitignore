@@ -7,8 +7,6 @@ venv/
 __pycache__/
 *.pyc
 *.egg-info/
-.env
-.env.*
 !.env.example
 .DS_Store
 examples/rust-x402/target/
@@ -20,3 +18,4 @@ actions/verify-audit-cid/lib/
 .next/
 examples/audit-forensic-bridge/anchors.jsonl
 examples/audit-forensic-bridge/audit-verified-report.json
+config.bat

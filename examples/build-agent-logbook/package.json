@@ -6,7 +6,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test test/*.test.ts",
-    "run-tasks": "node --import tsx src/cli.ts run",
+    "run-tasks": "node init && node --import tsx src/cli.ts run",
     "check-task": "node --import tsx src/cli.ts check-task",
     "receipts": "node --import tsx src/cli.ts receipts"
   },

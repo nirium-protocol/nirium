@@ -5,10 +5,10 @@
   "type": "module",
   "description": "Reference pattern: gate a Unity game action behind x402 pay-per-action using nirium's x402Serve(), signed from a Stellar Unity Developer Kit (SUDK) client.",
   "scripts": {
-    "build": "tsc",
+    "build": "node init && tsc",
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test test/*.test.ts",
-    "dev": "node --import tsx src/server.ts",
+    "dev": "node init && node --import tsx src/server.ts",
     "wallet-bridge-smoke": "node --import tsx scripts/wallet-bridge-smoke.ts"
   },
   "dependencies": {

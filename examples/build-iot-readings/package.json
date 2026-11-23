@@ -7,7 +7,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test test/*.test.ts",
-    "run-batches": "node --import tsx src/cli.ts run",
+    "run-batches": "node init && node --import tsx src/cli.ts run",
     "check-batch": "node --import tsx src/cli.ts check-batch",
     "receipts": "node --import tsx src/cli.ts receipts"
   },
