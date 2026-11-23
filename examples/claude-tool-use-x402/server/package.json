@@ -1,0 +1,19 @@
+{
+  "name": "nirium-openai-agents-x402-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Testnet x402Serve route for the OpenAI Agents SDK example: one route below the agent's cap, one above.",
+  "scripts": {
+    "start": "node server.mjs"
+  },
+  "dependencies": {
+    "@x402/core": "2.32.0",
+    "@x402/express": "2.32.0",
+    "@x402/extensions": "2.32.0",
+    "@x402/stellar": "2.32.0",
+    "dotenv": "^17.4.2",
+    "express": "5.3.0",
+    "nirium": "0.19.6"
+  }
+}
