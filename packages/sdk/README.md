@@ -496,7 +496,8 @@ if (proposal.instructions.length) {
 
 ## Requirements
 
-- Node.js >= 22.12.0. `@stellar/stellar-sdk` 16 and `@x402/stellar` 2.28 declare `>=22.0.0`, but stellar-sdk 16 depends on `@noble/hashes` 2.x, which is ESM-only, and this package is published as CommonJS: `require('nirium')` only works without a flag from Node 22.12.0 (on 22.11 it throws `ERR_REQUIRE_ESM`)
+- Node.js >= 22.12.0. `@stellar/stellar-sdk` 17 and `@x402/stellar` 2.32 both declare `>=22.12.0`: stellar-sdk depends on `@noble/hashes` 2.x, which is ESM-only, and this package is published as CommonJS, so `require('nirium')` only works without a flag from Node 22.12.0 (on 22.11 it throws `ERR_REQUIRE_ESM`)
+- Bring your own signer? With `@stellar/stellar-sdk` 17, `Keypair.sign()` returns a `Uint8Array`, and `Uint8Array.toString('base64')` does not throw: it returns a comma-separated list. Return `Buffer.from(keypair.sign(...)).toString('base64')` as `signedAuthEntry`
 - TypeScript >= 5.0
 
 ## Links
