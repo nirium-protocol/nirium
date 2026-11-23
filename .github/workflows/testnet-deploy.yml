@@ -1,0 +1,65 @@
+name: Testnet Deploy + Negative Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      vault_id:
+        description: "Vault ID for testnet deployment"
+        required: true
+        type: string
+      owner_secret:
+        description: "Owner secret key (testnet)"
+        required: true
+        type: string
+      manager_secret:
+        description: "Manager secret key (testnet)"
+        required: true
+        type: string
+
+jobs:
+  testnet-deploy:
+    name: Testnet Deploy + Negative Test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+      
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      
+      - name: Install dependencies
+        working-directory: examples/treasury-rebalance-approval
+        run: |
+          pip install -r requirements.txt
+      
+      - name: Install stellar-sdk
+        run: npm install -g @stellar/stellar-sdk
+      
+      - name: Run negative test (live)
+        env:
+          OWNER_SECRET_KEY: ${{ secrets.OWNER_SECRET_KEY }}
+          MANAGER_SECRET_KEY: ${{ secrets.MANAGER_SECRET_KEY }}
+          VAULT_ID: ${{ github.event.inputs.vault_id }}
+          NIRIUM_BASE_URL: https://rpc-futurenet.stellar.org
+          NETWORK_PASSPHRASE: "Test SDF Network ; September 2015"
+        working-directory: examples/treasury-rebalance-approval
+        run: |
+          python main.py --negative-testnet --i-understand-testnet-only
+        timeout-minutes: 10
+      
+      - name: Upload TX hashes
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: testnet-tx-hashes
+          path: |
+            *.json
+            *.log
+          retention-days: 30
