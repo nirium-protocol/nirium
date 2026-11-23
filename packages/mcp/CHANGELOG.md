@@ -4,6 +4,10 @@ All notable changes to the `nirium-mcp` package are documented here.
 
 ## Unreleased
 
+## 0.6.13 - 2026-11-23
+
+Dependencies move to `@stellar/stellar-sdk` ^17.4.0 and `@x402/*` ^2.32.0 (Protocol 30 is on mainnet; `@x402/stellar` 2.32 requires stellar-sdk 17). No tool or behavior change.
+
 ## 0.6.12 - 2026-11-22
 
 `anchor_audit_record` tool description: it said IPFS content "cannot be deleted". Corrected: nobody can guarantee that something is deleted from IPFS. The advice is unchanged (anchor a hash, not raw personal data). No behavior change.

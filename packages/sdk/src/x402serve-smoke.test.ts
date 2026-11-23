@@ -28,7 +28,7 @@ jest.mock('mppx/client', () => ({
 jest.mock('@stellar/mpp/charge/client', () => ({
   stellar: { charge: () => ({}) },
 }));
-// stellar-sdk 16 loads ESM-only @noble/hashes; index.ts pulls it in through
+// stellar-sdk (16 and 17) loads ESM-only @noble/hashes; index.ts pulls it in through
 // x402-policy.ts. Only the constants read at module load are needed here.
 jest.mock('@stellar/stellar-sdk', () => ({
   Networks: { TESTNET: 'Test SDF Network ; September 2015', PUBLIC: 'Public Global Stellar Network ; September 2015' },

@@ -74,7 +74,7 @@ function instrumentedSigner(opts: { mutate?: (preimageXdr: string) => string } =
     return { calls, signer };
 }
 
-/** What stellar-sdk 16 `signAuthEntries` does with each entry. */
+/** What stellar-sdk `signAuthEntries` does with each entry. */
 async function sign(gated: { signAuthEntry: (...a: any[]) => Promise<any> }, entry = transferEntry(), passphrase = Networks.TESTNET) {
     return authorizeEntry(entry, async (preimage: any) => {
         const { signedAuthEntry } = await gated.signAuthEntry(preimage.toXDR('base64'), { address: payer.publicKey() });
