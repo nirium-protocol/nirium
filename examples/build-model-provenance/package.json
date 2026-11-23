@@ -13,7 +13,7 @@
     "test": "node --test test/*.test.mjs"
   },
   "dependencies": {
-    "@stellar/stellar-sdk": "^14.5.0"
+    "@stellar/stellar-sdk": "^17.4.0"
   },
   "engines": {
     "node": ">=20"
