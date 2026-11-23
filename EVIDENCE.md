@@ -102,7 +102,7 @@ Four `rebalance()` calls on mainnet, 6 Aug 2026 01:54-02:29 UTC, from RebalanceM
 
 ## 9. Packages
 
-npm: [`nirium-cli@3.2.7`](https://www.npmjs.com/package/nirium-cli), [`nirium@0.19.8`](https://www.npmjs.com/package/nirium), [`nirium-mcp@0.6.12`](https://www.npmjs.com/package/nirium-mcp), [`nirium-pollar-adapter@0.6.6`](https://www.npmjs.com/package/nirium-pollar-adapter). PyPI: [`nirium@0.12.9`](https://pypi.org/project/nirium/). Versions checked on the registries on 23 Nov 2026. Listed on [skills.stellar.org](https://skills.stellar.org). [nirium.xyz/stats](https://nirium.xyz/stats) is live, our own source, presented as supporting data, not third-party proof.
+npm: [`nirium-cli@3.2.8`](https://www.npmjs.com/package/nirium-cli), [`nirium@0.20.0`](https://www.npmjs.com/package/nirium), [`nirium-mcp@0.6.13`](https://www.npmjs.com/package/nirium-mcp), [`nirium-pollar-adapter@0.6.6`](https://www.npmjs.com/package/nirium-pollar-adapter). PyPI: [`nirium@0.13.0`](https://pypi.org/project/nirium/). Versions checked on the registries on 23 Nov 2026. Listed on [skills.stellar.org](https://skills.stellar.org). [nirium.xyz/stats](https://nirium.xyz/stats) is live, our own source, presented as supporting data, not third-party proof.
 
 ## 10. Public recognition and community (checked 16 Nov 2026)
 

@@ -44,7 +44,7 @@ but never completed.
 Install:
 
 ```bash
-npm install nirium @stellar/stellar-sdk@16 @vercel/functions
+npm install nirium @stellar/stellar-sdk@17 @vercel/functions
 ```
 
 ```ts

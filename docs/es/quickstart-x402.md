@@ -4,7 +4,7 @@ Esta guía de inicio rápido muestra cómo un agente o script paga un endpoint x
 
 ## Lo que Necesitas
 
-- Node.js >=22.12.0 - `@stellar/stellar-sdk` 16.x (una dependencia de `nirium`) lo requiere; un Node más antiguo resuelve silenciosamente un SDK incompatible más antiguo en lugar de fallar.
+- Node.js >=22.12.0 - `@stellar/stellar-sdk` 17.x (una dependencia de `nirium`) lo requiere; un Node más antiguo resuelve silenciosamente un SDK incompatible más antiguo en lugar de fallar.
 - Un proyecto limpio donde puedas instalar `nirium`.
 
 No uses una clave secreta de mainnet mientras pruebas este flujo.
@@ -15,7 +15,7 @@ No uses una clave secreta de mainnet mientras pruebas este flujo.
 mkdir nirium-x402-demo
 cd nirium-x402-demo
 npm init -y
-npm install nirium @stellar/stellar-sdk@16 tsx typescript dotenv
+npm install nirium @stellar/stellar-sdk@17 tsx typescript dotenv
 ```
 
 ## 2. Crear y Financiar una Clave Stellar
