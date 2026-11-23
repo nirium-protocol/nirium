@@ -70,6 +70,15 @@ DRY RUN: no keys read, no network requests, no ledger writes.
 ```
 
 **These three Friendbot hashes are account-funding transactions, NOT contractor payout transactions.** The payer-signed Nirium payout remains **NOT RUN** after the execution tool's security restriction. The real-run output, payout hash, and screen recording are pending. [Draft PR #498](https://github.com/nirium-protocol/nirium/pull/498) is open for early review; the bounty is **not completed**. Offline suite after the fee guard: `npm run typecheck` PASS, `npm test` 6/6 PASS.
+
+## Testnet execution follow-up (2026-11-23)
+
+- Rechecked on the original Mac worktree: `npm run typecheck` PASS; `npm test` **6/6 PASS**; own-key dry run PASS with identical digest `ceacea123986595db08c9251db270716c4c4c5810724b0e67938b5aecb163580`.
+- Nirium agent health endpoint `https://nirium-agent.fly.dev/` returned HTTP 200 and online status. Public Payouts terms/history were reachable.
+- Authentication is still blocked: `.local/nirium-api-key` contains a **one-hour JWT** (issued 2026-11-23 16:54 UTC; expired 17:54 UTC), **not** a persistent `sk_free_…` API key. A protected SDK `getMarket()` request returned HTTP **401** with `Valid JWT token or API key required`.
+- The official [API Keys console](https://nirium.xyz/keys) displayed **Not connected**. The owner must sign in by email/Google or connect an authorized wallet, generate a normal testnet-compatible `sk_free_…` key, and store it privately (never commit it). Do not copy the expired JWT into `NIRIUM_API_KEY`.
+- No signed payout or Payouts-run creation was attempted after finding this blocker. No payout transaction hash, real-run output, ledger reservation, or demo video exists yet. Only the earlier Friendbot **funding** transaction links are verified. Keep the PR in draft until the real Nirium payout, on-chain verification, duplicate check, and <=2-minute screen recording are available.
+
 ## Duplicate-payment protection and recovery
 
 `ledger/YYYY-MM.json` (ignored by Git) is written **before** any network request. Any second invocation for the same month fails closed, regardless of CSV modifications. A `pending` record (including timeouts and unknown submission outcomes) blocks all automatic retries; reconcile the transaction on testnet using the local run ID and your payer's transaction history before a deliberate operator-controlled recovery. The lock file protects concurrent runs; a crash may leave a lock, which also blocks automatic repeat payments. Do not delete or reset a pending ledger/lock to retry blindly. Back up your local ledger: losing it also loses this client-side protection. This is local, single-host idempotency, not a blockchain-wide payment registry.
