@@ -1,0 +1,59 @@
+[
+  {
+    "actionId": "mod-mwscienp-12r7",
+    "action": "warn",
+    "reason": "Repeated spamming of bot commands in #general",
+    "moderatorId": "mod_guardian_01",
+    "targetUserId": "discord_usr_849201",
+    "messageContent": "!play song !play song !play song",
+    "channelId": "chan_general_chat",
+    "serverId": "guild_nirium_community_demo",
+    "salt": "d606ae342d711b0c493ec2bd0b531d7ccd9952bacfa32fadbe5a4d927c5d50e9",
+    "timestamp": "2026-11-22T21:25:11.988Z"
+  },
+  {
+    "actionId": "mod-mwscilt0-2fk3",
+    "action": "mute",
+    "reason": "Disruptive acoustic noise and harassment in voice lounge",
+    "moderatorId": "mod_guardian_02",
+    "targetUserId": "discord_usr_391042",
+    "channelId": "voice_community_lounge",
+    "serverId": "guild_nirium_community_demo",
+    "salt": "c838594c8fb62c46594d43ad2c323584dcee6f85ec26c8e19e4f132340e16fda",
+    "timestamp": "2026-11-22T21:25:21.252Z"
+  },
+  {
+    "actionId": "mod-mwscisr0-lz61",
+    "action": "message_removal",
+    "reason": "Posting deceptive phishing links disguised as airdrop",
+    "moderatorId": "mod_sentinel_bot",
+    "targetUserId": "discord_usr_119284",
+    "messageContent": "Claim 5000 free tokens here: https://airdrop-stealer.xyz",
+    "channelId": "chan_announcements",
+    "serverId": "guild_nirium_community_demo",
+    "salt": "c662d52c038586d26362cb7dc2b4395af65ca4ff042cb4c07bb483929214098c",
+    "timestamp": "2026-11-22T21:25:30.252Z"
+  },
+  {
+    "actionId": "mod-mwscizvx-jgih",
+    "action": "kick",
+    "reason": "Unsolicited promotional DM spam sent to 50+ members",
+    "moderatorId": "mod_lead_admin",
+    "targetUserId": "discord_usr_772019",
+    "serverId": "guild_nirium_community_demo",
+    "salt": "7a4f266248b402fa57faa685e4beeb8c772375e46228166d3b4b248a369d73d7",
+    "timestamp": "2026-11-22T21:25:39.501Z"
+  },
+  {
+    "actionId": "mod-mwscj71d-lxhe",
+    "action": "ban",
+    "reason": "Malicious impersonation of Nirium core team administrators",
+    "moderatorId": "mod_lead_admin",
+    "targetUserId": "discord_usr_994102",
+    "messageContent": "I am Nirium Support, send private key to verify wallet",
+    "channelId": "chan_helpdesk",
+    "serverId": "guild_nirium_community_demo",
+    "salt": "c2bfc72b59281e046187f0e5afb576817f3c327efb7d335687d04758907ea3d2",
+    "timestamp": "2026-11-22T21:25:48.769Z"
+  }
+]
