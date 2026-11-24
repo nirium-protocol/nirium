@@ -185,7 +185,7 @@ omit it - caught 2026-09-28 re-verifying this page.
 
 ### Stellar Wave on Drips (from 18 Nov 2026)
 
-Since Wave 11 we also publish issues on [Stellar Wave](https://www.drips.network/wave): 48 so far, labeled [`Stellar Wave`](https://github.com/nirium-protocol/nirium/issues?q=label%3A%22Stellar+Wave%22). Contributors apply with a plan and we assign by merit. Only merged work counts: 21 PRs merged so far (23 Nov 2026 UTC), each listed in EVIDENCE. Same rule as GrantFox: contributors earn Wave points, so this is people building on the code, not product demand. The running list is in [EVIDENCE.md](../EVIDENCE.md), section 14, and on [nirium.xyz/stats](https://nirium.xyz/stats).
+Since Wave 11 we also publish issues on [Stellar Wave](https://www.drips.network/wave): 60 so far, labeled [`Stellar Wave`](https://github.com/nirium-protocol/nirium/issues?q=label%3A%22Stellar+Wave%22). Contributors apply with a plan and we assign by merit. Only merged work counts: 23 PRs merged so far (24 Nov 2026 UTC), each listed in EVIDENCE. Same rule as GrantFox: contributors earn Wave points, so this is people building on the code, not product demand. The running list is in [EVIDENCE.md](../EVIDENCE.md), section 14, and on [nirium.xyz/stats](https://nirium.xyz/stats).
 
 ## 8. How we review each other's pull requests
 
