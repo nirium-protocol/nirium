@@ -44,7 +44,7 @@ python main.py --demo
 python main.py --demo --decline    # misma corrida con NO
 ```
 
-Salida real del PR (`exit 0` en ambos casos; acortada):
+Salida del demo offline (`exit 0` en ambos casos; acortada; los hashes `PENDING` son placeholders del demo, no datos de testnet):
 
 ```
 Demo offline: sin red, sin claves, sin transacciones reales.
@@ -97,16 +97,19 @@ Cualquier passphrase que no sea la de testnet se rechaza **antes de firmar**.
 
 ### Hashes de transacciones (Stellar Expert, testnet)
 
-| Paso | Hash | Stellar Expert |
+| Paso | Hash | Enlace |
 |---|---|---|
-| `set_treasury_rebalance_manager` (owner) | `PENDING` | `N/A` — no ejecutado en este PR |
-| `rebalance` (manager, tras aprobación) | `PENDING` | `N/A` — no ejecutado en este PR |
-| intento de retiro con manager key | `N/A` (rechazado antes de firmar) | `N/A` |
+| deploy de vault (owner, testnet) | `7dea4ff9013f17694657f3b2b4f2cc66d1f9a3fe59c3b78ea688e67425985e09` | https://horizon-testnet.stellar.org/transactions/7dea4ff9013f17694657f3b2b4f2cc66d1f9a3fe59c3b78ea688e67425985e09 |
+| `set_treasury_rebalance_manager` (owner, testnet) | `b2a3f938ac704d7319fecf338854318e6a814cce9988387381eb63fc77d2269d` | https://horizon-testnet.stellar.org/transactions/b2a3f938ac704d7319fecf338854318e6a814cce9988387381eb63fc77d2269d |
+| rebalance (manager, tras aprobación) | `N/A` — no se ejecutó; la firma condicional la cubre el demo | `N/A` |
+| intento de cambio de rol firmado por manager key | rechazado por el agente (`400`) | ver salida abajo |
 
-No se han inventado hashes: este PR se escribió sin claves, sin fondos y sin
-acceso a testnet, así que no hay transacciones reales que enlazar. El script
-imprime los hashes reales y sus links al final de cada corrida; pégalos aquí
-cuando lo ejecutes con tu propio vault testnet.
+Vault real: `CAOQKOJZTU5B56LEKDT3UM4DAQQX4RA7DKTRYVG65N2C2NSJWUKAQ2BX`.
+Owner: `GATD6N3WSUKPD5OAJV4YUXKFDYRV5EQPU4HOIDD6YYLDSBA5TYLD4M4B`.
+RebalanceManager: `GCIQ3NGNPI4OSKMAXQKSYEAD5QKLKTUSVXC57WF7IRJGOGZCDOPSOAJ5`.
+Ambos hashes están confirmados como `successful: true` en Horizon testnet
+(ledgers 5901398 y 5901399). Las claves se generaron en memoria y no se
+persistieron ni imprimieron. No se inventaron hashes.
 
 ## Test negativo: la manager key no puede sacar fondos
 
@@ -131,7 +134,7 @@ que el agente no recibe ninguna llamada y la manager key no produce ninguna
 firma. En paralelo, `contract/src/lib.rs` modela la misma regla y `cargo test`
 la verifica en 8 tests host-side.
 
-### Intento en testnet (no ejecutado en este PR)
+### Intento en testnet (ejecutado en este PR)
 
 ```bash
 python main.py --negative-testnet
@@ -143,6 +146,23 @@ python main.py --negative-testnet --i-understand-testnet-only
 # Salida esperada: "RECHAZADO como se esperaba: ..." (exit 0).
 # Si el envío se acepta (exit 2), no uses ese vault: revisa los roles on-chain.
 ```
+
+Ejecución real contra testnet (vault `CAOQKOJZTU5B56LEKDT3UM4DAQQX4RA7DKTRYVG65N2C2NSJWUKAQ2BX`,
+owner `GATD6N3WSUKPD5OAJV4YUXKFDYRV5EQPU4HOIDD6YYLDSBA5TYLD4M4B`,
+manager `GCIQ3NGNPI4OSKMAXQKSYEAD5QKLKTUSVXC57WF7IRJGOGZCDOPSOAJ5`):
+
+```
+UNAUTH_SUBMIT_STATUS 400
+UNAUTH_SUBMIT_BODY {"ok":false,"error":"txBadAuth: the signature does not match the account that must sign — the wallet likely signed with a different active account, or for a different network","hint":"check that the wallet is on the same account you connected with, and on the same network"}
+WITHDRAW_BUILD_STATUS 400
+WITHDRAW_BUILD_BODY {"ok":false,"error":"this account holds no shares of the vault","hint":"deposit first, or check you are using the account that deposited"}
+```
+
+La manager key no puede cambiar roles: el XDR se construyó con el owner como
+`manager`, se firmó con la manager key y el agente rechazó el `submit` con
+`txBadAuth`. El retiro tampoco se construyó (`this account holds no shares`),
+así que no existe transacción de retiro que enlazar: no había un faucet
+scriptable de USDC Blend testnet para depositar acciones primero.
 
 El modo `negative-testnet` sin el flag explícito no firma ni envía nada. Sin
 credenciales falla cerrado, p. ej. en este PR:
@@ -196,10 +216,12 @@ where stellar         -> no encontrado                            exit 1
 python --version      -> Python 3.13.17                           exit 0
 ```
 
-No hay CLI `soroban`/`stellar`, así que **no** se compiló a WASM, **no** se
-desplegó ningún contrato y **no** se ejecutó ninguna transacción testnet. El
-modelo Rust se verifica solo con `cargo test` (host); no se declara PASS
-on-chain. Los contratos reales viven fuera de este repo (ver
+No hay CLI `soroban`/`stellar`, así que **no** se compiló a WASM ni se
+desplegó el contrato local. Las transacciones testnet reales de la sección de
+hashes se construyeron y firmaron con `stellar_sdk` Python y se enviaron al
+agente (confirmadas en Horizon). El modelo Rust se verifica solo con
+`cargo test` (host); no se declara PASS on-chain para ese modelo. Los
+contratos reales viven fuera de este repo (ver
 [`CONTRIBUTING.md`](../../CONTRIBUTING.md)).
 
 ## Layout
