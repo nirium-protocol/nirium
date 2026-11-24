@@ -152,7 +152,7 @@ Uptime of nirium.xyz and the public mainnet and testnet endpoints is checked on 
 | Treasury Rebalance | Mainnet, invite-only (4 self-funded rebalances, last 6 Aug 2026) |
 | Payouts | Mainnet, invite-only (no mainnet runs yet) |
 | Policy hook (pre-sign `ALLOW`/`DENY`) | Experimental (TypeScript SDK; Python SDK since 0.12.9) |
-| MPP Charge | Testnet only |
+| MPP Charge | Testnet only (client: use `nirium@0.19.8` until `@stellar/mpp` supports stellar-sdk 17) |
 
 The tables below back each row with a transaction hash or a live endpoint - this one is just the summary.
 
