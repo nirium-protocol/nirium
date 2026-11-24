@@ -30,6 +30,11 @@ export const xdr = {
     static fromXDR(data: string, format: string): any {
       return { data, format };
     }
+    // The SDK calls both spellings; keep the mock compatible with each so
+    // ts-jest can type-check suites that import x402-policy.ts.
+    static fromXdr(data: string, format: string): any {
+      return { data, format };
+    }
   },
 };
 
