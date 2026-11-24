@@ -12,9 +12,9 @@ Physical shipping data, internal manifests, and private coordinates stay off-cha
 ## What a Receipt Proves — and What It Doesn't
 
 A receipt (CID) proves:
-- **Evidence immutability:** The SHA-256 hash of the canonical handoff record (shipment ID, index, party ID, location label, timestamp, scan hash, and previous CID) was anchored at the stated time. If anyone tampers with a record on disk or swaps the barcode scan, the recomputed hash diverges and `nirium-cli verify` fails.
+- **Tamper evidence:** The SHA-256 hash of the canonical handoff record (shipment ID, index, party ID, location label, timestamp, scan hash, and previous CID) was anchored at the stated time. If anyone tampers with a record on disk or swaps the barcode scan, the recomputed hash diverges and `nirium-cli verify` fails.
 - **Party non-repudiation:** The receiving party signed `nirium-audit-v1:<sha256>` with their own Stellar keypair. No party can sign on behalf of another party.
-- **Sequential provenance:** By embedding `previousHandoffCid`, handoff $N$ directly commits to the immutable CID of handoff $N-1$, forming an unbroken cryptographic hash chain.
+- **Sequential provenance:** By embedding `previousHandoffCid`, handoff $N$ directly commits to the CID of handoff $N-1$, forming an unbroken cryptographic hash chain.
 
 It does **not** prove:
 - **Physical contents truth:** A party could scan an empty container or record an inaccurate location label. Nirium Audit Trail fixes *who stated what and when*, establishing accountability rather than physical omniscience.
