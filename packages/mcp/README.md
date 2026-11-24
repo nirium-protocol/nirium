@@ -55,6 +55,7 @@ No install needed - run directly with `npx`, or add to your MCP client config.
 **Paid via MPP - requires a funded `STELLAR_SECRET_KEY`**
 - `get_mpp_signals` - $0.02 USDC - same data and same testnet-only limit as `get_premium_signals`, settled via direct Soroban SAC transfer with no external facilitator
 - `get_mpp_market` - $0.05 USDC - same as `get_premium_market`, MPP-settled
+- Known issue in 0.6.13: both MPP tools go through `@stellar/mpp` 0.7.1, which does not support `@stellar/stellar-sdk` 17 yet, so they are expected to fail. Use `nirium-mcp@0.6.12` for MPP until a fixed `@stellar/mpp` is published. The x402 tools are not affected.
 
 **Treasury - requires `NIRIUM_API_KEY`**
 

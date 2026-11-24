@@ -1,0 +1,36 @@
+{
+  "name": "nirium-vercel-ai-sdk-x402-example",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A Vercel AI SDK tool that pays x402 endpoints through the Nirium SDK, with a per-payment spend cap on Stellar testnet.",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "node --import tsx --test test/*.test.ts",
+    "server": "node --import tsx src/server.ts",
+    "demo": "node --import tsx src/demo.ts"
+  },
+  "dependencies": {
+    "@ai-sdk/openai": "4.0.122",
+    "@stellar/stellar-sdk": "16.4.1",
+    "@x402/core": "2.32.0",
+    "@x402/express": "2.32.0",
+    "@x402/extensions": "2.32.0",
+    "@x402/stellar": "2.32.0",
+    "ai": "7.0.179",
+    "dotenv": "17.4.2",
+    "express": "5.3.0",
+    "nirium": "0.19.8",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/express": "5.0.6",
+    "@types/node": "22.20.5",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "license": "Apache-2.0"
+}

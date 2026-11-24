@@ -9,10 +9,11 @@ Contributed by [Santia2004](https://github.com/Santia2004) in
 [#69](https://github.com/nirium-protocol/nirium/pull/69) (Aug 2026).
 
 ```
-src/server.ts        POST /webhook -> anchorAuditRecord({ record, tag: 'webhook-event', agent? })
+src/server.ts        POST /webhook -> anchorAuditRecord({ record, tag: 'wave11-forensic-bridge', agent? })
 src/attestation.ts   sha256 of the record, domain-prefixed message, sign and verify
-src/export.ts        reporting export + re-check (see the limit below)
-test/bridge.test.ts  offline tests for the signing and verification
+src/anchors.ts       local, git-ignored receipt log (anchors.jsonl)
+src/export.ts        verify each logged CID with the published Nirium CLI
+test/*.test.ts       offline tests for signing, storage and export
 ```
 
 ## Setup
@@ -53,15 +54,50 @@ with `npx nirium-cli@latest verify <CID>` or at [nirium.xyz/verify](https://niri
 pnpm test
 ```
 
-Four offline tests: the hash is computed over the record as sent (key order matters), a signature
-verifies, a changed record fails verification, and the message carries the `nirium-audit-v1:`
-prefix. No network.
+The tests use placeholders and make no network calls. They cover signing, a changed record, an
+invalid signature, the local receipt log, and export results.
 
-## Limit: `pnpm export` does not work against the hosted agent
+## Export your own anchors
 
-`src/export.ts` reads the anchors export and re-checks each CID. It was written when the export
-returned a CID and hash per row. The Reporting export no longer returns CIDs (a CID belongs to
-whoever anchored it): today each row has only `anchored_at`, `source` and `network`, so there is
-nothing to fetch. It also hashes the whole IPFS document and compares that with the record's
-`content_sha256`, which would not match even with a CID. To re-check what you anchored, keep the
-CIDs from the `/webhook` responses and run `nirium verify` on them.
+Each successful webhook appends its CID, `contentSha256`, and optional `attestedBy` to the local
+`anchors.jsonl`. The file is git-ignored and stays on this machine. Back it up if you need a
+lasting record of your anchors. The public Reporting export lists dates, sources and networks;
+it does not return other people's CIDs.
+
+```bash
+pnpm export
+```
+
+Export invokes `npx nirium-cli@latest verify <cid> --json` for every locally logged CID. The CLI
+retrieves the IPFS document and checks its record hash and any agent signature. The bridge also
+compares the verified document's hash to the one it logged at anchor time. It writes
+`audit-verified-report.json` locally, prints verified and failed counts and a reason for every
+failure, and exits nonzero if any record fails. Neither the webhook nor export sends raw records
+to the Reporting service.
+
+A verified receipt proves that the record in the IPFS document has not changed since it was
+anchored and, when an agent signature is present, which Stellar key signed it. It does **not**
+prove that the record is true. `anchoredAt` is the Nirium node's clock, not a ledger timestamp.
+Anchor only hashes or small non-personal records: nobody can guarantee that something is deleted from IPFS, since anyone with the CID may have kept a copy.
+
+## Testnet run (21 November 2026)
+
+I generated a new Stellar key locally for this run; its public key is
+`GBBQIOW2ACAHEGY6QJ7Z64ZMT4RDTUYH5ZC5HUV3CD72CWXMGPD5GUO2`. The secret stays in the
+git-ignored `.env`. Two non-personal placeholder events were posted to the local `/webhook`
+against `https://nirium-agent.fly.dev`, using the `wave11-forensic-bridge` tag:
+
+| CID | `nirium verify` |
+|---|---|
+| `QmdG5F3ZVF7WJHQzz9DUhcZSsCfRxbAn1cCWHVy36nb9B5` | `verified: true`, hash match, valid ed25519 signature |
+| `QmTYLcQDYcbjd6FRtTX7F2LZqtP6wXUdrfEp5cNnnJcGAW` | `verified: true`, hash match, valid ed25519 signature |
+
+Both were checked independently with `npx --yes nirium-cli@latest verify <cid> --json`.
+The `pnpm export` output was:
+
+```text
+Verified: 2; failed: 0; total: 2
+VERIFIED QmdG5F3ZVF7WJHQzz9DUhcZSsCfRxbAn1cCWHVy36nb9B5
+VERIFIED QmTYLcQDYcbjd6FRtTX7F2LZqtP6wXUdrfEp5cNnnJcGAW
+Report written to audit-verified-report.json
+```

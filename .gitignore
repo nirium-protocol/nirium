@@ -18,3 +18,5 @@ actions/verify-audit-cid/lib/
 !actions/verify-audit-cid/dist/
 !actions/verify-audit-cid/dist/**
 .next/
+examples/audit-forensic-bridge/anchors.jsonl
+examples/audit-forensic-bridge/audit-verified-report.json

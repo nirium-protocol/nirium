@@ -27,7 +27,7 @@ jobs:
         with:
           node-version: 22
       # --legacy-peer-deps: @stellar/mpp@0.7.1 peer-requires
-      # @stellar/stellar-sdk@^15.1.0 while this package pins ^16.3.0 (what
+      # @stellar/stellar-sdk@^15.1.0 while this package pins ^17.4.0 (what
       # @x402/stellar needs) - a pre-existing mismatch, unrelated to this
       # workflow, not fixed here. No @stellar/mpp release accepts 16 yet.
       - run: npm install --no-audit --no-fund --legacy-peer-deps

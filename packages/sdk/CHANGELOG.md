@@ -4,6 +4,18 @@ All notable changes to the `nirium` package are documented here.
 
 ## Unreleased
 
+Known issue in 0.20.0: the MPP Charge client (`initMpp()` / `mppFetch()`) fails with `TypeError: prepared.toEnvelope(...).v1 is not a function`. It comes from `@stellar/mpp` 0.7.1, the latest release on npm, which still targets `@stellar/stellar-sdk` 15/16; upstream already moved to 17 on main (stellar/stellar-mpp-sdk#99, #102) but has not published it. x402, Audit Trail and Reporting are not affected. Until a fixed `@stellar/mpp` ships, use `nirium@0.19.8` with `@stellar/stellar-sdk@16` for MPP. Checked on testnet on 23 Nov 2026 (our own test payments, not usage): 0.20.0 + stellar-sdk 17.4.0 failed on MPP and paid over x402 (`85b41e0bade9bf5fc7656c12e50be1a67b7c593ae3c1ad0b6223cd8f84ca5e95`); 0.19.8 + stellar-sdk 16.4.1 paid over MPP (`4495861d68c78baae41f969ead2b0d8b79cfdf34055f7f908cb8beecdfcebecb`).
+
+## 0.20.0 - 2026-11-23
+
+Dependencies move to `@stellar/stellar-sdk` ^17.4.0 (was ^16.3.0) and `@x402/*` ^2.32.0 (was ^2.28.0), after Protocol 30 reached mainnet. `@x402/stellar` 2.32 already required stellar-sdk 17, so a fresh install of 0.19.8 carried two SDK copies; this release carries one.
+
+No change to the public API. The pre-sign policy hook, its `ctx.authorization` fields and the conformance kit behave as before; internally they moved to stellar-sdk 17's XDR accessors.
+
+If you pass your own `signer`: with stellar-sdk 17, `Keypair.sign()` returns a `Uint8Array`. Wrap it with `Buffer.from(...)` before `.toString('base64')`, or the `signedAuthEntry` is not valid base64. See Requirements in the README.
+
+Checked before release with real testnet payments to Nirium's own test endpoint (our own test, not usage), from a fresh install of the packed package: without a policy `820e84f056f7723c257fb2cf2e86f10f512828f48fd20e03b825009850713238`, with an ALLOW policy `415565cb7044dbe59cf73ea1bceaa3141a714fcfba56415d8e2f8a68eb274021`. Published 0.19.8 was checked the same way and also pays.
+
 ## 0.19.8 - 2026-11-22
 
 README: the Audit Trail note said IPFS content "cannot be deleted". Corrected: nobody can guarantee deletion from IPFS, because anyone with the CID may have kept a copy; the advice is unchanged (anchor a hash, not personal data). No code change.

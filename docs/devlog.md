@@ -107,3 +107,21 @@ Two earlier ones never made it into this log: [x402#3228](https://github.com/x40
 **What we got wrong.** We proposed an optional receipt hook to [Rumble Fish's Stellar facilitator](https://github.com/rumblefishdev/stellar-x402/issues/153). Their review asked what a receipt proves that the ledger doesn't, and for the fields we suggested hashing (payer, payee, amount, tx hash), the answer was nothing. A Stellar transaction already proves all of that.
 
 **What we changed.** Our home page stopped saying "prove every payment". The README, the four package READMEs and the Pollar adapter now say what a receipt is actually for: policy decisions (including refused payments that were never signed), what a payment was for, off-chain records, and who declared them. Where only the transfer matters, link the transaction. The reasoning is in [docs/DESIGN-FAQ.md](DESIGN-FAQ.md). The same week we closed our own `upto` spec for Stellar, [x402#3098](https://github.com/x402-foundation/x402/pull/3098), in favor of Rumble Fish's [x402#3781](https://github.com/x402-foundation/x402/pull/3781), after review there settled the design.
+
+## 2026-11-19: We called receipts "immutable". They are tamper-evident.
+
+**What we got wrong.** About 40 places on nirium.xyz, the MCP tool description, two API responses and the Payouts terms said a receipt was "immutable", "permanent" or kept "forever". None of that is true: a changed document gets a different CID, so a change shows, but nothing prevents it, and nobody can guarantee that something is deleted from IPFS or kept there.
+
+**What we changed.** Every one now says tamper-evident, not tamper-proof ([#402](https://github.com/nirium-protocol/nirium/pull/402) for the packages; the site and the live API on 19 and 20 Nov). The Payouts terms were edited in place with a dated note.
+
+## 2026-11-20: An outside reviewer found a receipt our CLI accepted and our Action rejected
+
+**What broke.** [holistis](https://github.com/holistis) ran 21 test cases against both verifiers. In one, a receipt with `record: null` and its hash and signature kept, the GitHub Action rejected it and `nirium-cli verify` passed it, reporting the hash as not checked. The CLI decided the mode with a truthy check (`doc.record ?`) where the Action checks `doc.record === undefined`.
+
+**Fix.** [#420](https://github.com/nirium-protocol/nirium/pull/420) uses the Action's rule and adds an opt-in `--require-signature`; the 21 cases now run in the CLI's tests, credited to holistis. Shipped in `nirium-cli` 3.2.6 on 20 Nov. holistis re-ran the cases against the published package: the decision matches the Action in 21 of 21. Earlier, the same review found the Action calling an unsigned hash-only receipt verified ([#396](https://github.com/nirium-protocol/nirium/pull/396), [#399](https://github.com/nirium-protocol/nirium/pull/399)).
+
+## 2026-11-21: Our Reporting count included refused payments
+
+**What broke.** The Reporting card on nirium.xyz showed 42 mainnet payments while the billing account on the ledger had 39. It counted every payment log line, including three refused attempts from 6 Sep 2026.
+
+**Fix.** It now counts only received payments and matches the ledger; EVIDENCE has a dated note. On 22 Nov, /verify started recomputing the CID and the hash in the browser from the gateway bytes, instead of trusting the copy our server read, so a gateway or our server serving a different document shows up as a mismatch.

@@ -1,6 +1,6 @@
 {
   "name": "nirium-cli",
-  "version": "3.2.7",
+  "version": "3.2.8",
   "description": "Nirium from the terminal: pay or serve an x402 API on Stellar, anchor and verify receipts, check an agent and export reports.",
   "main": "bin/nirium.js",
   "type": "module",
@@ -28,10 +28,10 @@
   "dependencies": {
     "axios": "^1.20.0",
     "commander": "^14.0.3",
-    "nirium": "^0.19.0",
+    "nirium": "^0.20.0",
     "express": "^5.1.0",
-    "@stellar/stellar-sdk": "^16.3.0",
-    "@x402/express": "^2.28.0"
+    "@stellar/stellar-sdk": "^17.4.0",
+    "@x402/express": "^2.32.0"
   },
   "overrides": {
     "@stellar/stellar-sdk": {

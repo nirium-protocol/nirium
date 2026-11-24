@@ -6,7 +6,7 @@ Verifiable receipts, agentic payments and treasury execution for **Nirium Protoc
 - **x402 payments, both directions:** pay for other APIs with `initX402()` and charge for your own with `x402Serve()`. An MPP Charge client is included, experimental.
 - **Treasury:** a Nirium agent can move a vault you own between idle cash and its strategy (USDC, or tokenized CETES issued by Etherfuse). Nothing is swapped. It runs on its own on testnet. On mainnet, deploying, depositing, proposals and autonomous execution are invite-only, and withdrawing is always open.
 
-**Status:** x402 and Audit Trail run on Stellar mainnet; MPP Charge is verified on testnet and untested on mainnet; Treasury on mainnet is invite-only (withdrawing stays open). Every claim, with its network, date and transaction hash: [EVIDENCE.md](https://github.com/nirium-protocol/nirium/blob/main/EVIDENCE.md).
+**Status:** x402 and Audit Trail run on Stellar mainnet; MPP Charge is verified on testnet and untested on mainnet, and its client fails on 0.20.0 until `@stellar/mpp` supports stellar-sdk 17 (use 0.19.8 for MPP, see [MPP Charge](#mpp-charge-experimental)); Treasury on mainnet is invite-only (withdrawing stays open). Every claim, with its network, date and transaction hash: [EVIDENCE.md](https://github.com/nirium-protocol/nirium/blob/main/EVIDENCE.md).
 
 ## Install
 
@@ -258,6 +258,7 @@ const response = await agent.mppFetch('https://your-mpp-server.example/resource'
 
 **Testnet: verified. Mainnet: not tested. Still experimental, not for production.**
 
+- **Known issue in 0.20.0:** this client fails with `prepared.toEnvelope(...).v1 is not a function`, because `@stellar/mpp` 0.7.1 (the latest on npm) does not support `@stellar/stellar-sdk` 17 yet. For MPP, use `nirium@0.19.8` with `@stellar/stellar-sdk@16` until a fixed `@stellar/mpp` is published; 0.19.8 paid Nirium's testnet endpoint over MPP on 23 Nov 2026 ([`4495861d…`](https://stellar.expert/explorer/testnet/tx/4495861d68c78baae41f969ead2b0d8b79cfdf34055f7f908cb8beecdfcebecb)). x402 and Audit Trail are not affected.
 - On 15 October 2026 (UTC) we paid Nirium's hosted **testnet** endpoint with this client (`nirium@0.16.1`), once in `pull` and once in `push` mode. Both settled on Stellar testnet and the server returned the resource: [`b8c4ed56…`](https://stellar.expert/explorer/testnet/tx/b8c4ed568f6eb41321b97d251d7f3727c57570a226d187e3675a9df03496e3ed) (pull), [`96d43d6f…`](https://stellar.expert/explorer/testnet/tx/96d43d6f4cf38fbd3a4df2c2bb6625e650c0d0509184d86c1e42c7e6ebdf242c) (push). The `402 Verification Failed` we saw on 1 October no longer reproduces.
 - We have **not tested the mainnet endpoint** (it would spend real USDC), so we cannot tell you it works there.
 - In `push` mode the payment settles on-chain before the server verifies it, so a request the server rejects is **not refunded**.
@@ -496,7 +497,8 @@ if (proposal.instructions.length) {
 
 ## Requirements
 
-- Node.js >= 22.12.0. `@stellar/stellar-sdk` 16 and `@x402/stellar` 2.28 declare `>=22.0.0`, but stellar-sdk 16 depends on `@noble/hashes` 2.x, which is ESM-only, and this package is published as CommonJS: `require('nirium')` only works without a flag from Node 22.12.0 (on 22.11 it throws `ERR_REQUIRE_ESM`)
+- Node.js >= 22.12.0. `@stellar/stellar-sdk` 17 and `@x402/stellar` 2.32 both declare `>=22.12.0`: stellar-sdk depends on `@noble/hashes` 2.x, which is ESM-only, and this package is published as CommonJS, so `require('nirium')` only works without a flag from Node 22.12.0 (on 22.11 it throws `ERR_REQUIRE_ESM`)
+- Bring your own signer? With `@stellar/stellar-sdk` 17, `Keypair.sign()` returns a `Uint8Array`, and `Uint8Array.toString('base64')` does not throw: it returns a comma-separated list. Return `Buffer.from(keypair.sign(...)).toString('base64')` as `signedAuthEntry`
 - TypeScript >= 5.0
 
 ## Links

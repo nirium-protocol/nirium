@@ -25,7 +25,7 @@ jobs:
         with:
           node-version: 22
       # --legacy-peer-deps: @stellar/mpp@0.7.1 peer-requires
-      # @stellar/stellar-sdk@^15.1.0 while this package pins ^14.0.0 - a
+      # @stellar/stellar-sdk@^15.1.0 while this package pins ^17.4.0 - a
       # pre-existing mismatch tracked in #125, not fixed here. A plain
       # `npm install` stops with ERESOLVE.
       - run: npm install --no-audit --no-fund --legacy-peer-deps

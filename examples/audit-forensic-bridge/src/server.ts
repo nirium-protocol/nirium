@@ -1,6 +1,7 @@
 import express from 'express';
 import { Agent } from 'nirium';
 import { signAuditRecord } from './attestation.js';
+import { appendAnchor } from './anchors.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -37,8 +38,14 @@ app.post('/webhook', async (req, res) => {
 
     const anchor = await agentClient.anchorAuditRecord({
       record: event,
-      tag: 'webhook-event',
+      tag: 'wave11-forensic-bridge',
       agent: agentAttestation,
+    });
+
+    await appendAnchor({
+      cid: anchor.cid,
+      contentSha256: anchor.contentSha256,
+      ...(anchor.attestedBy ? { attestedBy: anchor.attestedBy } : {}),
     });
 
     return res.status(200).json({

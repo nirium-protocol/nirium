@@ -44,7 +44,7 @@ but never completed.
 Install:
 
 ```bash
-npm install nirium @stellar/stellar-sdk@16 @vercel/functions
+npm install nirium @stellar/stellar-sdk@17 @vercel/functions
 ```
 
 ```ts
@@ -156,7 +156,7 @@ Keep anchoring failures off the critical path:
   bug in your hash/signature construction (do not retry blindly).
 
 A paid x402 response should still return `200` even when the anchor fails. The
-receipt is an integrity seal, not a gate on delivery.
+receipt is a tamper-evident record, not a gate on delivery.
 
 ## Fallback when `waitUntil` is not available
 

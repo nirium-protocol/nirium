@@ -973,8 +973,9 @@ export class Agent {
      * Anchor evidence to IPFS and get back a CID — an integrity seal, not
      * notarization and not legal proof of content.
      *
-     * Anchor a `hash` of your data rather than the data itself: IPFS content
-     * cannot be deleted, so raw personal data would outlive any erasure request.
+     * Anchor a `hash` of your data rather than the data itself: nobody can
+     * guarantee that something is deleted from IPFS, so raw personal data could
+     * outlive any erasure request.
      */
     async anchorAuditRecord(options: AuditAnchorOptions): Promise<AuditAnchor> {
         const res = await this.request<AuditAnchor & { content_sha256?: unknown }>(

@@ -4,6 +4,10 @@ All notable changes to the `nirium-cli` package are documented here.
 
 ## Unreleased
 
+## 3.2.8 - 2026-11-23
+
+Depends on `nirium` ^0.20.0, which moved to `@stellar/stellar-sdk` 17 for Protocol 30. The CLI now installs one stellar-sdk copy (17.4.0) instead of 16.4.1 alongside 17.4.0. No command or output change.
+
 ## 3.2.7 - 2026-11-21
 
 Keep your own copy of a receipt. `nirium anchor --save <file>` writes the exact anchored document, byte for byte, after checking that it gives back the anchored CID (it uses the `document` the node returns, or the gateway on older nodes). New `nirium cid <file> [--expect <cid>]` recomputes a file's CIDv0 locally with no IPFS node, so a saved copy can be shown to be the original and re-added to IPFS with the same CID.
