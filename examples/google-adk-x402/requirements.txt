@@ -1,7 +1,7 @@
 # Core dependencies (exact versions tested)
 nirium==0.12.9
 google-adk==2.15.0
-python-dotenv==1.0.0
+python-dotenv==1.2.2
 
 # Testing
 pytest==8.3.0
