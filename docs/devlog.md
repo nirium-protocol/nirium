@@ -125,3 +125,16 @@ Two earlier ones never made it into this log: [x402#3228](https://github.com/x40
 **What broke.** The Reporting card on nirium.xyz showed 42 mainnet payments while the billing account on the ledger had 39. It counted every payment log line, including three refused attempts from 6 Sep 2026.
 
 **Fix.** It now counts only received payments and matches the ledger; EVIDENCE has a dated note. On 22 Nov, /verify started recomputing the CID and the hash in the browser from the gateway bytes, instead of trusting the copy our server read, so a gateway or our server serving a different document shows up as a mismatch.
+
+## 2026-11-25: What a full read of our own pages turned up
+
+**What we got wrong.** We read every public page and compared the text with the code and the live APIs. Found that day:
+
+- /stats counted two Stellar Wave PRs ([#476](https://github.com/nirium-protocol/nirium/pull/476), [#485](https://github.com/nirium-protocol/nirium/pull/485)) as GrantFox work, because their descriptions number their runs "#1" and "#2". It showed 17 linked PRs; 15 are.
+- The README of the logistics example ([#484](https://github.com/nirium-protocol/nirium/pull/484)) pasted a `verify` output whose hash was not the receipt's. We had approved it.
+- /verify said a blocked-payment receipt is "the only record of the decision". AgentLedger's public ledger has it too (entry 867).
+- The x402 seller example in /docs built the `Agent` without `baseUrl`, so it pointed at localhost and the anchor failed.
+- `GET /api/nodes` said signals and execute settle on mainnet. They answer 501 there; only `market` charges.
+- Our Restricted Jurisdictions policy (v1.4), the Terms and the disclaimers stated legal conclusions that no lawyer has reviewed, such as "lawful in most of the world".
+
+**What we changed.** /stats, /verify, the example README ([#538](https://github.com/nirium-protocol/nirium/pull/538)) and the policy (v1.5) were corrected and checked live the same day; v1.5 is anchored on mainnet as our own notice. The /docs, Terms, disclaimers and API fixes are merged and go live with the next deploys. The example reviews now compare every hash in a README with its receipt.
