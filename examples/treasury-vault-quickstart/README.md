@@ -11,17 +11,17 @@ Nirium's SDK never holds a signing key in this path. The Agent only builds and b
 ## Why this is non-custodial
 
 - **Nirium builds unsigned XDR.** `deployTreasuryVault` and `depositToTreasuryVault` return `xdr` + `signWith`. Nothing is submitted until you sign.
-- **`Agent` never touches a private key on this path.** This example constructs `new Agent({ apiKey, baseUrl })` — it receives no `S...` secret. Signing is done locally with `@stellar/stellar-sdk` (`Keypair.fromSecret` in `src/sign.ts`).
+- **`Agent` never touches a private key on this path.** This example constructs `new Agent({ apiKey, baseUrl })` - it receives no `S...` secret. Signing is done locally with `@stellar/stellar-sdk` (`Keypair.fromSecret` in `src/sign.ts`).
 - **Every signature comes from the caller's own keypair.** `manager` is set to *your* testnet address (the role that can rescue funds, pause strategies, and revoke rebalance). Nirium, if present at all, only holds `RebalanceManager`, which cannot withdraw. A browser port would sign with Freighter the same way: the wallet holds the key, the SDK does not.
 
 This issue is deploy + deposit only. It does not call `executeTreasuryRebalance` or the RebalanceManager endpoints.
 
 ## Prerequisites
 
-- Node.js 20+
+- Node.js >=22.12.0 (`@stellar/stellar-sdk` 16.x requires it)
 - A **funded Stellar testnet** account you control:
-  - **XLM** for fees / contract deploy — [Friendbot](https://friendbot.stellar.org) (`https://friendbot.stellar.org?addr=G...`)
-  - A small balance of the vault asset. Default is **Blend testnet USDC** (`USDC-GATALTG…`, contract `CAQCFV…`) — not Circle USDC. The script opens that trustline if it is missing; then click Faucet on [testnet.blend.capital](https://testnet.blend.capital). Set `VAULT_ASSET=cetes` if you hold testnet CETES instead.
+  - **XLM** for fees / contract deploy - [Friendbot](https://friendbot.stellar.org) (`https://friendbot.stellar.org?addr=G...`)
+  - A small balance of the vault asset. Default is **Blend testnet USDC** (`USDC-GATALTG…`, contract `CAQCFV…`) - not Circle USDC. The script opens that trustline if it is missing; then click Faucet on [testnet.blend.capital](https://testnet.blend.capital). Set `VAULT_ASSET=cetes` if you hold testnet CETES instead.
 
 You do **not** need a Nirium institutional API key. The script requests a public demo token with your G-address.
 
@@ -30,7 +30,7 @@ You do **not** need a Nirium institutional API key. The script requests a public
 ```bash
 cd examples/treasury-vault-quickstart
 cp .env.example .env
-# put your own testnet S... key in .env — never a Nirium key, never mainnet
+# put your own testnet S... key in .env - never a Nirium key, never mainnet
 npm install
 npm start
 ```
@@ -41,7 +41,7 @@ The script prints two `stellar.expert/explorer/testnet/tx/<hash>` links (deploy 
 
 | Variable | Required | Default |
 |---|---|---|
-| `STELLAR_SECRET_KEY` | yes | — (your testnet `S...` only) |
+| `STELLAR_SECRET_KEY` | yes | - (your testnet `S...` only) |
 | `NIRIUM_API_KEY` | no | public `demo-auth` token |
 | `NIRIUM_BASE_URL` | no | `https://nirium-agent.fly.dev` |
 | `VAULT_ASSET` | no | `usdc` (`cetes` also supported) |
@@ -56,8 +56,8 @@ Mainnet is out of scope. Setting the public network passphrase is rejected befor
 
 The two that show up in this repo's own history:
 
-- **Insufficient balance** — missing testnet account, not enough XLM to deploy, or not enough of the vault asset to deposit. The script preflights XLM on Horizon and rewrites agent/Horizon errors into a Friendbot + asset hint.
-- **Wrong network passphrase** — signing a testnet XDR with the public passphrase (or pointing `NETWORK_PASSPHRASE` at mainnet). `src/sign.ts` refuses to sign unless the passphrase is exactly testnet.
+- **Insufficient balance** - missing testnet account, not enough XLM to deploy, or not enough of the vault asset to deposit. The script preflights XLM on Horizon and rewrites agent/Horizon errors into a Friendbot + asset hint.
+- **Wrong network passphrase** - signing a testnet XDR with the public passphrase (or pointing `NETWORK_PASSPHRASE` at mainnet). `src/sign.ts` refuses to sign unless the passphrase is exactly testnet.
 
 ```bash
 npm test
@@ -74,4 +74,4 @@ src/errors.ts  insufficient-balance / passphrase error mapping
 src/usdc.ts    BlendUSDC trustline + balance preflight (not Circle USDC)
 ```
 
-SDK methods used: `Agent.deployTreasuryVault`, `Agent.depositToTreasuryVault`, `Agent.submitTreasuryTx`, `Agent.getTreasuryVault`, `Agent.getTreasuryInfo` (`nirium@0.12.0`).
+SDK methods used: `Agent.deployTreasuryVault`, `Agent.depositToTreasuryVault`, `Agent.submitTreasuryTx`, `Agent.getTreasuryVault`, `Agent.getTreasuryInfo` (`nirium@0.19.3`).

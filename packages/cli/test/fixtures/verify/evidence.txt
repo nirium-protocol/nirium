@@ -1,0 +1,1 @@
+nirium verify hash-only fixture

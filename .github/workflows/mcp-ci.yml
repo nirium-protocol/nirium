@@ -1,0 +1,50 @@
+# packages/mcp (npm: nirium-mcp) exposes the Nirium SDK to AI assistants
+# as MCP tools. This workflow runs the tool test suite and validates the
+# clean installation of the published tarball on every change under packages/mcp/**.
+name: MCP CI
+on:
+  pull_request:
+    paths:
+      - packages/mcp/**
+      - .github/workflows/mcp-ci.yml
+  push:
+    branches:
+      - main
+    paths:
+      - packages/mcp/**
+      - .github/workflows/mcp-ci.yml
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/mcp
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      # --legacy-peer-deps: @stellar/mpp@0.7.1 peer-requires
+      # @stellar/stellar-sdk@^15.1.0 while this package pins ^17.4.0 - a
+      # pre-existing mismatch tracked in #125, not fixed here. A plain
+      # `npm install` stops with ERESOLVE.
+      - run: npm install --no-audit --no-fund --legacy-peer-deps
+      - run: npm run build
+      - run: npm test
+
+  clean-install:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/mcp
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - run: npm install --no-audit --no-fund --legacy-peer-deps
+      - run: npm run build
+      # Fails if dist/ (or the bin target) is missing from the tarball, if any
+      # *.test.* file would be published, or if the installed bin does not
+      # answer initialize and exit cleanly.
+      - run: node scripts/clean-install-check.mjs

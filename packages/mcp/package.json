@@ -1,7 +1,7 @@
 {
   "name": "nirium-mcp",
-  "version": "0.6.0",
-  "description": "Model Context Protocol server for Nirium — exposes market data, autonomous loop control, and x402/MPP paid signals to any MCP-compatible AI (Claude, GPT, Cursor, VS Code Copilot).",
+  "version": "0.6.13",
+  "description": "MCP server that lets an AI assistant (Claude, Cursor, VS Code Copilot) use Nirium on Stellar: paid x402 endpoints in USDC, receipts anyone can verify and treasury vault tools. MPP tools are experimental.",
   "main": "dist/index.js",
   "bin": {
     "nirium-mcp": "dist/index.js"
@@ -9,10 +9,11 @@
   "homepage": "https://nirium.xyz",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/nirium-protocol/nirium-sdk.git"
+    "url": "git+https://github.com/nirium-protocol/nirium.git",
+    "directory": "packages/mcp"
   },
   "bugs": {
-    "url": "https://github.com/nirium-protocol/nirium-sdk/issues",
+    "url": "https://github.com/nirium-protocol/nirium/issues",
     "email": "niriumprotocol@gmail.com"
   },
   "author": {
@@ -25,39 +26,41 @@
     "README.md"
   ],
   "scripts": {
+    "prepublishOnly": "npm run build",
     "build": "tsc",
     "start": "node dist/index.js",
-    "dev": "tsc --watch"
+    "dev": "tsc --watch",
+    "test": "tsx --test test/*.test.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.27.1",
     "@stellar/mpp": "^0.7.1",
-    "@stellar/stellar-sdk": "^14.0.0",
-    "@x402/core": "^2.17.0",
-    "@x402/fetch": "^2.17.0",
-    "@x402/stellar": "^2.17.0",
+    "@stellar/stellar-sdk": "^17.4.0",
+    "@x402/core": "^2.32.0",
+    "@x402/fetch": "^2.32.0",
+    "@x402/stellar": "^2.32.0",
     "mppx": "^0.6.31",
+    "viem": "^2.57.16",
     "zod": "^3.25.0"
   },
   "devDependencies": {
-    "@types/node": "^22.0.0",
+    "@types/node": "^25.9.9",
     "tsx": "^4.19.0",
     "typescript": "^5.7.0"
   },
   "keywords": [
-    "nirium",
-    "mcp",
-    "model-context-protocol",
     "stellar",
-    "soroban",
-    "agent",
-    "autonomous",
-    "treasury",
     "x402",
-    "mpp",
+    "usdc",
+    "payments",
+    "pay-per-request",
+    "ai-agents",
     "agentic-payments",
+    "receipts",
+    "audit-trail",
+    "mcp",
     "claude",
-    "llm-tools"
+    "model-context-protocol"
   ],
   "license": "Apache-2.0"
 }

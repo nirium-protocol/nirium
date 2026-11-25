@@ -1,0 +1,79 @@
+# Issue #143: typecheck every TypeScript example (examples/*/tsconfig.json)
+# against the SDK built from this PR, not the npm release, so an SDK change
+# that breaks an example fails here. Examples are discovered at run time, so
+# new ones are picked up without editing this file. No secrets; no network
+# beyond npm.
+name: Examples Typecheck
+on:
+  pull_request:
+    paths:
+      - packages/sdk/**
+      - examples/**
+      - .github/workflows/examples-typecheck.yml
+      - .github/scripts/typecheck-example.sh
+  push:
+    branches:
+      - main
+    paths:
+      - packages/sdk/**
+      - examples/**
+      - .github/workflows/examples-typecheck.yml
+      - .github/scripts/typecheck-example.sh
+permissions:
+  contents: read
+env:
+  # Examples broken on main today, each with its own issue. They still run but
+  # do not fail the workflow. Space-separated directory names under examples/.
+  ALLOWED_TO_FAIL: ""
+jobs:
+  build-sdk:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/sdk
+    outputs:
+      examples: ${{ steps.discover.outputs.examples }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - run: npm install --no-audit --no-fund --legacy-peer-deps
+      - run: npm run build
+      - run: mkdir -p "$RUNNER_TEMP/sdk" && npm pack --pack-destination "$RUNNER_TEMP/sdk"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: nirium-sdk
+          path: ${{ runner.temp }}/sdk/nirium-*.tgz
+          if-no-files-found: error
+          retention-days: 1
+      - id: discover
+        working-directory: examples
+        run: |
+          examples=$(for f in */tsconfig.json; do
+            d=${f%/tsconfig.json}
+            allow=false
+            for a in $ALLOWED_TO_FAIL; do [ "$a" = "$d" ] && allow=true; done
+            printf '{"name":"%s","allow-failure":%s}\n' "$d" "$allow"
+          done | jq -sc .)
+          echo "$examples" | jq .
+          echo "examples=$examples" >> "$GITHUB_OUTPUT"
+  typecheck:
+    needs: build-sdk
+    runs-on: ubuntu-latest
+    continue-on-error: ${{ matrix.example.allow-failure }}
+    strategy:
+      fail-fast: false
+      matrix:
+        example: ${{ fromJSON(needs.build-sdk.outputs.examples) }}
+    name: typecheck (${{ matrix.example.name }})
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - uses: actions/download-artifact@v8
+        with:
+          name: nirium-sdk
+          path: ${{ runner.temp }}/sdk
+      - run: .github/scripts/typecheck-example.sh "examples/${{ matrix.example.name }}" "$RUNNER_TEMP"/sdk/nirium-*.tgz

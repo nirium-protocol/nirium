@@ -6,19 +6,19 @@
   "scripts": {
     "dev": "tsx src/server.ts",
     "export": "tsx src/export.ts",
-    "test": "tsx --test test/bridge.test.ts",
+    "test": "tsx --test test/*.test.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@stellar/stellar-sdk": "^13.0.0",
-    "dotenv": "^17.2.3",
-    "express": "^5.2.1",
+    "@stellar/stellar-sdk": "^13.3.0",
+    "dotenv": "^17.4.2",
+    "express": "^5.3.0",
     "nirium": "file:../../packages/sdk"
   },
   "devDependencies": {
     "@types/express": "^5.0.6",
-    "@types/node": "^20.19.30",
-    "tsx": "^4.21.0",
-    "typescript": "^5.7.0"
+    "@types/node": "^20.19.43",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3"
   }
 }

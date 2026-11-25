@@ -16,11 +16,11 @@ jobs:
   test-action:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          node-version: 20
+          node-version: 24
           cache: npm
           cache-dependency-path: actions/verify-audit-cid/package-lock.json
 
@@ -41,6 +41,19 @@ jobs:
 
       - name: Assert live verification passed
         run: test "${{ steps.live.outputs.verified }}" = "true"
+
+      - name: Verify known-good live CID with require-signature
+        id: live_signed
+        uses: ./actions/verify-audit-cid
+        with:
+          cid: QmSSZdtt3dQ8BqUm62zrKQ85E4BUHYiVfvDgZmHfJsqU1U
+          gateway: https://gateway.pinata.cloud/ipfs/
+          require-signature: "true"
+
+      - name: Assert signed live CID passes with require-signature
+        run: |
+          test "${{ steps.live_signed.outputs.verified }}" = "true"
+          test "${{ steps.live_signed.outputs.signature_valid }}" = "valid"
 
       - name: Start fixture IPFS gateway
         working-directory: actions/verify-audit-cid

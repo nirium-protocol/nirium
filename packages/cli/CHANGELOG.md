@@ -1,0 +1,131 @@
+# Changelog
+
+All notable changes to the `nirium-cli` package are documented here.
+
+## Unreleased
+
+## 3.2.8 - 2026-11-23
+
+Depends on `nirium` ^0.20.0, which moved to `@stellar/stellar-sdk` 17 for Protocol 30. The CLI now installs one stellar-sdk copy (17.4.0) instead of 16.4.1 alongside 17.4.0. No command or output change.
+
+## 3.2.7 - 2026-11-21
+
+Keep your own copy of a receipt. `nirium anchor --save <file>` writes the exact anchored document, byte for byte, after checking that it gives back the anchored CID (it uses the `document` the node returns, or the gateway on older nodes). New `nirium cid <file> [--expect <cid>]` recomputes a file's CIDv0 locally with no IPFS node, so a saved copy can be shown to be the original and re-added to IPFS with the same CID.
+
+## 3.2.6 - 2026-11-20
+
+`nirium verify` now decides hash-only mode the same way as the verify-audit-cid Action: only when the `record` field is missing. Before, a document with `record: null` and the original hash and signature kept passed as a hash-only anchor (HASH NOT CHECKED, signature valid) while the Action rejected it. It now fails here too. Found by github.com/holistis in an outside check of 3.2.5 (case 10 of 21).
+
+New opt-in `--require-signature`: fail unless the document carries a valid agent signature, same as the Action's `require-signature` input. Off by default, so unsigned records keep passing on their hash.
+
+New test runs the 21 holistis vectors through the real CLI.
+
+## 3.2.5 - 2026-11-19
+
+`nirium verify`: when a hash check fails, the message names each hash once: the anchored one, the one recomputed from the record (only if the record itself changed) and the one you passed with `--hash`/`--evidence`. Before, an intact record that did not match `--hash` printed the anchored hash twice and never showed yours. `--json` adds `providedHash`.
+
+## 3.2.4 - 2026-11-17
+
+README: a short note on what a receipt adds over the ledger, with a link to the design FAQ. No code change.
+
+## 3.2.3 - 2026-11-17
+
+Package description and keywords updated. No code change.
+
+## 3.2.2 - 2026-11-11
+
+### Fixed
+
+- `nirium create x402` and `nirium create bot` scaffolded a `package.json` pinning `"nirium": "^0.16.0"`. Under 0.x semver, `^0.16.0` means `>=0.16.0 <0.17.0`, so every new project installed an SDK without `maxAmountPerPayment` or the Bazaar discovery extension even after those shipped. Now `^0.19.0`, same as this CLI's own `nirium` dependency.
+- `nirium status`, `nirium anchor`, and `nirium report summary|export` defaulted `--url` to `http://localhost:3002`, an agent this repo doesn't run. Now defaults to `https://nirium-agent.fly.dev` (the Nirium testnet agent), so a fresh `npm install -g nirium-cli` works without any agent of your own.
+
+### Changed
+
+- README reorders Audit Trail (`anchor`, `verify`) to the top, ahead of the x402 quickstart - SCF reviewers land here first and Audit Trail is the SOW's focus.
+
+## 3.2.1 - 2026-11-10
+
+### Fixed
+
+- `nirium pay` decodes the base64 `PAYMENT-RESPONSE` header and prints the real transaction hash and a working Stellar Expert link; no link is printed without a valid hash ([#275](https://github.com/nirium-protocol/nirium/pull/275)).
+
+## 3.2.0 - 2026-11-09
+
+### Changed
+
+- `nirium report export anchors` prints each anchor's date and network (tab-separated) instead of its CID, and never prints a CID even if an older node sends one. The node's public Reporting export stopped returning CIDs and payroll run ids on 8 Nov 2026: an anchor's CID belongs to whoever made it. Piping `export anchors` into `nirium verify` no longer applies; verify the CIDs you anchored yourself with `nirium verify <cid>`.
+- `nirium report summary` shows the date of the last anchor (`last: YYYY-MM-DD`) when the node sends `lastAnchoredAt`, and falls back to `latest: <cid>` for older nodes.
+
+## 3.1.1 - 2026-11-07
+
+### Fixed
+
+- `nirium verify` with no `--gateway` tried only `gateway.pinata.cloud`, which often takes 5-7s and can hit the 8s timeout, so a healthy CID failed to verify. It now tries Filebase's dedicated gateway first, then Pinata, `ipfs.io` and `dweb.link` - the same chain the `verify-audit-cid` Action has used since [#259](https://github.com/nirium-protocol/nirium/pull/259), plus Pinata. Passing `--gateway` still replaces the default list.
+
+## 3.1.0 - 2026-11-07
+
+### Added
+
+- `nirium anchor` ([#133](https://github.com/nirium-protocol/nirium/issues/133)): anchors a sha-256 hash (`--hash`), a file's sha-256 (`--file`, the file itself is never uploaded), or a small JSON record (`--record`, max 8KB, enforced client-side) to IPFS via an Audit Trail node's `POST /api/audit/log`. Optional `--tx`/`--tag`; no `--network` flag by design - the agent box decides its own network. Prints the CID, content hash, gateway URL, and a `nirium verify` suggestion.
+- `nirium anchor --sign` ([#134](https://github.com/nirium-protocol/nirium/issues/134)): attaches an ed25519 attestation of which key produced the anchor. Signs `nirium-audit-v1:<content_sha256>` locally with a key from `--key-env <VAR>` or the config store's `secretKey` - the secret key itself never leaves this process. A rejected signature gets a `400` and anchors nothing; `nirium verify` reports `SIGNATURE: VALID` on the round trip.
+- `nirium verify --gateway` is now repeatable, tried in order as fallbacks, with `--retries`/`--timeout` ([#135](https://github.com/nirium-protocol/nirium/issues/135)). A `404` retries the *same* gateway with backoff (a fresh pin can take a moment to propagate); any other failure moves straight to the next gateway. When every gateway 404s, that's reported as `availability: "not_yet_available"`, distinct from a real hash mismatch - nothing was fetched to compare in the first place.
+- `nirium report summary` and `nirium report export anchors|payments|payroll` ([#136](https://github.com/nirium-protocol/nirium/issues/136)): thin client for the Reporting node. `export anchors` prints exactly one CID per line on stdout (nothing else), pipeable straight into `nirium verify`; the row count and the "not certified regulatory reporting" disclaimer print to stderr so they never land in that pipe. `--csv <file>` writes the server's CSV instead; `--json` prints the full response.
+
+## 3.0.1 - 2026-10-24
+
+### Fixed
+
+- `nirium status`'s default `--url` was `http://localhost:3001` - the documented `pnpm dev` quickstart puts the agent on `3002` via `master.ts`; `3001` is only the agent's own standalone fallback, a path the quickstart never tells anyone to take. This was fixed in source on 2026-10-23 but never published - `3.0.0` still shipped with the stale default. Now `3002`.
+
+## 3.0.0 - 2026-10-23
+
+### Breaking changes
+
+- `nirium pay`'s `--amount` flag was removed; it never did anything (`options.amount` was never read). Use `--max-amount <usd>` instead, a per-payment cap enforced before anything is signed.
+- `engines.node` is now `>=22.12.0` (was `>=18`). `@stellar/stellar-sdk` 16 pulls in the ESM-only `@noble/hashes` 2.x, and `require()` of an ES module only works unflagged from Node 22.12.0.
+
+### Fixed
+
+- `nirium pay` no longer fails with `NiriumAgent is not a constructor` on a clean install ([#147](https://github.com/nirium-protocol/nirium/issues/147)). `nirium` ships as CommonJS, so the default import was the whole exports object, not the `Agent` class. Fixed to import the named `Agent` export.
+- `nirium serve` no longer fails every real payment with `x402 payments unavailable` / `the facilitator could not be reached`. `x402Serve()` loads `@x402/express` with a dynamic `import()`, deliberately optional in the SDK so consumers who only buy via `x402Fetch()` don't need Express, and it fails with a clear, actionable error rather than crashing — not an SDK bug. But `serve` always calls `x402Serve()`, with no path that doesn't need it, so it should have declared `@x402/express` itself, the same way it already declares `express`. Found while doing the manual testnet smoke test for [#137](https://github.com/nirium-protocol/nirium/issues/137); the existing `serve` tests never caught it because they only check CLI validation and kill the process as soon as it starts listening, before any payment is attempted. Added `@x402/express` as a direct dependency.
+- `packages/cli` had drifted from the SDK ([#137](https://github.com/nirium-protocol/nirium/issues/137)): `nirium` was pinned at `^0.16.0` (SDK: `0.16.1`), `@stellar/stellar-sdk` at `^14.5.0` (SDK: `^16.3.0`, not `17`: `@x402/stellar` requires `^16.3.0`), and the version was hardcoded twice (`.version('2.0.1')` in `bin/nirium.js` and `"version"` in `package.json`). Bumped both dependencies to match the SDK and `engines.node` to `>=22.12.0` (stellar-sdk 16 pulls in the ESM-only `@noble/hashes` 2.x; `require()` of an ES module only works unflagged from Node 22.12.0). `.version()` now reads `package.json` at runtime, the same file `nirium-doctor`'s user agent already read, so there is one source instead of two. The `@stellar/mpp@0.7.1` peer warning for `@stellar/stellar-sdk@^15.1.0` (upstream, unrelated to this package) persists, but `stellar-sdk` is now a single shared copy (`nirium`, `@x402/stellar` and the root project all resolve to the same install) instead of two separate ones.
+- `nirium status` no longer exits 0 when the agent is down ([#138](https://github.com/nirium-protocol/nirium/issues/138)). It printed `Agent unreachable` or `Agent returned error` but always exited 0, so it could not be used in a script or a CI health check. Now exits 1 if the agent is unreachable, times out, or `/health` is not 2xx. Added `--json` (the raw `/health` fields plus `ok`) and `--timeout <ms>` (default 5000) so an unreachable host does not hang.
+- `nirium verify` no longer reports `VERIFICATION PASSED` when nothing was actually checked ([#149](https://github.com/nirium-protocol/nirium/issues/149)). A pass was computed as "no check failed", which is also true when both the hash and the signature check were skipped (an unsigned hash-only anchor with no `--hash` or `--evidence`). A pass now requires at least one check to have run and succeeded. When both are skipped, `verify` prints `NOTHING VERIFIED`, exits non-zero, and sets `verified: false` in `--json`. A hash-only anchor with a valid signature and no `--hash`, or an unsigned one with a matching `--hash`, is still a pass.
+- `nirium pay` no longer reports a failed request as a success ([#148](https://github.com/nirium-protocol/nirium/issues/148)). It always printed `Payment Negotiated & Request Completed` and exited 0 after a successful payment, even when the request that followed answered 4xx or 5xx. Success (text and `--json`, exit 0) now requires `response.ok`; otherwise it prints the failure and the response body and exits 1.
+- `nirium pay`'s `--amount` was removed: it was declared on the command and documented, but `options.amount` was never read, so it did nothing. Replaced with `--max-amount <usd>`, a per-payment cap. `nirium` does not publish `initX402({ maxAmountPerPayment })` yet, so the cap is enforced with the SDK's pre-sign policy hook (`initX402({ policy })`, published since 0.16.0), which runs before anything is signed. `--max-amount` rejects zero, negative and non-numeric values before any network call.
+- `nirium verify` no longer fails every hash-only anchor ([#139](https://github.com/nirium-protocol/nirium/issues/139)). Without a `record` it compared `content_sha256` against `sha256("")` and built the signed statement from that same empty hash, so both checks always failed. Hash-only documents now verify the agent signature over `nirium-audit-v1:<content_sha256>`, and the hash is reported as not checked unless you pass `--hash <hex>` or `--evidence <file>`. Record documents behave as before.
+- `nirium verify` accepts hex as well as base64 signatures, and SEP-53 signed messages (Freighter `signMessage`) after raw ed25519, matching the anchoring node.
+
+### Added
+
+- `nirium verify --hash <hex>` and `--evidence <file>` to compare a hash-only anchor with your original evidence.
+
+## 2.0.1 - 2026-10-11
+
+Documentation only. No behavior changes.
+
+### Changed
+
+- README: the secret key section no longer suggests `nirium config set secretKey S...`, which is refused since 2.0.0. It lists the three safe ways instead.
+- README: `nirium status` is now documented, including that its default URL is `http://localhost:3001` and not the Nirium agent.
+- README and `nirium doctor` help text: the MPP check only validates configuration, and Nirium does not charge MPP payments on mainnet today.
+- README: the `x402Serve()` usage telemetry is off by default and only sent when `NIRIUM_X402SERVE_TELEMETRY=true` (as in `nirium` 0.16.0). The text said it was on by default.
+- README: fixed the `nirium verify` options table and removed long dashes.
+
+## 2.0.0 - 2026-10-11
+
+Breaking: three ways of passing a secret on the command line are gone. A key typed as an argument stays in your shell history and shows up in `ps` for anyone on the machine. The safe ways to supply a key are the environment variable (`NIRIUM_SECRET_KEY`, `FACILITATOR_API_KEY`) or the hidden prompt.
+
+### Removed (breaking)
+
+- `nirium pay --secret <key>` ([#108](https://github.com/nirium-protocol/nirium/pull/108)). Use `NIRIUM_SECRET_KEY`, or run `nirium config set secretKey` and type the key at the hidden prompt.
+- `nirium config set secretKey <key>` and `nirium config set facilitatorApiKey <key>` ([#111](https://github.com/nirium-protocol/nirium/pull/111)). Run the same command with no value: in a terminal it asks for the key without echoing it, and without a terminal it reads the key from stdin. A key passed as an argument is refused and not saved.
+- `nirium serve --api-key <key>` and `-k` ([#111](https://github.com/nirium-protocol/nirium/pull/111)). Use `FACILITATOR_API_KEY`, `nirium config set facilitatorApiKey`, or the hidden prompt. Without a terminal and without the variable, `serve` waits up to 10 seconds for the key on stdin and then exits with the missing-key error.
+
+### Changed
+
+- Depends on `nirium` `^0.16.0` ([#109](https://github.com/nirium-protocol/nirium/pull/109)). The scaffolds written by `nirium create` pin the same range.
+
+### Added
+
+- `nirium doctor --seller <url>` validates a remote x402 seller without paying ([#105](https://github.com/nirium-protocol/nirium/issues/105)) ([#110](https://github.com/nirium-protocol/nirium/pull/110)). Thanks to [@Edgadafi](https://github.com/Edgadafi). It checks for HTTP 402 with a decodable `PAYMENT-REQUIRED` header, that `network`, `asset`, `amount` and `payTo` are present and well formed, that `resource.url` is `https://`, and that a CORS preflight from a random origin does not return 5xx, that the 402 response exposes `PAYMENT-REQUIRED` and `PAYMENT-RESPONSE` (a preflight that lists them does not count), and that `PAYMENT-SIGNATURE` is allowed. `--json` still prints the report for CI. The probe never sends a payment. The `User-Agent` is `nirium-doctor/<version>` from this package's `package.json`.

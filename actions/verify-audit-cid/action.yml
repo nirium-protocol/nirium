@@ -7,9 +7,32 @@ inputs:
     description: IPFS CID for the Nirium audit document.
     required: true
   gateway:
-    description: IPFS gateway base URL. Values ending in /ipfs or /ipfs/ are used directly.
+    description: >-
+      Single IPFS gateway base URL to use, overriding the default fallback
+      list below. Values ending in /ipfs or /ipfs/ are used directly. Leave
+      unset to use the default fallback chain, or set `gateways` for a
+      custom one.
     required: false
-    default: https://ipfs.io/ipfs/
+    default: ""
+  gateways:
+    description: >-
+      Comma- or newline-separated list of IPFS gateway base URLs to try in
+      order, falling back to the next on any failure (HTTP error or
+      timeout). Ignored if `gateway` is set. Defaults to Filebase's
+      dedicated gateway, then ipfs.io, then dweb.link - in that order,
+      because ipfs.io and dweb.link rate-limit their shared public
+      gateways (HTTP 429) under load, while a dedicated gateway does not.
+    required: false
+    default: ""
+  require-signature:
+    description: >-
+      Set to "true" to fail unless the document carries a valid agent
+      signature. By default an unsigned record verifies on its hash alone
+      (signature_valid: absent), so a record that was changed, re-hashed and
+      stripped of its signature also verifies. Turn this on when your
+      receipts are always signed.
+    required: false
+    default: "false"
   fail-on-error:
     description: Fail the workflow step when verification fails.
     required: false
@@ -17,9 +40,11 @@ inputs:
 
 outputs:
   verified:
-    description: "true when the document hash matches and no embedded agent signature is invalid."
+    description: "true when no check failed and at least one check actually passed: the recomputed record hash (record mode) or a valid agent signature. A hash-only document without a signature is never verified. Read it together with signature_valid: in record mode an unsigned document can pass on its hash alone, unless require-signature is true."
   hash_match:
-    description: "true when SHA-256(JSON.stringify(record)) matches content_sha256."
+    description: "true when SHA-256(JSON.stringify(record)) matches content_sha256. For a hash-only document (no `record` field), this is trivially true since there is nothing to recompute against; see `hash_only`."
+  hash_only:
+    description: "true when the document has no `record` field (anchored by hash alone, e.g. via /api/audit/log without a record body). The evidence itself was never sent to Nirium; only the signature check proves the signer attested to the declared hash."
   signature_valid:
     description: "valid, invalid, or absent."
   signer:
@@ -29,10 +54,10 @@ outputs:
   cid:
     description: Echo of the CID input.
   gateway:
-    description: Gateway URL used for the fetch.
+    description: The gateway URL that actually answered (first one that worked, or the last one tried if all failed).
   error:
     description: Error detail when verification or fetch fails.
 
 runs:
-  using: node20
+  using: node24
   main: dist/index.js

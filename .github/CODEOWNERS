@@ -1,0 +1,5 @@
+# Owners are requested for review automatically on pull requests that touch these paths.
+# Branch protection on main requires 1 approving review before merge (enabled 22-oct-2026).
+
+/packages/cli/ @M0nsxx
+/packages/sdk/ @M0nsxx

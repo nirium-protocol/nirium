@@ -1,5 +1,5 @@
 # ═══════════════════════════════════════════════════════════════
-# Nirium Python SDK — Official Client (x402 + MPP)
+# Nirium Python SDK — Official Client: x402 (MPP experimental)
 # Versión: solo en pyproject.toml / setup.py / __init__.__version__ (no aquí:
 # un número en un comentario se desincroniza y ya mintió antes).
 # Synced with backend API (real Horizon data, Soroban execution)
@@ -12,11 +12,15 @@ import logging
 import random
 import aiohttp  # type: ignore
 import websockets  # type: ignore
-from typing import Callable, Dict, Any, List, Optional
+import inspect
+import time
+from decimal import Decimal, InvalidOperation
+from typing import Awaitable, Callable, Dict, Any, List, Optional, Union, NoReturn
 from stellar_sdk import Keypair, Network, Server, TransactionBuilder, Asset  # type: ignore
 from stellar_sdk import Account, Address, SorobanServer, scval  # type: ignore
 from stellar_sdk.xdr import SorobanTransactionData  # type: ignore
 from stellar_sdk.auth import authorize_entry  # type: ignore
+import stellar_sdk.xdr as stellar_xdr  # type: ignore
 import base64 as _b64
 import math as _math
 
@@ -25,6 +29,224 @@ import math as _math
 _X402_NULL_ACCOUNT = "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF"
 
 logger = logging.getLogger("nirium.client")
+
+
+# USDC (Circle) Stellar Asset Contract per network: the only asset the default
+# per-payment cap knows how to price. Derived from USDC:GBBD47IF...LLFLA5
+# (testnet) and USDC:GA5ZSEJY...KZVN (mainnet, home domain circle.com).
+_X402_USDC_SAC = {
+    "stellar:testnet": "CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA",
+    "stellar:pubnet": "CCW67TSZV3SSS2HXMBQ5JFGCKJNXKZM7UQUWUZPUTHXSTZLEO7SJMI75",
+}
+_X402_USDC_DECIMALS = 7
+_X402_DEFAULT_MAX_AMOUNT = "$1"
+_X402_NETWORKS = ("stellar:testnet", "stellar:pubnet")
+# Same aliases the LangChain tool accepts, mapped to the CAIP-2 ids the 402
+# challenge uses, so the network check compares like with like.
+_X402_NETWORK_ALIASES = {
+    "testnet": "stellar:testnet",
+    "stellar:testnet": "stellar:testnet",
+    "mainnet": "stellar:pubnet",
+    "pubnet": "stellar:pubnet",
+    "public": "stellar:pubnet",
+    "stellar:pubnet": "stellar:pubnet",
+    "stellar:public": "stellar:pubnet",
+    "stellar:mainnet": "stellar:pubnet",
+}
+
+X402Approver = Callable[[Dict[str, Any]], Union[bool, Awaitable[bool]]]
+
+
+class X402NetworkMismatchError(RuntimeError):
+    """The 402 challenge offered no payment option on the configured network.
+
+    Raised before anything is built or signed.
+    """
+
+    code = "X402_NETWORK_MISMATCH"
+    signer_called = False
+
+    def __init__(self, url: str, network: str, offered: List[str]):
+        self.url = url
+        self.network = network
+        self.offered = offered
+        super().__init__(
+            f"x402_fetch refused to pay {url}: the client is configured for {network} "
+            f"but the server only offered {', '.join(offered) or 'no network'}. "
+            "Nothing was signed or sent."
+        )
+
+
+class X402SpendCapError(RuntimeError):
+    """The payment is above the per-payment cap, or in an asset the cap cannot
+    price, and no ``approve`` callback accepted it. Raised before signing."""
+
+    code = "X402_SPEND_CAP_EXCEEDED"
+    signer_called = False
+
+    def __init__(self, url: str, requirement: Dict[str, Any], cap: str, reason: str):
+        self.url = url
+        self.amount = requirement.get("amount")
+        self.asset = requirement.get("asset")
+        self.network = requirement.get("network")
+        self.pay_to = requirement.get("payTo")
+        self.cap = cap
+        self.reason = reason
+        super().__init__(
+            f"x402_fetch refused to pay {url}: {reason} The per-payment cap is {cap}. "
+            "Nothing was signed or sent. Raise it with init_x402(max_amount_per_payment=...) "
+            "or pass approve=... to decide case by case."
+        )
+
+
+class X402PolicyError(RuntimeError):
+    """Raised when an x402 payment is refused by the pre-sign policy hook.
+
+    Raised before signing, so no signature was released.
+    """
+
+    code = "X402_POLICY_REFUSED"
+    signer_called = False
+
+    def __init__(
+        self,
+        outcome: str,
+        message: str,
+        decision: Optional[Any] = None,
+        context_hash: Optional[str] = None,
+    ):
+        self.outcome = outcome
+        self.message = message
+        self.decision = decision
+        self.context_hash = context_hash
+        super().__init__(f"x402 policy {outcome}: {message}")
+
+
+class X402PolicyDecision:
+    """Normalized policy decision returned by or parsed from the policy hook."""
+
+    def __init__(
+        self,
+        decision: str,
+        context_hash: Optional[str] = None,
+        reason: Optional[str] = None,
+        policy_version: Optional[str] = None,
+        expires_at: Optional[float] = None,
+        decision_id: Optional[str] = None,
+    ):
+        self.decision = decision.upper().strip()
+        self.context_hash = context_hash
+        self.contextHash = context_hash
+        self.reason = reason
+        self.policy_version = policy_version
+        self.policyVersion = policy_version
+        self.expires_at = expires_at
+        self.expiresAt = expires_at
+        self.decision_id = decision_id
+        self.decisionId = decision_id
+
+    def __repr__(self) -> str:
+        return (
+            f"X402PolicyDecision(decision={self.decision!r}, "
+            f"contextHash={self.contextHash!r}, "
+            f"policyVersion={self.policyVersion!r}, "
+            f"expiresAt={self.expiresAt!r}, "
+            f"reason={self.reason!r})"
+        )
+
+
+class X402PolicyContext(dict):
+    """Context object passed to the policy evaluation callback."""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if "payTo" in self and "payee" not in self:
+            self["payee"] = self["payTo"]
+        if "payee" in self and "payTo" not in self:
+            self["payTo"] = self["payee"]
+        if "url" in self and "resource" not in self:
+            self["resource"] = self["url"]
+        if "resource" in self and "url" not in self:
+            self["url"] = self["resource"]
+        if "contextHash" in self and "context_hash" not in self:
+            self["context_hash"] = self["contextHash"]
+        if "context_hash" in self and "contextHash" not in self:
+            self["contextHash"] = self["context_hash"]
+        if "contextVersion" in self and "context_version" not in self:
+            self["context_version"] = self["contextVersion"]
+        if "context_version" in self and "contextVersion" not in self:
+            self["contextVersion"] = self["context_version"]
+
+    def __getattr__(self, name: str) -> Any:
+        if name in self:
+            return self[name]
+        alternatives = {
+            "context_version": "contextVersion",
+            "contextVersion": "context_version",
+            "context_hash": "contextHash",
+            "contextHash": "context_hash",
+            "pay_to": "payTo",
+            "payTo": "pay_to",
+            "payee": "payTo",
+            "resource": "url",
+            "url": "resource",
+        }
+        if name in alternatives and alternatives[name] in self:
+            return self[alternatives[name]]
+        raise AttributeError(f"'X402PolicyContext' object has no attribute {name!r}")
+
+    def __setattr__(self, name: str, value: Any) -> None:
+        self[name] = value
+
+
+def _sha256_hex(val: Union[str, bytes]) -> str:
+    if isinstance(val, str):
+        val = val.encode("utf-8")
+    return hashlib.sha256(val).hexdigest()
+
+
+def _parse_decision(val: Any) -> Optional[X402PolicyDecision]:
+    if val is None:
+        return None
+    if isinstance(val, str):
+        v = val.upper().strip()
+        return X402PolicyDecision(decision=v)
+    if isinstance(val, dict):
+        d = val.get("decision")
+        if not d or not isinstance(d, str):
+            return None
+        return X402PolicyDecision(
+            decision=d,
+            context_hash=val.get("contextHash") or val.get("context_hash"),
+            reason=val.get("reason"),
+            policy_version=val.get("policyVersion") or val.get("policy_version"),
+            expires_at=val.get("expiresAt") or val.get("expires_at"),
+            decision_id=val.get("decisionId") or val.get("decision_id"),
+        )
+    if hasattr(val, "decision") and isinstance(val.decision, str):
+        return X402PolicyDecision(
+            decision=val.decision,
+            context_hash=getattr(val, "contextHash", getattr(val, "context_hash", None)),
+            reason=getattr(val, "reason", None),
+            policy_version=getattr(val, "policyVersion", getattr(val, "policy_version", None)),
+            expires_at=getattr(val, "expiresAt", getattr(val, "expires_at", None)),
+            decision_id=getattr(val, "decisionId", getattr(val, "decision_id", None)),
+        )
+    return None
+
+
+def _parse_usd_cap(value: Any) -> Decimal:
+    """'$5', '5', 5 or 0.5 -> Decimal. Must be a positive amount."""
+    if isinstance(value, bool) or value is None:
+        raise ValueError("max_amount_per_payment must be a positive USD amount, e.g. '$1'")
+    raw = str(value).strip().lstrip("$").strip()
+    try:
+        cap = Decimal(raw)
+    except InvalidOperation:
+        raise ValueError(f"max_amount_per_payment is not a USD amount: {value!r}") from None
+    if not cap.is_finite() or cap <= 0:
+        raise ValueError("max_amount_per_payment must be a positive USD amount, e.g. '$1'")
+    return cap
 
 
 class WebSocketMaxRetriesExceeded(Exception):
@@ -45,12 +267,12 @@ class Agent:
     Nirium Agent — Full API + WebSocket client for the Nirium autonomous agent.
 
     Usage:
-        agent = Agent(api_url="http://localhost:3001", api_key="nrm_your_key")
+        agent = Agent(api_url="http://localhost:3002", api_key="nrm_your_key")
         market = await agent.get_market()
         print(f"XLM Price: ${market['xlmPrice']:.4f}")
     """
 
-    def __init__(self, api_url: str = "http://localhost:3001", api_key: Optional[str] = None, token: Optional[str] = None):
+    def __init__(self, api_url: str = "http://localhost:3002", api_key: Optional[str] = None, token: Optional[str] = None):
         self.api_url = api_url.rstrip('/')
         self.ws_url = self.api_url.replace("http", "ws") + "/ws/signals"
         self.api_key = api_key
@@ -361,7 +583,10 @@ class Agent:
         return await self._post("/api/payroll/onboard/submit", {"signedXdr": signed_xdr})
 
     async def get_payout_runs(self) -> Dict[str, Any]:
-        """Payout history for the current network, with tx hashes and IPFS receipt CIDs."""
+        """Public payout history for the current network: amount, asset, recipient count and tx hash.
+
+        It does not include run ids or IPFS receipt CIDs; your own run's CID comes back
+        from submit_payout()."""
         return await self._get("/api/payroll/runs")
 
     async def get_payout_terms(self) -> Dict[str, Any]:
@@ -386,8 +611,9 @@ class Agent:
         """Anchor evidence to IPFS and get back a CID.
 
         This is an integrity seal, not notarization and not legal proof of content.
-        Anchor a ``hash`` of your data rather than the data itself: IPFS content
-        cannot be deleted, so raw personal data would outlive any erasure request.
+        Anchor a ``hash`` of your data rather than the data itself: nobody can
+        guarantee that something is deleted from IPFS, so raw personal data could
+        outlive any erasure request.
 
         Pass ``agent`` as ``{"key": "G...", "signature": "<base64>", "id": "..."}``
         to attest *who* produced the evidence: sign the exact string
@@ -417,7 +643,7 @@ class Agent:
         to_date: Optional[str] = None,
         network: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """Institutional-format summary of payouts, x402/MPP receipts and anchors.
+        """Institutional-format summary of payouts, x402 receipts and anchors.
 
         Not certified regulatory reporting — what you file remains your responsibility.
         """
@@ -580,7 +806,7 @@ class Agent:
         nothing to do right now. Public: no allowlist, no invite — works for any
         vault where ``caller`` is already the on-chain rebalanceManager. Unlike
         ``execute_treasury_rebalance``, Nirium never executes on your behalf here,
-        so this doesn't wait on the same legal review the fully autonomous path does.
+        so this doesn't wait on the same written legal opinion the fully autonomous path does.
 
         ``enter_at``/``exit_at`` are your mandate, not a Nirium default. ``min_idle``
         is stroops, as a string or number — omit for no minimum (0).
@@ -649,7 +875,19 @@ class Agent:
 
     # ─── x402 Protocol ───────────────────────────────────────
 
-    def init_x402(self, secret_key: str, network: str = "stellar:testnet", rpc_url: str = ""):
+    def init_x402(
+        self,
+        secret_key: str,
+        network: str = "stellar:testnet",
+        rpc_url: str = "",
+        max_amount_per_payment: Any = _X402_DEFAULT_MAX_AMOUNT,
+        approve: Optional[X402Approver] = None,
+        policy: Optional[Any] = None,
+        current_version: Optional[Any] = None,
+        policy_timeout_ms: Optional[int] = None,
+        on_decision: Optional[Callable[[Dict[str, Any]], None]] = None,
+        now: Optional[Callable[[], float]] = None,
+    ):
         """
         Initialize the x402 pay-per-request client (protocol v2).
 
@@ -660,8 +898,52 @@ class Agent:
             secret_key: Stellar secret key (S...) used to sign the auth entry.
             network: CAIP-2 network ID ('stellar:testnet' or 'stellar:pubnet').
             rpc_url: Soroban RPC override. Defaults per network.
+            max_amount_per_payment: Most this client pays in one request, in USD,
+                for USDC ('$1' by default, like the TypeScript SDK). A payment
+                above it, or in any asset other than the network's USDC, is
+                refused before signing unless ``approve`` accepts it.
+            approve: Optional callback (sync or async). It receives the payment
+                option (url, network, asset, payTo, amount) whenever the cap
+                cannot accept it on its own, and must return True to sign.
+            policy: Optional pre-sign policy hook (callable or object with evaluate).
+                Receives the payment context and returns ALLOW, DENY, or WAIT.
+                DENY and WAIT refuse the payment without calling the signer.
+            current_version: Optional callable returning current policy version for stale-check.
+            policy_timeout_ms: Hard deadline for pre-sign policy evaluation in ms (default 5000).
+            on_decision: Optional observer callback receiving record of policy outcome.
+            now: Optional callable returning epoch milliseconds, for testing.
+
+        A 402 whose options are all on a different network than ``network`` is
+        always refused: the client never falls back to another network.
         """
-        is_testnet = "testnet" in network
+        network = _X402_NETWORK_ALIASES.get(str(network).strip().lower(), network)
+        if network not in _X402_NETWORKS:
+            raise ValueError(
+                f"network must be one of {', '.join(_X402_NETWORKS)}, got {network!r}"
+            )
+        if approve is not None and not callable(approve):
+            raise ValueError("approve must be a callable or None")
+        if policy is not None and not callable(policy) and not hasattr(policy, "evaluate"):
+            raise ValueError("init_x402: policy must be a callable or an object with an evaluate method.")
+        if current_version is not None and not callable(current_version):
+            raise ValueError("init_x402: current_version must be a callable or None.")
+        if policy_timeout_ms is not None and (not isinstance(policy_timeout_ms, int) or policy_timeout_ms <= 0):
+            raise ValueError("init_x402: policy_timeout_ms must be a positive integer (ms).")
+        if on_decision is not None and not callable(on_decision):
+            raise ValueError("init_x402: on_decision must be a callable or None.")
+        if now is not None and not callable(now):
+            raise ValueError("init_x402: now must be a callable returning epoch milliseconds.")
+
+        cap = _parse_usd_cap(max_amount_per_payment)
+        self._x402_cap_label = f"${cap.normalize():f}"
+        self._x402_cap_atomic = int(cap * (10 ** _X402_USDC_DECIMALS))
+        self._x402_approve = approve
+        self._x402_policy = policy
+        self._x402_current_version = current_version
+        self._x402_policy_timeout_ms = policy_timeout_ms or 5000
+        self._x402_on_decision = on_decision
+        self._x402_now = now
+        is_testnet = network == "stellar:testnet"
         self._x402_keypair = Keypair.from_secret(secret_key)
         self._x402_network = network
         self._x402_passphrase = (
@@ -675,29 +957,331 @@ class Agent:
             else "https://soroban-rpc.mainnet.stellar.gateway.fm"
         )
 
-    def _x402_build_transaction(self, accepted: Dict[str, Any]) -> str:
-        """
-        Build the signed payment transaction for one payment requirement.
+    async def _x402_select_requirement(
+        self, url: str, accepts: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        """Pick the option to pay, or raise before anything is signed.
 
-        Mirrors the canonical @x402/stellar client. Three details are what make
-        it settle, each verified against a TypeScript-generated reference:
-
-        1. The source account is the NULL account, not the payer. The
-            facilitator replaces it with its own when it submits and pays the
-            fee. Using the payer's account makes the simulator emit
-            source-account credentials, which the facilitator cannot honour.
-        2. The auth entry must therefore carry ADDRESS credentials, signed with
-            an expiration ledger.
-        3. The transaction must be re-simulated AFTER signing: the signature
-            adds bytes, and the resource fee computed before it is too low.
+        Only options on the configured network count; there is no fallback to
+        another network. Among them, the cheapest USDC option within the cap
+        wins. Anything else (above the cap, another asset, a malformed amount)
+        is signed only if the ``approve`` callback returns True.
         """
+        network = self._x402_network
+        on_network = [
+            a for a in accepts
+            if isinstance(a, dict) and a.get("network") == network
+        ]
+        if not on_network:
+            offered = sorted({str(a.get("network")) for a in accepts if isinstance(a, dict)})
+            raise X402NetworkMismatchError(url, network, offered)
+
+        exact = [a for a in on_network if a.get("scheme") == "exact"]
+        if not exact:
+            raise RuntimeError(
+                f"unsupported x402 scheme: {on_network[0].get('scheme')}"
+            )
+
+        usdc = _X402_USDC_SAC[network]
+        cap = getattr(self, "_x402_cap_atomic", 10 ** _X402_USDC_DECIMALS)
+        cap_label = getattr(self, "_x402_cap_label", _X402_DEFAULT_MAX_AMOUNT)
+
+        def amount_of(a: Dict[str, Any]) -> Optional[int]:
+            raw = a.get("amount")
+            if isinstance(raw, str) and raw.isdigit():
+                return int(raw)
+            return None
+
+        within = [
+            a for a in exact
+            if a.get("asset") == usdc
+            and amount_of(a) is not None
+            and 0 < amount_of(a) <= cap  # type: ignore[operator]
+        ]
+        if within:
+            return min(within, key=lambda a: amount_of(a))  # type: ignore[arg-type,return-value]
+
+        candidate = min(exact, key=lambda a: amount_of(a) if amount_of(a) is not None else 2**127)
+        amount = amount_of(candidate)
+        if amount is None or amount <= 0:
+            reason = f"the server asked for an invalid amount ({candidate.get('amount')!r})."
+        elif candidate.get("asset") != usdc:
+            reason = (
+                f"the server asked for {amount} atomic units of {candidate.get('asset')}, "
+                f"which is not {network} USDC, so the cap cannot price it."
+            )
+        else:
+            reason = (
+                f"the server asked for {Decimal(amount) / (10 ** _X402_USDC_DECIMALS)} USDC."
+            )
+
+        approver = getattr(self, "_x402_approve", None)
+        if approver is not None and amount is not None and amount > 0:
+            decision = approver({
+                "url": url,
+                "network": network,
+                "scheme": candidate.get("scheme"),
+                "asset": candidate.get("asset"),
+                "payTo": candidate.get("payTo"),
+                "amount": candidate.get("amount"),
+                "reason": reason,
+            })
+            if inspect.isawaitable(decision):
+                decision = await decision
+            if decision is True:
+                return candidate
+        raise X402SpendCapError(url, candidate, cap_label, reason)
+
+    def _x402_report_decision(
+        self,
+        outcome: str,
+        context: Optional[X402PolicyContext] = None,
+        decision: Optional[X402PolicyDecision] = None,
+        err: Optional[str] = None,
+    ) -> None:
+        policy = getattr(self, "_x402_policy", None)
+        cb = getattr(
+            policy,
+            "on_decision",
+            getattr(policy, "onDecision", getattr(self, "_x402_on_decision", None)),
+        )
+        if cb and callable(cb):
+            try:
+                rec = {
+                    "outcome": outcome,
+                    "context": context,
+                    "decision": decision,
+                    "error": err,
+                }
+                res = cb(rec)
+                if inspect.isawaitable(res):
+                    try:
+                        loop = asyncio.get_running_loop()
+                        loop.create_task(res)
+                    except RuntimeError:
+                        pass
+            except Exception:
+                pass
+
+    async def _x402_authorize_entry_with_policy(
+        self,
+        entry: Any,
+        max_ledger: int,
+        accepted: Dict[str, Any],
+        url: str,
+        method: str,
+    ) -> Any:
+        policy = getattr(self, "_x402_policy", None)
+        account = self._x402_keypair.public_key
+        network_passphrase = self._x402_passphrase
+
+        if self._x402_keypair.public_key != account:
+            self._x402_report_decision("SIGNER_CHANGED", err="base signer address changed before gate evaluation")
+            raise X402PolicyError("SIGNER_CHANGED", "base signer address changed before gate evaluation")
+
+        from stellar_sdk.auth import build_authorization_preimage, authorization_payload_hash  # type: ignore
+
+        preimage = build_authorization_preimage(entry, max_ledger, network_passphrase)
+        payload_hash = authorization_payload_hash(preimage).hex()
+
+        if preimage.type == stellar_xdr.EnvelopeType.ENVELOPE_TYPE_SOROBAN_AUTHORIZATION:
+            auth = preimage.soroban_authorization
+            preimage_type = "legacy"
+        elif preimage.type == stellar_xdr.EnvelopeType.ENVELOPE_TYPE_SOROBAN_AUTHORIZATION_WITH_ADDRESS:
+            auth = preimage.soroban_authorization_with_address
+            preimage_type = "cap71"
+            bound_address = Address.from_xdr_sc_address(auth.address).address
+            if bound_address != account:
+                raise X402PolicyError("CONTEXT_MISMATCH", "CAP-71 preimage is bound to a different address than the signer")
+        else:
+            raise X402PolicyError("CONTEXT_MISMATCH", f"unsupported preimage type {preimage.type}")
+
+        fn = auth.invocation.function
+        if fn.type != stellar_xdr.SorobanAuthorizedFunctionType.SOROBAN_AUTHORIZED_FUNCTION_TYPE_CONTRACT_FN:
+            raise X402PolicyError("CONTEXT_MISMATCH", f"unexpected authorized function {fn.type}")
+
+        contract_fn = fn.contract_fn
+        contract_id = Address.from_xdr_sc_address(contract_fn.contract_address).address
+        function_name = contract_fn.function_name.sc_symbol.decode()
+        if function_name != "transfer" or len(contract_fn.args) != 3:
+            raise X402PolicyError("CONTEXT_MISMATCH", f"expected transfer(from,to,amount), got {function_name}/{len(contract_fn.args)}")
+
+        from_addr = Address.from_xdr_sc_val(contract_fn.args[0]).address
+        to_addr = Address.from_xdr_sc_val(contract_fn.args[1]).address
+        amount_val = str(scval.from_int128(contract_fn.args[2]))
+
+        if contract_id != accepted.get("asset"):
+            raise X402PolicyError("CONTEXT_MISMATCH", "asset contract differs from requirements.asset")
+        if to_addr != accepted.get("payTo"):
+            raise X402PolicyError("CONTEXT_MISMATCH", "destination differs from requirements.payTo")
+        if str(amount_val) != str(accepted.get("amount")):
+            raise X402PolicyError("CONTEXT_MISMATCH", "amount differs from requirements.amount")
+        if from_addr != account:
+            raise X402PolicyError("CONTEXT_MISMATCH", "from differs from signer address")
+
+        auth_view = {
+            "preimageXdr": preimage.to_xdr(),
+            "preimageType": preimage_type,
+            "payloadHash": payload_hash,
+            "networkPassphrase": network_passphrase,
+            "nonce": str(auth.nonce.int64),
+            "signatureExpirationLedger": int(auth.signature_expiration_ledger.uint32),
+            "contractId": contract_id,
+            "functionName": function_name,
+            "from": from_addr,
+            "to": to_addr,
+            "amount": amount_val,
+        }
+
+        context_hash = _sha256_hex(
+            json.dumps({"v": 1, "url": url, "method": method, "payloadHash": payload_hash}, separators=(",", ":"), ensure_ascii=False)
+        )
+
+        context = X402PolicyContext(
+            contextVersion=1,
+            context_version=1,
+            url=url,
+            method=method,
+            resource=url,
+            network=self._x402_network,
+            asset=accepted.get("asset", ""),
+            payTo=accepted.get("payTo", ""),
+            payee=accepted.get("payTo", ""),
+            amount=str(accepted.get("amount", "")),
+            signer=account,
+            contextHash=context_hash,
+            context_hash=context_hash,
+            requirements=accepted,
+            authorization=auth_view,
+        )
+
+        now_fn = getattr(self, "_x402_now", None) or (lambda: time.time() * 1000.0)
+
+        def read_clock(decision: Optional[X402PolicyDecision] = None) -> float:
+            try:
+                t = now_fn()
+            except Exception as e:
+                refuse("CLOCK_INVALID", f"clock threw ({e})", decision=decision)
+            if not isinstance(t, (int, float)) or _math.isnan(t) or _math.isinf(t):
+                refuse("CLOCK_INVALID", f"clock returned {t!r}, not epoch milliseconds", decision=decision)
+            return float(t)
+
+        def refuse(outcome: str, msg: str, decision: Optional[X402PolicyDecision] = None) -> NoReturn:
+            self._x402_report_decision(outcome, context=context, decision=decision, err=msg)
+            raise X402PolicyError(outcome, msg, decision=decision, context_hash=context_hash)
+
+        if self._x402_keypair.public_key != account:
+            refuse("SIGNER_CHANGED", "signer address changed before policy evaluation")
+
+        start_time = read_clock()
+        timeout_sec = accepted.get("maxTimeoutSeconds", 300)
+        base_timeout_ms = getattr(
+            policy,
+            "timeout_ms",
+            getattr(policy, "timeoutMs", getattr(self, "_x402_policy_timeout_ms", 5000)),
+        )
+        if timeout_sec and timeout_sec > 0:
+            effective_timeout_ms = max(1, min(base_timeout_ms, int((timeout_sec * 1000) / 2)))
+        else:
+            effective_timeout_ms = base_timeout_ms
+        deadline = start_time + effective_timeout_ms
+
+        eval_fn = getattr(policy, "evaluate", policy if callable(policy) else None)
+        if eval_fn is None:
+            refuse("MALFORMED", "policy is neither callable nor has evaluate method")
+
+        try:
+            eval_res = eval_fn(context)
+            if inspect.isawaitable(eval_res):
+                raw_decision = await asyncio.wait_for(eval_res, timeout=effective_timeout_ms / 1000.0)
+            else:
+                raw_decision = eval_res
+        except asyncio.TimeoutError:
+            refuse("TIMEOUT", f"no decision within {effective_timeout_ms} ms")
+        except Exception as e:
+            refuse("ENGINE_ERROR", f"policy evaluation failed: {e}")
+
+        decision = _parse_decision(raw_decision)
+        if decision is None or decision.decision not in ("ALLOW", "DENY", "WAIT"):
+            refuse("MALFORMED", f"unknown or missing verdict: {raw_decision!r}")
+
+        if decision.decision == "DENY":
+            refuse("DENY", decision.reason or "payment denied by policy", decision=decision)
+
+        if decision.decision == "WAIT":
+            refuse("WAIT", decision.reason or "payment waiting on approval", decision=decision)
+
+        # Verdict is ALLOW: Must echo the exact contextHash (otherwise UNBOUND)
+        if not decision.contextHash or decision.contextHash != context_hash:
+            refuse("UNBOUND", "ALLOW is not bound to this authorization", decision=decision)
+
+        now_t = read_clock(decision=decision)
+        if now_t >= deadline:
+            refuse("TIMEOUT", "decision arrived after the deadline", decision=decision)
+
+        if decision.expiresAt is not None:
+            exp_t = decision.expiresAt
+            if exp_t < 1e11:
+                exp_t *= 1000.0
+            if now_t >= exp_t:
+                refuse("EXPIRED", "ALLOW expired before signing", decision=decision)
+
+        ver_fn = getattr(
+            policy,
+            "current_version",
+            getattr(policy, "currentVersion", getattr(self, "_x402_current_version", None)),
+        )
+        if ver_fn is not None:
+            if not decision.policyVersion:
+                refuse("MALFORMED", "ALLOW has no policyVersion to check against currentVersion", decision=decision)
+            try:
+                ver_res = ver_fn(context)
+                if inspect.isawaitable(ver_res):
+                    curr_ver = await asyncio.wait_for(ver_res, timeout=effective_timeout_ms / 1000.0)
+                else:
+                    curr_ver = ver_res
+            except asyncio.TimeoutError:
+                refuse("TIMEOUT", f"currentVersion timed out after {effective_timeout_ms} ms", decision=decision)
+            except Exception as e:
+                refuse("VERSION_UNAVAILABLE", f"currentVersion failed: {e}", decision=decision)
+
+            if not curr_ver:
+                refuse("VERSION_UNAVAILABLE", "currentVersion returned empty version", decision=decision)
+
+            if str(curr_ver) != str(decision.policyVersion):
+                refuse("STALE", f"ALLOW was issued under policy {decision.policyVersion}, current is {curr_ver}", decision=decision)
+
+        now_t = read_clock(decision=decision)
+        if decision.expiresAt is not None:
+            exp_t = decision.expiresAt
+            if exp_t < 1e11:
+                exp_t *= 1000.0
+            if now_t >= exp_t:
+                refuse("EXPIRED", "ALLOW expired before signing", decision=decision)
+
+        self._x402_report_decision("ALLOWED", context=context, decision=decision)
+        self._x402_last_policy_context = context
+        self._x402_last_policy_decision = decision
+
+        # Check identity before signing: SIGNER_CHANGED if account changed
+        if self._x402_keypair.public_key != account:
+            refuse("SIGNER_CHANGED", "signer address changed while the policy was evaluated", decision=decision)
+
+        try:
+            signed_entry = authorize_entry(entry, self._x402_keypair, max_ledger, network_passphrase)
+            self._x402_report_decision("SIGNED", context=context, decision=decision)
+            return signed_entry
+        except Exception as e:
+            self._x402_report_decision("SIGNER_ERROR", context=context, decision=decision, err=str(e))
+            raise
+
+    def _x402_prepare_transaction(self, accepted: Dict[str, Any]) -> tuple[Any, int, SorobanServer]:
         extra = accepted.get("extra") or {}
         if not extra.get("areFeesSponsored"):
             raise RuntimeError("x402 exact scheme requires areFeesSponsored to be true")
 
         soroban = SorobanServer(self._x402_rpc_url)
         timeout = int(accepted.get("maxTimeoutSeconds", 300))
-        # ~5 s por ledger, el mismo supuesto del cliente canónico.
         max_ledger = soroban.get_latest_ledger().sequence + _math.ceil(timeout / 5)
 
         tx = (
@@ -720,11 +1304,38 @@ class Agent:
         )
 
         prepared = soroban.prepare_transaction(tx)
+        return prepared, max_ledger, soroban
+
+    async def _x402_build_transaction(
+        self,
+        accepted: Dict[str, Any],
+        url: str = "",
+        method: str = "GET",
+    ) -> str:
+        """
+        Build the signed payment transaction for one payment requirement.
+
+        Prepares the Soroban transaction first, evaluates pre-sign policy over
+        the actual authorization entry (if configured), signs the entry, and
+        re-simulates for fee estimation.
+        """
+        prepared, max_ledger, soroban = self._x402_prepare_transaction(accepted)
         op = prepared.transaction.operations[0]
-        op.auth = [
-            authorize_entry(e, self._x402_keypair, max_ledger, self._x402_passphrase)
-            for e in (op.auth or [])
-        ]
+
+        signed_auth = []
+        for e in (op.auth or []):
+            if getattr(self, "_x402_policy", None) is not None:
+                signed_e = await self._x402_authorize_entry_with_policy(
+                    entry=e,
+                    max_ledger=max_ledger,
+                    accepted=accepted,
+                    url=url,
+                    method=method,
+                )
+            else:
+                signed_e = authorize_entry(e, self._x402_keypair, max_ledger, self._x402_passphrase)
+            signed_auth.append(signed_e)
+        op.auth = signed_auth
 
         sim = soroban.simulate_transaction(prepared)
         if getattr(sim, "error", None):
@@ -816,16 +1427,14 @@ class Agent:
             if not accepts:
                 raise RuntimeError("x402 challenge listed no acceptable payment methods")
 
-            accepted = next(
-                (a for a in accepts if a.get("network") == self._x402_network), accepts[0]
-            )
-            if accepted.get("scheme") != "exact":
-                raise RuntimeError(f"unsupported x402 scheme: {accepted.get('scheme')}")
+            accepted = await self._x402_select_requirement(url, accepts)
+
+            tx_xdr = await self._x402_build_transaction(accepted, url=url, method=method)
 
             payment = {
                 "x402Version": challenge.get("x402Version", 2),
                 "accepted": accepted,
-                "payload": {"transaction": self._x402_build_transaction(accepted)},
+                "payload": {"transaction": tx_xdr},
             }
             header = _b64.b64encode(json.dumps(payment).encode("utf-8")).decode("ascii")
 

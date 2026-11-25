@@ -61,28 +61,13 @@ Pass `guard: false` in a route's config to disable it entirely, or set `GUARD_ST
 curl -i https://<your-vercel-domain>.vercel.app/api/ascii
 ```
 
-**Response:**
-```http
-HTTP/2 402
-x-accept-payment: x402
-content-type: application/json
+**Response:** HTTP `402` with a `PAYMENT-REQUIRED` header: base64-encoded JSON in the x402 v2 format. Decode it with:
 
-{
-  "x402Version": 1,
-  "accepts": [
-    {
-      "scheme": "exact",
-      "network": "stellar:testnet",
-      "asset": "USDC",
-      "payTo": "GBRPYHIL2CI3FNQ4BXLFMNDLFJUNPU2HY3ZMFXYSFZUKW3T2TRWECCHX",
-      "maxAmountRequired": "$0.01",
-      "resource": "/api/ascii",
-      "description": "Paid ASCII Art Generator Endpoint"
-    }
-  ],
-  "error": "Payment required via x402 protocol"
-}
+```bash
+curl -s -D - -o /dev/null https://<your-vercel-domain>.vercel.app/api/ascii \n  | grep -i '^payment-required:' | cut -d' ' -f2 | tr -d '' | base64 -d
 ```
+
+It holds `x402Version: 2`, the `resource`, and an `accepts` list with `scheme` (`exact`), `network` (`stellar:testnet`), `amount` in USDC base units (7 decimals, so `$0.01` is `"100000"`), `asset` (the USDC contract address), `payTo` and `maxTimeoutSeconds`.
 
 ### 2. Request with x402 payment (200 OK)
 

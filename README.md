@@ -1,14 +1,64 @@
 # Nirium
 
-Open-source autonomous treasury and agentic payments (x402/MPP) for Stellar/Soroban.
+[![CI](https://github.com/nirium-protocol/nirium/actions/workflows/ci.yml/badge.svg)](https://github.com/nirium-protocol/nirium/actions/workflows/ci.yml)
+[![Security Gate](https://github.com/nirium-protocol/nirium/actions/workflows/security-gate.yml/badge.svg)](https://github.com/nirium-protocol/nirium/actions/workflows/security-gate.yml)
+
+Open-source verifiable receipts (Audit Trail), agentic payments (x402/MPP) and treasury execution for Stellar/Soroban.
 
 This repository contains the TypeScript and Python SDKs, the MCP server, the CLI, examples and quickstarts that let any developer:
 
+- **Anchor tamper-evident audit trails**: SHA-256 content hash pinned to IPFS, optionally carrying an ed25519 signature that proves *who* declared the fact, not just that it is unaltered. Records are pinned with Pinata. To read them back, `nirium verify` and the `verify-audit-cid` Action try a dedicated Filebase gateway first and fall back to shared public gateways, which often answer `429` under load.
 - **Get paid by AI agents**: put your own API behind an x402 pay-gate in one call with `x402Serve()`, or pay for someone else's with `initX402()`.
-- **Automate on-chain treasury**: a Nirium agent moves idle capital into a CETES strategy (tokenized Mexican T-bills via Etherfuse) and back, over a vault **you** own. The agent can propose a rebalance without ever holding a signing key; autonomous execution on mainnet (the agent signs) is invite-only while a legal review closes.
-- **Anchor immutable audit trails**: SHA-256 content hash pinned to IPFS, optionally carrying an ed25519 signature that proves *who* declared the fact, not just that it is unaltered.
+- **Cap what your own agent can spend**: both SDKs refuse a payment above $1 of USDC by default unless you raise the cap (TypeScript through `@x402/core`, Python since 0.12.0, which also refuses a 402 offered on another network). On top of that, an experimental pre-sign policy hook (`initX402({ policy })`, shipped in 0.16.0) asks your own ALLOW/DENY policy before any payment is signed - see [`packages/sdk/README.md#pre-sign-policy-hook-experimental`](./packages/sdk/README.md#pre-sign-policy-hook-experimental) for its real scope and what it does not cover.
+- **Automate on-chain treasury**: a Nirium agent moves idle capital into a CETES strategy (tokenized Mexican T-bills via Etherfuse) and back, over a vault **you** own. The agent can propose a rebalance without ever holding a signing key. On mainnet, deploying, depositing, proposals and autonomous execution (the agent signs) are invite-only until we have a written legal opinion; withdrawing is always open.
 
-Software-only and non-custodial: regulated partners execute settlement, the client signs every fund movement, and Nirium never holds client funds.
+Software-only and non-custodial: independent partners execute settlement, the client signs every fund movement, and Nirium never holds client funds.
+
+**Reviewing Nirium?** [`docs/FOR-REVIEWERS.md`](docs/FOR-REVIEWERS.md) is a ten-minute path through things you can check yourself. Every piece of evidence, with its network and date, is in [`EVIDENCE.md`](EVIDENCE.md). Verify any receipt with no account at [nirium.xyz/verify](https://nirium.xyz/verify), and see live usage, each row labeled with its source, at [nirium.xyz/stats](https://nirium.xyz/stats).
+
+Design questions and limits, including what a receipt does and doesn't prove: [`docs/DESIGN-FAQ.md`](docs/DESIGN-FAQ.md).
+
+## How a payment works
+
+One paid request, end to end. Every step runs on the client or an independent partner; Nirium never holds the funds. The policy step and the receipt are optional.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant A as Your app, backend or AI agent<br/>(nirium SDK)
+    participant P as Your policy<br/>(optional, experimental)
+    participant S as Paid API<br/>(x402Serve)
+    participant F as x402 facilitator<br/>(independent: OpenZeppelin)
+    participant X as Stellar
+    participant N as Nirium Audit Trail
+    participant I as IPFS
+    participant V as Anyone
+    A->>S: request
+    S-->>A: 402 Payment Required, price in USDC
+    A->>P: allow this payment?
+    P-->>A: ALLOW (DENY or WAIT: nothing is signed)
+    Note over A: signs with YOUR key, capped at $1 by default
+    A->>S: retry with the signed payment
+    S->>F: verify and settle
+    F->>X: submit, facilitator pays the network fee
+    S-->>A: 200 + the data
+    A->>N: anchor a receipt (optional) for what the ledger can't show: the policy decision and what the call was for, a DENY too
+    N->>I: pin
+    N-->>A: CID
+    V->>I: fetch the CID, recompute the hash, check the signature
+```
+
+### What a receipt adds over the ledger
+
+A Stellar payment is already public and can't be changed: anyone can check the payer, payee, asset and amount from the transaction hash. A receipt that only repeats those fields proves nothing new. Audit Trail is for what the ledger doesn't hold:
+
+- **What a policy decided**, including payments it refused and never signed. No transaction exists for those.
+- **What a payment was for**: the resource, request or delivery it paid for.
+- **Documents and events that never touch the chain**: reports, approvals, proof that a task was done.
+- **Who declared it**, through the optional ed25519 signature.
+
+If everything you want to prove is already in the transaction, link the transaction.
+
 
 ## Packages
 
@@ -17,9 +67,9 @@ Software-only and non-custodial: regulated partners execute settlement, the clie
 | TypeScript SDK | `npm install nirium` | [![npm](https://img.shields.io/npm/v/nirium)](https://www.npmjs.com/package/nirium) | Client for the Nirium API, x402/MPP payments, signals, webhooks, plus `x402Serve()` to charge for your own API. |
 | Python SDK | `pip install nirium` · `pip install 'nirium[langchain]'` | [![PyPI](https://img.shields.io/pypi/v/nirium)](https://pypi.org/project/nirium/) | Async client with the same surface, plus `NiriumX402Tool` for LangChain agents. |
 | MCP server | `npx nirium-mcp` | [![npm](https://img.shields.io/npm/v/nirium-mcp)](https://www.npmjs.com/package/nirium-mcp) | 25 tools for Claude Desktop, Cursor, and any MCP-compatible IDE. |
-| CLI | `npm install -g nirium-cli` | [![npm](https://img.shields.io/npm/v/nirium-cli)](https://www.npmjs.com/package/nirium-cli) | Scaffold and interact with Nirium from the terminal. |
+| CLI | `npm install -g nirium-cli` | [![npm](https://img.shields.io/npm/v/nirium-cli)](https://www.npmjs.com/package/nirium-cli) | Scaffold and interact with Nirium from the terminal. Includes `nirium verify` to [independently verify Audit Trail CIDs](./docs/verify-audit-cid.md). |
 
-> The source in `packages/` matches what is published. The two SDKs share full Treasury parity (12 methods, `proposeTreasuryRebalance()`/`propose_treasury_rebalance()` included). `x402Serve()` stays TypeScript-only — it's Express middleware, server-side Node, with no meaningful equivalent in an async Python client. Going the other way, Python ships a resilient, auto-reconnecting WebSocket client (backoff, jitter, dedup) and a LangChain `BaseTool` (`pip install nirium[langchain]`) that TypeScript doesn't have yet — the version gap runs both directions, not just one.
+> The source in `packages/` matches what is published (the `overrides` in `packages/sdk` and `packages/cli` were added on 2026-10-23 for this repo's own dependency audit; npm ignores a dependency's `overrides`, so they don't change what you install). The two SDKs share full Treasury parity (12 methods, `proposeTreasuryRebalance()`/`propose_treasury_rebalance()` included). `x402Serve()` stays TypeScript-only - it's Express middleware, server-side Node, with no meaningful equivalent in an async Python client. Both SDKs include a resilient, auto-reconnecting WebSocket client (backoff, jitter, dedup; `ResilientSignalClient` in TypeScript), though the hosted stream at `/ws/signals` did not accept connections when checked on 18 Nov 2026. Python also ships a LangChain `BaseTool` (`pip install nirium[langchain]`) that TypeScript doesn't have.
 
 Signing with a social-login wallet instead of a raw keypair? See [`nirium-pollar-adapter`](https://github.com/nirium-protocol/nirium-pollar-adapter), a separate package that adapts [Pollar](https://pollar.xyz)'s embedded-wallet SDK to sign x402 payments and audit records through this SDK.
 
@@ -32,57 +82,92 @@ npm install nirium
 ```ts
 import { Agent } from 'nirium';
 
-const agent = new Agent({ baseUrl: 'https://nirium-agent.fly.dev' });
+const agent = new Agent({ apiKey: 'sk_inst_your_key_here', baseUrl: 'https://nirium-agent.fly.dev' });
 const market = await agent.getMarket();
 console.log(market);
 ```
+
+> **Update, 2026-10-24 (checked against the live API that day):** this
+> previously showed `getMarket()` with no `apiKey` at all. `GET /api/market`
+> requires auth server-side and returns 401 without one - get a key from
+> `POST /api/auth/keys` or the [`/keys` console](https://nirium.xyz/keys).
 
 ## Quickstart: charge for *your* API
 
 The other side of the counter. Wiring x402 by hand is ~25 lines of facilitator client, per-method auth headers, per-network scheme registration and a route table whose shape you have to reverse-engineer. This is the same thing with the defaults that already run in production:
 
+```bash
+npm install nirium express @x402/express @x402/core @x402/stellar
+```
+
 ```ts
+import express from 'express';
 import { x402Serve } from 'nirium';
 
+const app = express();
+
+// No `network` set, so this defaults to stellar:testnet - get a free
+// testnet key from channels.openzeppelin.com/testnet/gen. A mainnet key
+// returns 401 against testnet; pass network: 'stellar:pubnet' plus a
+// mainnet key (channels.openzeppelin.com/gen) to charge for real.
 app.use('/premium', x402Serve({
-    payTo: 'G...',              // your Stellar address
+    payTo: 'G...',                      // your Stellar address
     routes: { 'GET /signals': '$0.02' },
+    facilitatorApiKey: process.env.X402_FACILITATOR_API_KEY,
 }));
+
+app.listen(3000);
 ```
 
 Any AI agent can now pay for your endpoint in USDC: no account, no card, no subscription, no human awake.
 
-> **Known limitation:** `x402Serve()` verifies and settles the payment; it does
-> not deduplicate a payment proof across requests or rate-limit callers on its
-> own. Add your own protection if you need either (see
-> [issue #91](https://github.com/nirium-protocol/nirium/issues/91) for what's
-> missing and why, and for a real production reference implementation).
+> **Update, 2026-10-24 (checked against the source that day):** this previously
+> omitted `facilitatorApiKey`/`facilitatorUrl`, `express`/`app` itself (the
+> snippet called `app.use()` with no `app` ever created), and which network
+> it runs against by default (testnet). Get a key from [OpenZeppelin Channels](https://channels.openzeppelin.com),
+> or point `facilitatorUrl` at your own facilitator instead.
 
-See [`docs/`](./docs) for full quickstarts, including [**"Charge AI agents in 5 minutes"**](./docs/quickstart-x402.md), and [`examples/`](./examples) for 12 runnable integrations across 4 languages: [Express](./examples/express-x402) and [Next.js](./examples/nextjs-x402) (TypeScript), [Go](./examples/go-x402), [Rust](./examples/rust-x402), [LangChain x402](./examples/langchain-x402-agent), [non-custodial treasury vault](./examples/treasury-vault-quickstart), [resilient WebSocket signals](./examples/ws-signals-resilient), [one-click Vercel deploy](./examples/deploy-x402-vercel), [Unity/C# game paywall](./examples/unity-game-x402-gate), [RouteDock discovery manifest](./examples/routedock-manifest), [Stellar Disbursement Platform audit bridge](./examples/sdp-audit-bridge), and [audit-forensic-bridge](./examples/audit-forensic-bridge). For real production findings (not marketing copy), see the [**devlog**](./docs/devlog.md).
+> **Off by default:** `x402Serve()` verifies and settles the payment and does
+> nothing else unless you pass `guard` (nirium 0.15.0 and later): with a store,
+> a payment proof can be used only once per route, and `guard.rateLimit` adds a
+> per-IP limit. See [packages/sdk/README.md](./packages/sdk/README.md#replay-and-rate-limit-guard-optional)
+> and [issue #91](https://github.com/nirium-protocol/nirium/issues/91) (closed),
+> where the design came from a real production deployment.
+
+See [`docs/`](./docs) for full quickstarts, including [**"Pay for an x402 API in 5 minutes"**](./docs/quickstart-x402.md) ([🇪🇸 Español](./docs/es/quickstart-x402.md)), and [**serverless Audit Trail anchoring with `waitUntil`**](./docs/serverless-audit-waituntil.md), plus [`examples/`](./examples) for 33 example folders, among them [Express](./examples/express-x402) and [Next.js](./examples/nextjs-x402) (TypeScript), [Go](./examples/go-x402), [Rust](./examples/rust-x402), [LangChain x402](./examples/langchain-x402-agent) (Python), [non-custodial treasury vault](./examples/treasury-vault-quickstart), [resilient WebSocket signals](./examples/ws-signals-resilient), [one-click Vercel deploy](./examples/deploy-x402-vercel), [Unity/C# game paywall](./examples/unity-game-x402-gate), [RouteDock discovery manifest](./examples/routedock-manifest), [Stellar Disbursement Platform audit bridge](./examples/sdp-audit-bridge), [audit-forensic-bridge](./examples/audit-forensic-bridge), [per-agent daily spend policy](./examples/x402-policy-daily-budget), [smart settlement of a verified delivery](./examples/build-smart-settlement), and an [Open Policy Agent policy behind the pre-sign hook](./examples/x402-policy-opa), and agent tools for [OpenAI Agents](./examples/openai-agents-x402), [Google ADK](./examples/google-adk-x402), [CrewAI](./examples/crewai-x402) and the [Vercel AI SDK](./examples/vercel-ai-sdk-x402). Python: [FastAPI x402 seller](./examples/fastapi-x402-seller) and [treasury vault](./examples/treasury-vault-quickstart-python). Audit Trail receipts: [agent logbook](./examples/build-agent-logbook), [model provenance](./examples/build-model-provenance), [proof of delivery](./examples/build-proof-of-delivery), [logistics checkpoints](./examples/build-logistics-checkpoints), [IoT readings](./examples/build-iot-readings), [reproducible notebook](./examples/build-reproducible-notebook) and [tamper-evident announcements](./examples/build-tamper-evident-announcements). Treasury and payouts on testnet: [batch payout](./examples/payouts-batch-testnet), [vault monitor](./examples/treasury-vault-monitor), [risk signals](./examples/build-risk-signals) and [DAO grants signed 2-of-3](./examples/build-autonomous-grants). Also a [Soroban oracle sold over x402](./examples/build-oracle-x402). For real production findings (not marketing copy), see the [**devlog**](./docs/devlog.md).
 
 ## Networks
 
 Live on **both** Stellar networks. They are not two copies of the same thing.
 
-> **Settlement note (proposal, not a demand):** because nirium already speaks
-> x402 (`x402Serve()`/`initX402()`), the same exact-scheme flow can also
-> settle **fee-free in Nano (XNO)** — instant finality, no gas, fully
-> self-custodied (no freezeable stablecoin). At agent micropayment prices the
-> settlement cost on an EVM/Stellar rail can rival the call itself. The
-> buyer side already works today (independent, on-chain): an
-> OpenAI-Agents-SDK x402 payer settled a third-party seller in 0.00001292 XNO
-> on 2026-09-18, block
-> `E67FB89426F46E6AE4E0E5750B5F814A699965B8639DA89F38689EA1AFE57FC3`
-> (`confirmed: true`), via a thin adapter on feeless402:
-> https://github.com/PANDeveloper001/openai-agents-nano-x402. If Nano fits
-> your settlement model, a `nano:mainnet`/XNO accept beside your Stellar one
-> could be a one-route pilot; if it does not, this changes nothing.
+### Status at a glance
+
+Uptime of nirium.xyz and the public mainnet and testnet endpoints is checked on a schedule by GitHub Actions at [nirium-protocol.github.io/status](https://nirium-protocol.github.io/status) ([repo](https://github.com/nirium-protocol/status): the results and history are committed there in public). It measures availability, not payments or usage.
+
+| Product | Status |
+|---|---|
+| x402 | Live on mainnet ([last settled payment 24 Nov 2026, our own test](https://stellar.expert/explorer/public/account/GCLBBPON256CV7ATEHM5B54BOKNC7GX53MBINJ42MHVXGDMMZ3ZWKBHP)) |
+| Audit Trail | Live on mainnet (last anchor 24 Nov 2026) |
+| Reporting | Live on mainnet |
+| Treasury Rebalance | Mainnet, invite-only (4 self-funded rebalances, last 6 Aug 2026) |
+| Payouts | Mainnet, invite-only (no mainnet runs yet) |
+| Policy hook (pre-sign `ALLOW`/`DENY`) | Experimental (TypeScript SDK; Python SDK since 0.12.9) |
+| MPP Charge | Testnet only (client: use `nirium@0.19.8` until `@stellar/mpp` supports stellar-sdk 17) |
+
+The tables below back each row with a transaction hash or a live endpoint - this one is just the summary.
+
+**Update, 2026-10-24 (checked against the live `/api/v1/mpp/info` on both
+boxes that day):** that applies to x402 and the treasury path below, not to
+**MPP Charge**. MPP is implemented and `charge.enabled: true` on both
+networks, but it has only ever settled on **testnet** (pull and push, 15 Oct
+2026); mainnet is unverified. Don't read "live on both networks" as covering
+MPP - see `packages/sdk/README.md#mpp-charge-experimental`.
 
 **Mainnet** (real value). The API box holds **no signing key** by design; a separate process with no HTTP surface signs autonomous rebalances, and clients sign their own fund movements.
 
 | What | Verify |
 |---|---|
-| First real x402 payment | [`3134a51c…7558bc`](https://stellar.expert/explorer/public/tx/3134a51c66091fd7fbd85b38a4a6ec6cd432bb92c2450eac84ea7855cb7558bc) |
+| First real x402 payment | [`8a2487b8…d73170`](https://stellar.expert/explorer/public/tx/8a2487b8545e02324ced5d902fa350f0f5d8c2d5d2210272506a320b36d73170) |
 | Treasury vault deployed (client signs) | [`93ff6284…78416`](https://stellar.expert/explorer/public/tx/93ff6284cdf03706624c88434a79fba1b213ee547f58e09a9248f75373178416) |
 | Autonomous invest (**the agent signs**) | [`82d73f53…6b3d4`](https://stellar.expert/explorer/public/tx/82d73f537e907140367f9343f63a36704c74a5286aced7a938cee8fffb56b3d4) |
 | API | [`nirium-agent-mainnet.fly.dev/health`](https://nirium-agent-mainnet.fly.dev/health) |
@@ -93,12 +178,12 @@ That third transaction is the point: the agent moved funds it does not own, and 
 
 | Contract | ID |
 |---|---|
-| NiriumVault | [`CBTWMZCG3P72EHFAQ4ZLSEBIOFYJC244H5J6DHZIJ56FHFWJ2CFAWSZU`](https://stellar.expert/explorer/testnet/contract/CBTWMZCG3P72EHFAQ4ZLSEBIOFYJC244H5J6DHZIJ56FHFWJ2CFAWSZU) |
-| NiriumProtocol | [`CC2TU5BDTKTPRRRQPEF77I54XYHFQ25XGIRO2TCWKSR7NRJDFR5L5NR5`](https://stellar.expert/explorer/testnet/contract/CC2TU5BDTKTPRRRQPEF77I54XYHFQ25XGIRO2TCWKSR7NRJDFR5L5NR5) |
+| NiriumVault | [`CDMFURE6MYROTA2A6DLD4TN2S4QTN64L2FZ2I2RY2AREONX6DUQOI2S2`](https://stellar.expert/explorer/testnet/contract/CDMFURE6MYROTA2A6DLD4TN2S4QTN64L2FZ2I2RY2AREONX6DUQOI2S2) (built from a GitHub-attested release, shown as verified on Stellar Expert; in use since 9 Nov 2026, replacing `CBTWMZCG…FAWSZU`) |
+| NiriumProtocol | [`CBKCTMTCCZQIPEESLHHEZKXYSPWNO24NEG33T2XSAAAHPISBND5CNSXX`](https://stellar.expert/explorer/testnet/contract/CBKCTMTCCZQIPEESLHHEZKXYSPWNO24NEG33T2XSAAAHPISBND5CNSXX) (deployed 25 Oct 2026, replacing `CC2TU5BD…FR5L5NR5`; no agents or strategies registered yet) |
 
 API: [`nirium-agent.fly.dev/health`](https://nirium-agent.fly.dev/health) · node catalog: [`/api/nodes`](https://nirium-agent.fly.dev/api/nodes)
 
-Nirium's own **NiriumVault** treasury contract stays on testnet and is audit-gated: no independent third-party audit has happened yet, and no client funds ever reach it. The mainnet treasury path runs over a **DeFindex** vault instead: a third-party contract audited by OtterSec (March 2025, 16 findings, all 13 vulnerabilities resolved) on a Blend V2 strategy.
+Nirium's own **NiriumVault** treasury contract stays on testnet and is audit-gated: no independent third-party audit has happened yet, and no client funds ever reach it. The mainnet treasury path runs over a **DeFindex** vault instead: a third-party contract audited by OtterSec (March 2025, 16 findings total - 13 of them vulnerabilities, all resolved; the other 3 were non-vulnerability suggestions) on a Blend V2 strategy.
 
 ## External validation
 
@@ -106,37 +191,74 @@ Live usage, read from Horizon/npm/PyPI/GitHub: https://nirium.xyz/stats
 
 Real bugs found in code we don't control, in other people's repos, confirmed by maintainers with no reason to agree if they weren't real.
 
-**[x402-foundation/x402#3171](https://github.com/x402-foundation/x402/issues/3171)** — `paymentRequirementsMatchAccepted()` in `@x402/core` threw a raw internal `TypeError` instead of a protocol-level error when a payment's `accepted` field was missing or null. We filed it after hitting it live against our own production endpoint. Fixed by an external contributor, [JasonColapietro](https://github.com/JasonColapietro) — not us — in [PR #3180](https://github.com/x402-foundation/x402/pull/3180). Maintainer [phdargen](https://github.com/phdargen) approved and merged it: *"Thanks for the patch @JasonColapietro, LGTM 🚀"* — commit [`ab1a31a`](https://github.com/x402-foundation/x402/commit/ab1a31ab56ef8656908562d5c2b691772c5a85a2), 55/55 tests passing, issue closed automatically as completed.
+**[x402-foundation/x402#3171](https://github.com/x402-foundation/x402/issues/3171)** - `paymentRequirementsMatchAccepted()` in `@x402/core` threw a raw internal `TypeError` instead of a protocol-level error when a payment's `accepted` field was missing or null. We filed it after hitting it live against our own production endpoint. Fixed by an external contributor, [JasonColapietro](https://github.com/JasonColapietro) - not us - in [PR #3180](https://github.com/x402-foundation/x402/pull/3180). Maintainer [phdargen](https://github.com/phdargen) approved and merged it: *"Thanks for the patch @JasonColapietro, LGTM 🚀"* - commit [`ab1a31a`](https://github.com/x402-foundation/x402/commit/ab1a31ab56ef8656908562d5c2b691772c5a85a2), 55/55 tests passing, issue closed automatically as completed.
 
-**[OpenZeppelin/relayer-plugin-x402-facilitator#47](https://github.com/OpenZeppelin/relayer-plugin-x402-facilitator/issues/47)** — a facilitator sponsor account we rely on went silent for 205+ hours. Three independent integrators (us, [AgentLedger](https://agentpayments.fi), and a third party) converged on the same diagnosis across a month of silence on two official OpenZeppelin channels — until a direct tag to maintainers verified as active elsewhere in the org broke it open: *"Apologies for the slow response... looking into it now and will update here shortly"* ([`zeljkoX`](https://github.com/zeljkoX), 9-sep-2026). **Fixed 2026-09-11** — root cause was a stale RPC URL on the hosted pubnet facilitator instance, throwing before it ever evaluated a payload. Verified with a real settlement on our own mainnet box (clean `200`, confirmed on Horizon), then independently repeated by AgentLedger on 2026-09-12 with the same result. Closed by the maintainer 2026-09-14. ~32-day outage, ~2026-08-10 → 2026-09-11.
+**[OpenZeppelin/relayer-plugin-x402-facilitator#47](https://github.com/OpenZeppelin/relayer-plugin-x402-facilitator/issues/47)** - a facilitator sponsor account we rely on went silent for 205+ hours. Three independent integrators (us, [AgentLedger](https://agentpayments.fi), and a third party) converged on the same diagnosis across a month of silence on two official OpenZeppelin channels - until a direct tag to maintainers verified as active elsewhere in the org broke it open: *"Apologies for the slow response... looking into it now and will update here shortly"* ([`zeljkoX`](https://github.com/zeljkoX), 9-sep-2026). **Fixed 2026-09-11** - root cause was a stale RPC URL on the hosted pubnet facilitator instance, throwing before it ever evaluated a payload. Verified with a real settlement on our own mainnet box (clean `200`, confirmed on Horizon), then independently repeated by AgentLedger on 2026-09-12 with the same result. Closed by the maintainer 2026-09-14. ~32-day outage, ~2026-08-10 → 2026-09-11.
 
-**[stellar/stellar-mpp-sdk#69](https://github.com/stellar/stellar-mpp-sdk/pull/69)** — `@stellar/mpp`'s exported `USDC_SAC_MAINNET` (54 chars) and `XLM_SAC_MAINNET` (55 chars) both fail `StrKey.isValidEd25519PublicKey()` — invalid addresses, present in every version including 0.7.1. Filed with the exact byte counts and correct addresses; PR merged the **same day**. Our own `USDC_SAC_OVERRIDE` workaround (`middleware/mpp.ts`) stays until a release actually ships the fix.
+**Update, 2026-10-24:** at the time of this outage (Aug-Sep 2026), AgentLedger was independent of Nirium, which is what makes the corroboration above worth citing. Since then, Fer - AgentLedger's founder - also joined Nirium part-time (October 2026). Mentioned here for anyone reading this as third-party validation today.
 
-**[Trustless-Work/agentic-escrow-research](https://github.com/Trustless-Work/agentic-escrow-research)** — 4 PRs merged (#1–#4), all 4 within a 27-minute window, 21-sep-2026: bounded-authority milestone payouts, treasury rebalancing via a destination parameter that doesn't exist, direct x402 payment without escrow with real settlement verified on mainnet, and production evidence for their agentic-tool schema. Trustless Work thanked us publicly from their own account: *"We just merged our first 4 community contributions 🙏 @vaiossx @smithserrat @Niriumstellar."*
+**[stellar/stellar-mpp-sdk#69](https://github.com/stellar/stellar-mpp-sdk/pull/69)** - `@stellar/mpp`'s exported `USDC_SAC_MAINNET` (54 chars) and `XLM_SAC_MAINNET` (55 chars) both fail `StrKey.isValidEd25519PublicKey()` - invalid addresses, present in every version including 0.7.1. Filed with the exact byte counts and correct addresses; PR merged the **same day**. Our own `USDC_SAC_OVERRIDE` workaround (`middleware/mpp.ts`) stays until a release actually ships the fix.
 
-**[stellar/js-stellar-sdk#1655](https://github.com/stellar/js-stellar-sdk/issues/1655)** (and the related [#1681](https://github.com/stellar/js-stellar-sdk/issues/1681), [#1683](https://github.com/stellar/js-stellar-sdk/issues/1683), [#1700](https://github.com/stellar/js-stellar-sdk/issues/1700)) — real bugs and gaps in the SDK's delegate-signing path (`needsNonInvokerSigningBy()`/`signAuthEntries()`/`authorizeEntry()` weren't walking CAP-71 delegate trees correctly, or verifying signers other than the root node). #1655 fixed by the maintainer's [PR #1747](https://github.com/stellar/js-stellar-sdk/pull/1747); #1683 fixed by [PR #1742](https://github.com/stellar/js-stellar-sdk/pull/1742); #1681 fixed by two separate PRs, [#1743](https://github.com/stellar/js-stellar-sdk/pull/1743) and [#1744](https://github.com/stellar/js-stellar-sdk/pull/1744), closed by us once both merged. #1700 was closed after a docs-only PR, [#1745](https://github.com/stellar/js-stellar-sdk/pull/1745), documented the reported gap as a known limitation rather than changing behavior — real acknowledgment, not a code fix. The maintainer kept building on this thread in a follow-up feature request of their own ([#1759](https://github.com/stellar/js-stellar-sdk/issues/1759)). A fifth report from the same round, [#1699](https://github.com/stellar/js-stellar-sdk/issues/1699), we withdrew ourselves after our own fix attempt against the full test suite showed the behavior was intentional, not a bug — closed `not_planned`, never fixed, reported honestly rather than folded into the count above.
+**[Trustless-Work/agentic-escrow-research](https://github.com/Trustless-Work/agentic-escrow-research)** - 4 PRs merged (#1-#4), all 4 within a 27-minute window, 21-sep-2026: bounded-authority milestone payouts, treasury rebalancing via a destination parameter that doesn't exist, direct x402 payment without escrow with real settlement verified on mainnet, and production evidence for their agentic-tool schema. Trustless Work thanked us publicly from their own account: *"We just merged our first 4 community contributions 🙏 @vaiossx @smithserrat @Niriumstellar."* Five more research notes were merged between 2 and 5 Nov 2026 (#9-#13, in the table below).
 
-**Update, 2026-09-28 (checked against the GitHub API that day):** an earlier version of this entry, published the same day, said all five issues including #1699 were "confirmed and fixed by the maintainer in PR #1747 and PR #1742." That was wrong on two counts, caught the same day by re-checking each issue's closing event individually instead of trusting the grouped claim: #1699 was withdrawn as `not_planned`, never fixed; and #1681/#1700 were never closed by those two PRs — #1681 by #1743 + #1744 (closed manually by us), #1700 by a docs-only PR (#1745) that documents a known limitation instead of changing behavior. Corrected above.
+**[stellar/js-stellar-sdk#1655](https://github.com/stellar/js-stellar-sdk/issues/1655)** (and the related [#1681](https://github.com/stellar/js-stellar-sdk/issues/1681), [#1683](https://github.com/stellar/js-stellar-sdk/issues/1683), [#1700](https://github.com/stellar/js-stellar-sdk/issues/1700)) - real bugs and gaps in the SDK's delegate-signing path (`needsNonInvokerSigningBy()`/`signAuthEntries()`/`authorizeEntry()` weren't walking CAP-71 delegate trees correctly, or verifying signers other than the root node). #1655 fixed by the maintainer's [PR #1747](https://github.com/stellar/js-stellar-sdk/pull/1747); #1683 fixed by [PR #1742](https://github.com/stellar/js-stellar-sdk/pull/1742); #1681 fixed by two separate PRs, [#1743](https://github.com/stellar/js-stellar-sdk/pull/1743) and [#1744](https://github.com/stellar/js-stellar-sdk/pull/1744), closed by us once both merged. #1700 was closed after a docs-only PR, [#1745](https://github.com/stellar/js-stellar-sdk/pull/1745), documented the reported gap as a known limitation rather than changing behavior - real acknowledgment, not a code fix. The maintainer kept building on this thread in a follow-up feature request of their own ([#1759](https://github.com/stellar/js-stellar-sdk/issues/1759)). A fifth report from the same round, [#1699](https://github.com/stellar/js-stellar-sdk/issues/1699), we withdrew ourselves after our own fix attempt against the full test suite showed the behavior was intentional, not a bug - closed `not_planned`, never fixed, reported honestly rather than folded into the count above.
 
-**[Trustless-Work/trustlesswork-sdk-react#6](https://github.com/Trustless-Work/trustlesswork-sdk-react/issues/6)** — `trustline.address` ambiguity (SAC contract id vs. classic issuer) in their Multi-Release docs. Closed 28-sep-2026, 30 minutes after their ["Feature/version 2" PR](https://github.com/Trustless-Work/trustlesswork-sdk-react/pull/7) merged.
+**Update, 2026-09-28 (checked against the GitHub API that day):** an earlier version of this entry, published the same day, said all five issues including #1699 were "confirmed and fixed by the maintainer in PR #1747 and PR #1742." That was wrong on two counts, caught the same day by re-checking each issue's closing event individually instead of trusting the grouped claim: #1699 was withdrawn as `not_planned`, never fixed; and #1681/#1700 were never closed by those two PRs - #1681 by #1743 + #1744 (closed manually by us), #1700 by a docs-only PR (#1745) that documents a known limitation instead of changing behavior. Corrected above.
+
+**[Trustless-Work/trustlesswork-sdk-react#6](https://github.com/Trustless-Work/trustlesswork-sdk-react/issues/6)** - `trustline.address` ambiguity (SAC contract id vs. classic issuer) in their Multi-Release docs. Closed 28-sep-2026, 30 minutes after their ["Feature/version 2" PR](https://github.com/Trustless-Work/trustlesswork-sdk-react/pull/7) merged.
+
+### Merged pull requests in other teams' repos
+
+Checked against the GitHub API on 22 Nov 2026. Each one was reviewed and merged by that repo's own maintainers (two by Stellar's triage bot).
+
+| Pull request | What it does | Author | Merged by |
+|---|---|---|---|
+| [stellar/stellar-dev-skill#96](https://github.com/stellar/stellar-dev-skill/pull/96) | Add Nirium to the community skills | Eras256 | kaankacar, 15 Aug 2026 |
+| [stellar/stellar-dev-skill#97](https://github.com/stellar/stellar-dev-skill/pull/97) | Production patterns for x402 + MPP in the agentic-payments skill | Eras256 | kaankacar, 5 Sep 2026 |
+| [stellar/stellar-dev-skill#150](https://github.com/stellar/stellar-dev-skill/pull/150) | Correct the MPP production claim | Eras256 | Stellar triage bot, 15 Oct 2026 |
+| [stellar/stellar-mpp-sdk#69](https://github.com/stellar/stellar-mpp-sdk/pull/69) | Fix the two invalid mainnet SAC constants | Eras256 | jeesunikim, 9 Sep 2026 |
+| [pollar-xyz/pollar-apps#30](https://github.com/pollar-xyz/pollar-apps/pull/30) | Nirium x402 adapter demo | Eras256 | aleregex, 31 Aug 2026 |
+| [Trustless-Work/agentic-escrow-research#1](https://github.com/Trustless-Work/agentic-escrow-research/pull/1) | Bounded-authority milestone payouts + x402 | Eras256 | techrebelgit, 21 Sep 2026 |
+| [Trustless-Work/agentic-escrow-research#2](https://github.com/Trustless-Work/agentic-escrow-research/pull/2) | Authority by missing parameter (treasury rebalancing) | Eras256 | techrebelgit, 21 Sep 2026 |
+| [Trustless-Work/agentic-escrow-research#3](https://github.com/Trustless-Work/agentic-escrow-research/pull/3) | Direct x402 payment without escrow | M0nsxx | techrebelgit, 21 Sep 2026 |
+| [Trustless-Work/agentic-escrow-research#4](https://github.com/Trustless-Work/agentic-escrow-research/pull/4) | Production evidence for the agent-facing tool schema | Eras256 | techrebelgit, 21 Sep 2026 |
+| [Trustless-Work/agentic-escrow-research#9](https://github.com/Trustless-Work/agentic-escrow-research/pull/9) | Fail-closed payment and delivery gates | Eras256 | techrebelgit, 2 Nov 2026 |
+| [Trustless-Work/agentic-escrow-research#10](https://github.com/Trustless-Work/agentic-escrow-research/pull/10) | Evidence-gated milestone release (testnet pilot) | Eras256 | techrebelgit, 4 Nov 2026 |
+| [Trustless-Work/agentic-escrow-research#11](https://github.com/Trustless-Work/agentic-escrow-research/pull/11) | "Enabled" is not activity (signer liveness) | Eras256 | techrebelgit, 4 Nov 2026 |
+| [Trustless-Work/agentic-escrow-research#12](https://github.com/Trustless-Work/agentic-escrow-research/pull/12) | Pre-sign policy hook decision states | M0nsxx | techrebelgit, 5 Nov 2026 |
+| [Trustless-Work/agentic-escrow-research#13](https://github.com/Trustless-Work/agentic-escrow-research/pull/13) | x402 and MPP Charge on one endpoint | M0nsxx | techrebelgit, 5 Nov 2026 |
+| [SorobanAgents/agentrail#68](https://github.com/SorobanAgents/agentrail/pull/68) | Optional public receipts for spends and proof-of-task | Eras256 | sparkysolutions10-pixel, 17 Nov 2026 |
+| [SorobanAgents/agentrail#70](https://github.com/SorobanAgents/agentrail/pull/70) | Opt-in `--receipt` flag for the sandbox demo | Eras256 | sparkysolutions10-pixel, 18 Nov 2026 |
+| [stellar/stellar-dev-skill#191](https://github.com/stellar/stellar-dev-skill/pull/191) | Point the Nirium card at the renamed repo | Eras256 | Stellar triage bot, 19 Nov 2026 |
+
+Also merged in x402's own core, by the same author. These are protocol-level fixes, not changes to Nirium's code:
+
+| Pull request | What it does | Author | Merged by |
+|---|---|---|---|
+| [x402-foundation/x402#3138](https://github.com/x402-foundation/x402/pull/3138) | Bazaar: raw resource URL as canonical for opaque-origin schemes | Eras256 | CarsonRoscoe, 26 Oct 2026 |
+| [x402-foundation/x402#3215](https://github.com/x402-foundation/x402/pull/3215) | Core: one wildcard pattern per namespace | Eras256 | CarsonRoscoe, 26 Oct 2026 |
+| [x402-foundation/x402#3338](https://github.com/x402-foundation/x402/pull/3338) | Core: enforce the settlement override ceiling | Eras256 | CarsonRoscoe, 22 Oct 2026 |
+| [x402-foundation/x402#3339](https://github.com/x402-foundation/x402/pull/3339) | Stellar docs: areFeesSponsored limitation | Eras256 | CarsonRoscoe, 22 Oct 2026 |
 
 Full history, including findings still open, in the [devlog](./docs/devlog.md).
 
 ## Funding
 
-Nirium received Stellar Community Fund Instaward funding (two awards) via a regional Stellar Ambassador chapter, with full KYC complete (Airtable + Persona + W-8BEN). Instaward is SCF's early-stage program for prototyping and local validation, up to $15,000 per project. More info: [communityfund.stellar.org](https://communityfund.stellar.org). This isn't independently verifiable by API the way the findings above are — it's the program's own award record, not a third-party confirmation.
+Nirium received Stellar Community Fund Instaward funding (two awards) via a regional Stellar Ambassador chapter, with full KYC complete (Airtable + Persona + W-8BEN). Instaward is SCF's early-stage program for prototyping and local validation, up to $15,000 per project. More info: [communityfund.stellar.org](https://communityfund.stellar.org). This isn't independently verifiable by API the way the findings above are - it's the program's own award record, not a third-party confirmation.
 
 ## Contributing
 
-Contributions welcome: examples, framework adapters, language bindings, docs and tests. This repo ran a GrantFox bounty campaign with Trustless Work through early September 2026 — that campaign is now closed, so there are currently **no open, assigned-on-request issues**. Watch the [issues page](../../issues) for the next round rather than pinging an old thread; a future campaign, if one runs, will be labeled explicitly.
+Contributions welcome: examples, framework adapters, language bindings, docs and tests. This repo ran a GrantFox bounty campaign with Trustless Work through early September 2026 - that campaign is now closed, so there are currently **no open, assigned-on-request issues** from that program. Separately, a no-cash contribution sprint, **[Niriumtober](https://nirium.xyz/build/niriumtober)**, ran from Oct 22 to Nov 2, 2026. It has ended and its issues are closed. Since 18 Nov 2026 we publish issues on [Stellar Wave](https://www.drips.network/wave) (Drips), labeled [`Stellar Wave`](https://github.com/nirium-protocol/nirium/issues?q=label%3A%22Stellar+Wave%22): apply on Drips, and see [CONTRIBUTING.md](./CONTRIBUTING.md#stellar-wave-issues-drips) for how assignment and evidence work. Other open issues are on the [issues page](../../issues).
 
-Outside of any campaign, PRs are still welcome — examples, framework adapters, bindings, docs, tests — just note in the PR that it isn't tied to a bounty.
+Outside of any campaign, PRs are still welcome - examples, framework adapters, bindings, docs, tests - just note in the PR that it isn't tied to a bounty.
 
 ## Security
 
 Report vulnerabilities privately; see [SECURITY.md](./SECURITY.md).
 
 **Known transitive issue (checked 2026-10-04):** `@stellar/stellar-sdk` 16.x pins `axios` to exactly `1.18.0`, which has seven high-severity advisories fixed in `1.20.0`. `nirium` and `@x402/stellar` both depend on stellar-sdk 16, so a plain install pulls that axios. Until a 16.x patch ships, force the fixed version from your own `package.json`:
+
+**Update, 2026-10-23 (checked against the npm registry that day):** that patch shipped. `@stellar/stellar-sdk` 16.4.1 pins `axios` 1.20.0, and `nirium@0.16.1` depends on `^16.3.0`, so a fresh install now gets the fixed axios without any override. You still need the override below only if an existing lockfile keeps you on an older 16.x; `npm update @stellar/stellar-sdk` is the cleaner fix. The original note stays for that case:
 
 ```json
 {

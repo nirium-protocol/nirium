@@ -1,7 +1,10 @@
 
 
-Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>
+Co-Authored-By: <AI model name> <noreply@anthropic.com>
 
 # Conventional commit: feat|fix|docs|refactor|test|chore(scope): subject
-# Delete the trailer above if this commit was NOT produced with AI assistance.
+# Replace "<AI model name>" above with the model that actually produced this
+# commit (for example Claude Sonnet 5.5 or Claude Opus 5.5). Never hardcode one: it
+# changes between sessions. Delete the trailer if this commit was NOT produced with
+# AI assistance.
 # See CONTRIBUTING.md "AI Assistance Disclosure".

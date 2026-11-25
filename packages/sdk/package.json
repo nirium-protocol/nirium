@@ -1,16 +1,17 @@
 {
   "name": "nirium",
-  "version": "0.16.0",
-  "description": "Autonomous treasury and agentic-payments infrastructure for Stellar (x402)",
+  "version": "0.20.0",
+  "description": "Charge or pay per request in USDC on Stellar (x402), with receipts anyone can verify. For apps, backends and AI agents. Non-custodial.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "homepage": "https://nirium.xyz",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/nirium-protocol/nirium-sdk.git"
+    "url": "git+https://github.com/nirium-protocol/nirium.git",
+    "directory": "packages/sdk"
   },
   "bugs": {
-    "url": "https://github.com/nirium-protocol/nirium-sdk/issues",
+    "url": "https://github.com/nirium-protocol/nirium/issues",
     "email": "niriumprotocol@gmail.com"
   },
   "author": {
@@ -20,6 +21,7 @@
   },
   "files": [
     "dist",
+    "!dist/**/*.test.*",
     "README.md"
   ],
   "engines": {
@@ -34,37 +36,48 @@
   },
   "dependencies": {
     "@stellar/mpp": "^0.7.1",
-    "@stellar/stellar-sdk": "^16.3.0",
-    "@x402/fetch": "^2.28.0",
-    "@x402/stellar": "^2.28.0",
+    "@stellar/stellar-sdk": "^17.4.0",
+    "@x402/fetch": "^2.32.0",
+    "@x402/stellar": "^2.32.0",
     "mppx": "^0.6.31",
     "viem": "^2.55.19",
     "ws": "^8.21.3"
+  },
+  "overrides": {
+    "axios": ">=1.20.0",
+    "follow-redirects": ">=1.16.1",
+    "smol-toml": ">=1.9.0",
+    "mppx": {
+      "zod": "^4.6.6"
+    },
+    "@stellar/mpp": {
+      "zod": "^4.6.6"
+    },
+    "viem": {
+      "zod": "^4.6.6"
+    }
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
     "@types/node": "^26.2.0",
     "@types/ws": "^8.18.1",
-    "@x402/core": "^2.28.0",
+    "@x402/core": "^2.32.0",
+    "@x402/express": "^2.32.0",
+    "@x402/extensions": "^2.32.0",
     "jest": "^30.4.2",
     "ts-jest": "^29.4.12",
     "typescript": "^5.9.3"
   },
   "keywords": [
-    "nirium",
     "stellar",
-    "soroban",
-    "defi",
-    "agent",
-    "autonomous",
-    "treasury",
     "x402",
-    "mpp",
-    "agentic-payments",
     "usdc",
-    "cetes",
-    "etherfuse",
-    "rwa"
+    "payments",
+    "pay-per-request",
+    "ai-agents",
+    "agentic-payments",
+    "receipts",
+    "audit-trail"
   ],
   "license": "Apache-2.0"
 }

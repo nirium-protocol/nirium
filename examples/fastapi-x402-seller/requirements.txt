@@ -1,0 +1,12 @@
+# Exact versions tested (Python 3.12)
+fastapi==0.165.0
+uvicorn==0.54.0
+httpx==0.28.1
+python-dotenv==1.2.4
+
+# Payer (pay.py): the Nirium Python SDK
+nirium==0.12.9
+stellar-sdk==15.0.0   # setup_testnet.py (same version nirium installs)
+
+# Testing
+pytest==9.2.0

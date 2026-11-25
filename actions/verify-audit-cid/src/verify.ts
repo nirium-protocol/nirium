@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import { StrKey } from '@stellar/stellar-sdk';
+import { StrKey } from '@stellar/stellar-base';
 
 export type SignatureStatus = 'valid' | 'invalid' | 'absent';
 
@@ -26,6 +26,12 @@ export interface VerifyResult {
   gateway?: string;
   url?: string;
   hashMatch: boolean;
+  // true when the document has no `record` field (the self-serve
+  // /api/audit/log hash-only mode: the caller's evidence never touches
+  // Nirium, only its hash does). hashMatch is then trivially true - there
+  // is no record here to recompute against - and the real guarantee comes
+  // from the signature check below, over the declared hash.
+  hashOnly: boolean;
   expectedHash: string;
   computedHash: string;
   signatureStatus: SignatureStatus;
@@ -36,12 +42,32 @@ export interface VerifyResult {
   error?: string;
 }
 
-export interface FetchAndVerifyOptions {
+export interface VerifyOptions {
+  // When true, a document only verifies with a valid agent signature. Without it,
+  // an unsigned record passes on its hash alone (signatureStatus 'absent'), which
+  // also means a record changed, re-hashed and stripped of its signature passes.
+  requireSignature?: boolean;
+}
+
+export interface FetchAndVerifyOptions extends VerifyOptions {
   gateway?: string;
+  gateways?: string[];
   fetchFn?: typeof fetch;
   timeoutMs?: number;
   retries?: number;
 }
+
+// Tried in order until one answers. Filebase's dedicated gateway goes first:
+// it is not shared with other npm/IPFS consumers, so it does not hit the
+// rate limit that ipfs.io and dweb.link apply to their public gateways
+// (confirmed live, 6 Nov 2026: 5/5 requests 200 on Filebase, while ipfs.io
+// has returned 429 for this CID). ipfs.io and dweb.link stay as fallback
+// in case Filebase itself has an outage.
+export const DEFAULT_GATEWAYS: readonly string[] = [
+  'https://nirium.myfilebase.com/ipfs/',
+  'https://ipfs.io/ipfs/',
+  'https://dweb.link/ipfs/',
+];
 
 export function normalizeGatewayUrl(gatewayUrl: string, cid: string): string {
   const trimmed = gatewayUrl.trim().replace(/\/+$/, '');
@@ -84,12 +110,13 @@ export function computeRecordHash(record: Record<string, unknown> | undefined): 
   return crypto.createHash('sha256').update(recordStr).digest('hex');
 }
 
-export function verifyAuditDocument(doc: AuditDocument, cid?: string): VerifyResult {
+export function verifyAuditDocument(doc: AuditDocument, cid?: string, opts: VerifyOptions = {}): VerifyResult {
   if (!doc || typeof doc !== 'object') {
     return {
       ok: false,
       cid,
       hashMatch: false,
+      hashOnly: false,
       expectedHash: '',
       computedHash: '',
       signatureStatus: 'absent',
@@ -98,7 +125,15 @@ export function verifyAuditDocument(doc: AuditDocument, cid?: string): VerifyRes
   }
 
   const expectedHash = doc.content_sha256 || '';
-  const computedHash = computeRecordHash(doc.record);
+  const hashOnly = doc.record === undefined;
+  // Full-record documents: recompute the hash from the embedded record and
+  // compare. Hash-only documents (produced by /api/audit/log without a
+  // `record` body) never send the original evidence to Nirium, so there is
+  // nothing here to recompute against - the CID's own content-addressing
+  // already guarantees this exact JSON was not altered after anchoring;
+  // the signature check below, over the declared hash, is what proves the
+  // signer actually attested to it.
+  const computedHash = hashOnly ? expectedHash : computeRecordHash(doc.record);
   const hashMatch = expectedHash.length > 0 && expectedHash === computedHash;
 
   let signatureStatus: SignatureStatus = 'absent';
@@ -117,12 +152,25 @@ export function verifyAuditDocument(doc: AuditDocument, cid?: string): VerifyRes
     signatureStatus = isValidSig ? 'valid' : 'invalid';
   }
 
-  const ok = hashMatch && signatureStatus !== 'invalid';
+  // A pass needs at least one check that actually ran and passed, same rule
+  // as nirium-cli. "Nothing failed" is not enough: a hash-only document has
+  // no record to recompute, so hashMatch above is trivially true, and with
+  // no agent block nothing was checked at all. Before this, an unsigned
+  // hash-only document with any content_sha256 came back verified: true.
+  // In record mode the recomputed hash is a real check, so an unsigned
+  // record still passes on integrity alone (signature_valid says absent).
+  const hashChecked = !hashOnly && hashMatch;
+  const anyFailed = !hashMatch || signatureStatus === 'invalid';
+  const anyPassed = hashChecked || signatureStatus === 'valid';
+  const signatureMissing = !!opts.requireSignature && signatureStatus === 'absent';
+  const ok = !anyFailed && anyPassed && !signatureMissing;
+  const nothingVerified = !anyFailed && !anyPassed;
 
   return {
     ok,
     cid,
     hashMatch,
+    hashOnly,
     expectedHash,
     computedHash,
     signatureStatus,
@@ -130,6 +178,11 @@ export function verifyAuditDocument(doc: AuditDocument, cid?: string): VerifyRes
     statement,
     declaredStatement,
     agentId,
+    ...(nothingVerified
+      ? { error: 'Nothing verified: hash-only document without an agent signature. Its content_sha256 cannot be checked here and no signature vouches for it.' }
+      : signatureMissing
+        ? { error: 'Signature required (require-signature: true), but this document has no agent signature.' }
+        : {}),
   };
 }
 
@@ -160,47 +213,54 @@ export async function fetchAndVerifyCid(
   cid: string,
   options: FetchAndVerifyOptions = {},
 ): Promise<VerifyResult> {
-  const gateway = options.gateway || 'https://ipfs.io/ipfs/';
-  let url = '';
-  try {
-    url = normalizeGatewayUrl(gateway, cid);
-  } catch (err: unknown) {
-    return {
-      ok: false,
-      cid,
-      gateway,
-      hashMatch: false,
-      expectedHash: '',
-      computedHash: '',
-      signatureStatus: 'absent',
-      error: err instanceof Error ? err.message : String(err),
-    };
-  }
+  const gateways =
+    options.gateways && options.gateways.length > 0
+      ? options.gateways
+      : options.gateway
+        ? [options.gateway]
+        : DEFAULT_GATEWAYS;
 
   const fetchFn = options.fetchFn || globalThis.fetch;
   const timeoutMs = options.timeoutMs ?? 15_000;
   const retries = options.retries ?? 1;
-  let lastError = '';
 
-  for (let attempt = 0; attempt <= retries; attempt += 1) {
+  let lastError = '';
+  let lastGateway = gateways[0] ?? '';
+  let lastUrl = '';
+
+  for (const gw of gateways) {
+    let url = '';
     try {
-      const doc = await fetchJsonWithTimeout(url, fetchFn, timeoutMs);
-      return {
-        ...verifyAuditDocument(doc, cid),
-        gateway,
-        url,
-      };
+      url = normalizeGatewayUrl(gw, cid);
     } catch (err: unknown) {
       lastError = err instanceof Error ? err.message : String(err);
+      lastGateway = gw;
+      continue;
+    }
+    lastGateway = gw;
+    lastUrl = url;
+
+    for (let attempt = 0; attempt <= retries; attempt += 1) {
+      try {
+        const doc = await fetchJsonWithTimeout(url, fetchFn, timeoutMs);
+        return {
+          ...verifyAuditDocument(doc, cid, { requireSignature: options.requireSignature }),
+          gateway: gw,
+          url,
+        };
+      } catch (err: unknown) {
+        lastError = err instanceof Error ? err.message : String(err);
+      }
     }
   }
 
   return {
     ok: false,
     cid,
-    gateway,
-    url,
+    gateway: lastGateway,
+    url: lastUrl,
     hashMatch: false,
+    hashOnly: false,
     expectedHash: '',
     computedHash: '',
     signatureStatus: 'absent',

@@ -2,7 +2,7 @@
 
 Minimal Rust client for the **x402 v2** payment flow on **Stellar/Soroban**. Parses `payment-required` (402) challenges, signs a real Soroban `transfer` auth entry via ed25519, and retries with a `PAYMENT-SIGNATURE` credential.
 
-Part of the [nirium](https://github.com/nirium-protocol/nirium) toolkit — the Rust surface parallel to the Go (#55) and TypeScript SDKs.
+Part of the [nirium](https://github.com/nirium-protocol/nirium) toolkit - the Rust surface parallel to the Go (#55) and TypeScript SDKs.
 
 ## Flow
 
@@ -42,7 +42,7 @@ src/
   lib.rs        // re-exports
   types.rs      // Challenge / Requirement / Payment / payment_header()
   signer.rs     // StellarSigner trait + EnvSigner (secret never leaked)
-  client.rs     // X402Client — get() + pay() retry loop + PaymentReceipt
+  client.rs     // X402Client - get() + pay() retry loop + PaymentReceipt
   error.rs      // X402Error enum
   main.rs       // runnable example
 tests/
@@ -51,10 +51,10 @@ tests/
 
 ## Scope & limitations
 
-- **x402 v2 only** — the `PAYMENT-SIGNATURE` header (not `X-PAYMENT` which is v1).
-- **Stellar testnet** — `exact` scheme only.
+- **x402 v2 only** - the `PAYMENT-SIGNATURE` header (not `X-PAYMENT` which is v1).
+- **Stellar testnet** - `exact` scheme only.
 - **Signing** uses official Stellar crates (`stellar-xdr` v27, `stellar-strkey`, `stellar-rpc-client` v27, `ed25519-dalek` v3) to build a real Soroban `TransactionEnvelope` auth entry with correct source account, fee, seq_num, and conditions.
-- **Fees sponsored** — the exact scheme requires `areFeesSponsored: true`; the facilitator is the transaction source and pays the real fee. The client never spends a sequence number.
+- **Fees sponsored** - the exact scheme requires `areFeesSponsored: true`; the facilitator is the transaction source and pays the real fee. The client never spends a sequence number.
 
 ## Acceptance criteria (from GrantFox issue #40)
 
@@ -64,10 +64,10 @@ tests/
 - [x] Retries with `PAYMENT-SIGNATURE` payment credential
 - [x] Env-configured secret key (`STELLAR_SECRET_KEY`); never logged (zeroized on drop)
 - [x] Clear README + runnable binary
-- [x] `cargo test` — 10/10 pass
-- [x] `cargo clippy` — clean
+- [x] `cargo test` - 10/10 pass
+- [x] `cargo clippy` - clean
 - [x] No `unwrap()` on paths a malformed server response could hit
-- [x] End-to-end testnet payment — tx hash on stellar.expert:
+- [x] End-to-end testnet payment - tx hash on stellar.expert:
   - `16f7306420bfb6c4e9f6494230c852a22e98b9e278f1a9736d4a6a03a5ba5638` (ledger 4344232)
   - https://stellar.expert/explorer/testnet/tx/16f7306420bfb6c4e9f6494230c852a22e98b9e278f1a9736d4a6a03a5ba5638
 

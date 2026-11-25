@@ -7,7 +7,7 @@
 // ("Failed to create payment payload: All payment requirements were
 // rejected by spendControls.maxAmountPerPayment (...)"), sin decir cuánto se
 // pedía ni que nadie firmó nada. Este módulo reconoce ese caso y lo convierte
-// en un error que lo dice. No cambia el tope ni lo expone: solo lo explica.
+// en un error que lo dice. El tope se configura con initX402({ maxAmountPerPayment }) (#106).
 // ═══════════════════════════════════════════════════════════════
 
 /** One payment option from the server's 402 response, as x402 v2 sends it. */
@@ -57,7 +57,7 @@ export class X402SpendCapError extends Error {
         super(
             `x402Fetch refused to pay ${d.url}: the server asked for ${asked} and ${cap}. `
             + 'The signer was not called; nothing was signed or sent. '
-            + 'The cap is enforced by @x402/core and cannot be changed from initX402() yet.',
+            + 'The cap is enforced by @x402/core; raise it explicitly with initX402({ maxAmountPerPayment }).',
             d.cause !== undefined ? { cause: d.cause } : undefined,
         );
         this.name = 'X402SpendCapError';

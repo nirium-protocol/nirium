@@ -1,0 +1,46 @@
+# gitleaks config for the Secret Scan workflow (issue #224).
+# Starts from gitleaks' built-in rules and adds a Stellar secret-seed rule,
+# since that is the key type this project actually handles.
+# Every allowlist entry below is narrow on purpose; add to it only for
+# values that are provably not secrets (public data, published test vectors).
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "stellar-secret-seed"
+description = "Stellar secret seed (S... strkey)"
+regex = '''\bS[A-Z2-7]{55}\b'''
+keywords = ["s"]
+
+  # Placeholder seeds such as SXXXX...XXXX used in docs.
+  [[rules.allowlists]]
+  description = "All-X placeholder seed"
+  regexTarget = "match"
+  regexes = ['''^SX{55}$''']
+
+  # Published testnet test vectors used by example tests. Allowed only
+  # inside examples/, and only these exact values; any other seed in
+  # examples/ still fails the scan.
+  [[rules.allowlists]]
+  description = "Known testnet test vectors in examples/"
+  condition = "AND"
+  paths = ['''^examples/''']
+  regexes = ['''SCKB3ECHCPVM4HJPNCQWTQWJJ5XRL6UNKLTTCIH4B7TB22NKJ5GUFMIV''']
+
+[[allowlists]]
+# Applies to all rules (gitleaks 8.28 ignores targetRules for extended
+# default rules). Safe: a G... strkey is always public.
+# Stellar public keys (G... strkeys) are public account IDs, not secrets,
+# but the built-in generic-api-key rule flags `"key": "G..."` in fixtures.
+description = "Stellar public account IDs"
+regexTarget = "secret"
+regexes = ['''^G[A-Z2-7]{55}$''']
+
+[[allowlists]]
+# Minified identifier in the ncc bundle, not a credential.
+description = "False positive in actions/verify-audit-cid/dist bundle"
+condition = "AND"
+paths = ['''^actions/verify-audit-cid/dist/index\.js$''']
+regexTarget = "secret"
+regexes = ['''^hasV2Preconditions$''']

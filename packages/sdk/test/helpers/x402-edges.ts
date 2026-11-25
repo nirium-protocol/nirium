@@ -37,10 +37,10 @@ S.Horizon.Server.prototype.ledgers = function () {
 };
 S.rpc.Server.prototype.simulateTransaction = async function (tx: any) {
     const op = tx.operations[0];
-    const call = op.func.invokeContract();
+    const call = op.func.invokeContract;
     let auth = op.auth ?? [];
     if (!auth.length) {
-        const from = S.Address.fromScAddress(call.args()[0].address()).toString();
+        const from = S.Address.fromScAddress(call.args[0].address).toString();
         auth = [new S.xdr.SorobanAuthorizationEntry({
             credentials: S.xdr.SorobanCredentials.sorobanCredentialsAddress(new S.xdr.SorobanAddressCredentials({
                 address: new S.Address(from).toScAddress(),
@@ -71,9 +71,9 @@ globalThis.fetch = async (input: any, init?: any) => {
         const payment = http.decodePaymentSignatureHeader(req.headers.get('PAYMENT-SIGNATURE'));
         const tx = S.TransactionBuilder.fromXDR(payment.payload.transaction, S.Networks.TESTNET);
         const entry = tx.operations[0].auth[0];
-        const cred = entry.credentials().address();
-        const pre = S.buildAuthorizationEntryPreimage(entry, cred.signatureExpirationLedger(), S.Networks.TESTNET);
-        const sig = S.scValToNative(cred.signature())[0];
+        const cred = entry.credentials.address;
+        const pre = S.buildAuthorizationEntryPreimage(entry, cred.signatureExpirationLedger, S.Networks.TESTNET);
+        const sig = S.scValToNative(cred.signature)[0];
         const pk = S.StrKey.encodeEd25519PublicKey(Buffer.from(sig.public_key));
         assert.ok(S.Keypair.fromPublicKey(pk).verify(S.hash(pre.toXDR()), Buffer.from(sig.signature)), 'merchant got a bad signature');
         return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { 'content-type': 'application/json' } });
@@ -98,7 +98,7 @@ export function keySigner(kp = S.Keypair.random(), opts: { mutate?: (p: string) 
             signAuthEntry: async (preimageXdr: string) => {
                 calls.push(preimageXdr);
                 const bytes = Buffer.from(opts.mutate ? opts.mutate(preimageXdr) : preimageXdr, 'base64');
-                return { signedAuthEntry: kp.sign(S.hash(bytes)).toString('base64'), signerAddress: kp.publicKey() };
+                return { signedAuthEntry: Buffer.from(kp.sign(S.hash(bytes))).toString('base64'), signerAddress: kp.publicKey() };
             },
         },
     };

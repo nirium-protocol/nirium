@@ -22,6 +22,7 @@ import {
     type X402BaseSigner, type X402PolicyHook, type X402PaymentRequirementsView,
 } from './x402-policy';
 import { captureRequirements, toSpendCapError, type X402OfferedRequirement } from './x402-spend-cap';
+export { receiptCid } from './receipt-cid';
 
 export interface AgentConfig {
     apiKey: string;
@@ -73,6 +74,29 @@ export interface X402Config {
      * x402Fetch behaves exactly as before. See X402PolicyHook.
      */
     policy?: X402PolicyHook;
+    /**
+     * Per-payment cap for x402Fetch (#106), passed to @x402/core as
+     * `spendControls.maxAmountPerPayment`. USD amount as `'$5'`, `'5'` or `5`;
+     * it applies to default assets such as USDC. Defaults to @x402/core's `'$1'`.
+     * Raising it is an explicit choice: a payment above the cap is refused
+     * before anything is signed (`X402SpendCapError`). Must be a positive
+     * amount; `false` (no cap) is deliberately not accepted here.
+     */
+    maxAmountPerPayment?: string | number;
+}
+
+/** Validates and normalizes `maxAmountPerPayment` at initX402 time ("$5" form). */
+function normalizeMaxAmountPerPayment(v: unknown): string | undefined {
+    if (v === undefined) return undefined;
+    const text = typeof v === 'number' ? (Number.isFinite(v) ? String(v) : '') : typeof v === 'string' ? v.trim() : '';
+    const m = /^\$?(\d+(?:\.\d+)?)$/.exec(text);
+    if (!m || !(Number(m[1]) > 0)) {
+        throw new Error(
+            'initX402: `maxAmountPerPayment` must be a positive USD amount such as \'$5\', \'5\' or 5 '
+            + `(got ${JSON.stringify(v)}). Omit it to keep the $1 default.`,
+        );
+    }
+    return `$${m[1]}`;
 }
 
 export interface MppConfig {
@@ -304,6 +328,22 @@ export interface PayoutRun {
     [key: string]: unknown;
 }
 
+/**
+ * One entry of the public payout history (getPayoutRuns). It carries what is
+ * already public on-chain - amount, asset, recipient count and the tx - and
+ * never the run id or the IPFS receipt CID: the receipt is the paying
+ * company's evidence, returned only to whoever runs the payout (submitPayout).
+ */
+export interface PublicPayoutRun {
+    network?: string;
+    asset?: string;
+    totalAmount?: string;
+    recipientCount?: number;
+    txHash?: string;
+    explorer?: string;
+    signed?: boolean;
+}
+
 export interface AgentAttestationInput {
     /** ed25519 public key of the agent, as a Stellar address (G...). */
     key: string;
@@ -331,11 +371,18 @@ export interface AuditAnchorOptions {
 
 export interface AuditAnchor {
     cid: string;
+    /** sha-256 hex that was anchored. Mapped from the node's `content_sha256`, which is also kept as is. */
     contentSha256: string;
     gatewayUrl?: string;
     anchoredAt: string;
     /** Present when the anchor carried a verified agent attestation. */
     attestedBy?: string;
+    /**
+     * The exact document pinned to IPFS (nodes deployed after 21 Nov 2026).
+     * Keep it: `JSON.stringify(document)`, with no trailing newline, gives back
+     * the same CID if you ever add it to IPFS again.
+     */
+    document?: Record<string, unknown>;
     [key: string]: unknown;
 }
 
@@ -554,7 +601,7 @@ function queryString(params?: object): string {
  *
  * const agent = new Agent({
  *   apiKey: 'nrm_your_key_here',
- *   baseUrl: 'http://localhost:3001',
+ *   baseUrl: 'http://localhost:3002',
  * });
  *
  * // Check health
@@ -588,12 +635,12 @@ export class Agent {
     private token: string | null = null;
 
     private x402Client: { client: any; scheme: any; baseFetch: typeof fetch } | null = null;
-    private x402Policy: { base: X402BaseSigner; rpcUrl: string; policy: X402PolicyHook } | null = null;
+    private x402Policy: { base: X402BaseSigner; rpcUrl: string; policy: X402PolicyHook; maxAmountPerPayment?: string } | null = null;
     private mppClient: { fetch: typeof fetch } | null = null;
 
     constructor(config: AgentConfig) {
         this.apiKey = config.apiKey;
-        this.baseUrl = (config.baseUrl || 'http://localhost:3001').replace(/\/$/, '');
+        this.baseUrl = (config.baseUrl || 'http://localhost:3002').replace(/\/$/, '');
         this.wsUrl = config.wsUrl || this.baseUrl.replace(/^http/, 'ws') + '/ws/signals';
         this.token = config.token || null;
     }
@@ -901,8 +948,12 @@ export class Agent {
         return this.request('POST', '/api/payroll/onboard/submit', { signedXdr });
     }
 
-    /** Payout history for the current network, each with tx hash and IPFS receipt CID. */
-    async getPayoutRuns(): Promise<{ runs: PayoutRun[] }> {
+    /**
+     * Public payout history for the current network: amount, asset, recipient
+     * count and tx hash. It does not include run ids or IPFS receipt CIDs; your
+     * own run's CID comes back from submitPayout().
+     */
+    async getPayoutRuns(): Promise<{ runs: PublicPayoutRun[] }> {
         return this.request('GET', '/api/payroll/runs');
     }
 
@@ -922,11 +973,19 @@ export class Agent {
      * Anchor evidence to IPFS and get back a CID — an integrity seal, not
      * notarization and not legal proof of content.
      *
-     * Anchor a `hash` of your data rather than the data itself: IPFS content
-     * cannot be deleted, so raw personal data would outlive any erasure request.
+     * Anchor a `hash` of your data rather than the data itself: nobody can
+     * guarantee that something is deleted from IPFS, so raw personal data could
+     * outlive any erasure request.
      */
     async anchorAuditRecord(options: AuditAnchorOptions): Promise<AuditAnchor> {
-        return this.request('POST', '/api/audit/log', options as unknown as Record<string, unknown>);
+        const res = await this.request<AuditAnchor & { content_sha256?: unknown }>(
+            'POST', '/api/audit/log', options as unknown as Record<string, unknown>,
+        );
+        // The node answers with `content_sha256`; expose it as the typed `contentSha256` too.
+        if (res && typeof res === 'object' && typeof res.contentSha256 !== 'string' && typeof res.content_sha256 === 'string') {
+            return { ...res, contentSha256: res.content_sha256 };
+        }
+        return res;
     }
 
     /** Audit Trail node metadata: limits, pricing and disclaimer. */
@@ -1178,6 +1237,7 @@ export class Agent {
             );
         }
         if (config.policy !== undefined) assertValidPolicyHook(config.policy);
+        const maxAmountPerPayment = normalizeMaxAmountPerPayment(config.maxAmountPerPayment);
         const signer = config.signer ?? (createEd25519Signer as any)(config.secretKey, network);
         // Pubnet: el SDF NO corre RPC público de mainnet — soroban.stellar.org no
         // existe. Default al RPC público de gateway.fm (mismo default que
@@ -1189,13 +1249,15 @@ export class Agent {
             // Con policy el cliente se arma en cada x402Fetch: el signer de
             // stellar-sdk no recibe la URL, y un closure por llamada ata URL,
             // método y requisitos a ese pago sin estado compartido.
-            this.x402Policy = { base: signer, rpcUrl, policy: config.policy };
+            this.x402Policy = { base: signer, rpcUrl, policy: config.policy, maxAmountPerPayment };
             this.x402Client = null;
             return;
         }
         this.x402Policy = null;
         const scheme = new (ExactStellarScheme as any)(signer, { url: rpcUrl });
         const client = new (X402ClientClass as any)().register('stellar:*', scheme);
+        // Sin la opción no se toca spendControls: @x402/core aplica su $1.
+        if (maxAmountPerPayment) client.setSpendControls({ maxAmountPerPayment });
         // El cliente es uno solo; el fetch envuelto se arma en cada llamada
         // (un closure barato) para que lo capturado de cada 402 sea de esa llamada.
         this.x402Client = { client, scheme, baseFetch: fetch };
@@ -1225,7 +1287,7 @@ export class Agent {
     }
 
     private async x402FetchWithPolicy(
-        cfg: { base: X402BaseSigner; rpcUrl: string; policy: X402PolicyHook },
+        cfg: { base: X402BaseSigner; rpcUrl: string; policy: X402PolicyHook; maxAmountPerPayment?: string },
         url: string, init?: RequestInit,
     ): Promise<Response> {
         const slot: { requirements?: X402PaymentRequirementsView; error?: X402PolicyError } = {};
@@ -1244,6 +1306,7 @@ export class Agent {
                     payTo: r.payTo, amount: r.amount, maxTimeoutSeconds: r.maxTimeoutSeconds,
                 };
             });
+        if (cfg.maxAmountPerPayment) client.setSpendControls({ maxAmountPerPayment: cfg.maxAmountPerPayment });
         // NUNCA registrar onPaymentCreationFailure aquí: puede devolver un
         // payload sin pasar por el signer, y el gate quedaría puenteado.
         try {
@@ -1365,12 +1428,27 @@ const sdkVersionForTelemetry = (): string | undefined => {
 export interface X402ServeConfig {
     /** Cuenta Stellar que recibe los pagos. Sin esto no hay a quién cobrarle. */
     payTo: string;
-    /** `'GET /signals': '$0.02'` — el método es opcional y default GET. */
-    routes: Record<string, string | { price: string; description?: string }>;
+    /**
+     * `'GET /signals': '$0.02'` — el método es opcional y default GET.
+     *
+     * `input`/`inputSchema`/`output` son opcionales y activan el discovery
+     * de x402 Bazaar (misma forma que `PREMIUM_ROUTES` en
+     * packages/agent/src/middleware/x402.ts): si cualquiera está presente,
+     * la ruta se anuncia vía `declareDiscoveryExtension()` y aparece en
+     * `GET /discovery/resources` del facilitador. Sin ellos, cero cambio de
+     * comportamiento respecto a antes de que este campo existiera.
+     */
+    routes: Record<string, string | {
+        price: string;
+        description?: string;
+        input?: unknown;
+        inputSchema?: unknown;
+        output?: unknown;
+    }>;
     network?: 'stellar:testnet' | 'stellar:pubnet';
     /** Default: OpenZeppelin Channels, el facilitador canónico de Stellar. */
     facilitatorUrl?: string;
-    /** Mainnet lo exige; testnet no. */
+    /** Las dos redes lo exigen - el facilitador rechaza un servidor sin llave también en testnet. */
     facilitatorApiKey?: string;
     facilitatorAuthHeader?: string;
     appName?: string;
@@ -1426,7 +1504,7 @@ export function x402Serve(config: X402ServeConfig): any {
         } catch (err: any) {
             const missing = /cannot find (module|package)/i.test(String(err?.message));
             throw new Error(missing
-                ? `x402Serve needs "${m}". Install it alongside the SDK: npm i @x402/express @x402/core @x402/stellar`
+                ? `x402Serve needs "${m}". Install it alongside the SDK: npm i @x402/express @x402/core @x402/stellar @x402/extensions`
                 : `x402Serve could not load "${m}": ${err?.message}`);
         }
     };
@@ -1440,7 +1518,14 @@ export function x402Serve(config: X402ServeConfig): any {
 
     // 'GET /signals' y '/signals' significan lo mismo: el método se omite
     // porque casi todo cobro es un GET, y obligar a escribirlo es fricción.
+    //
+    // `discoverySpecs` guarda input/inputSchema/output por separado de
+    // `routes` porque convertirlos en `extensions.bazaar` requiere
+    // `declareDiscoveryExtension()` de `@x402/extensions/bazaar`, un import
+    // dinámico — y todo el resto de esta función carga sus dependencias
+    // dentro de build(), nunca aquí arriba de forma síncrona.
     const routes: Record<string, any> = {};
+    const discoverySpecs: Record<string, { input?: unknown; inputSchema?: unknown; output?: unknown }> = {};
     for (const [key, value] of entries) {
         const spec = typeof value === 'string' ? { price: value } : value;
         const routeKey = /^[A-Z]+\s/.test(key) ? key : `GET ${key}`;
@@ -1457,6 +1542,13 @@ export function x402Serve(config: X402ServeConfig): any {
                 payTo: config.payTo,
             },
         };
+        if ('input' in spec || 'inputSchema' in spec || 'output' in spec) {
+            discoverySpecs[routeKey] = {
+                input: (spec as any).input,
+                inputSchema: (spec as any).inputSchema,
+                output: (spec as any).output,
+            };
+        }
     }
 
     const facilitatorKeyHash = config.facilitatorApiKey
@@ -1507,12 +1599,26 @@ export function x402Serve(config: X402ServeConfig): any {
 
     let cached: any;
     const build = async () => {
-        const [{ paymentMiddlewareFromConfig }, { HTTPFacilitatorClient }, { ExactStellarScheme: ServerScheme }] =
+        const hasDiscovery = Object.keys(discoverySpecs).length > 0;
+        const [{ paymentMiddlewareFromConfig }, { HTTPFacilitatorClient }, { ExactStellarScheme: ServerScheme }, bazaar] =
             await Promise.all([
                 load('@x402/express'),
                 load('@x402/core/server'),
                 load('@x402/stellar/exact/server'),
+                hasDiscovery ? load('@x402/extensions/bazaar') : Promise.resolve(undefined),
             ]);
+
+        if (bazaar) {
+            const { declareDiscoveryExtension } = bazaar;
+            for (const [routeKey, discovery] of Object.entries(discoverySpecs)) {
+                // Solo los campos que de verdad se pasaron — `output: undefined`
+                // no debería terminar escrito literal en el discovery.
+                const fields = Object.fromEntries(
+                    Object.entries(discovery).filter(([, v]) => v !== undefined),
+                );
+                routes[routeKey].extensions = declareDiscoveryExtension(fields);
+            }
+        }
 
         const facilitator = new HTTPFacilitatorClient({
             url: facilitatorUrl,

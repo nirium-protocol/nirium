@@ -12,7 +12,7 @@ payments, reads an SDP database, or takes custody of funds.
 
 ## Requirements
 
-- Node.js 20 or newer
+- Node.js >=22.12.0 (`@stellar/stellar-sdk` 16.x requires it)
 - A completed batch identified by transaction hashes or a distribution account
   and UTC time window
 - Testnet only
@@ -141,9 +141,9 @@ exceeds either limit fails explicitly and must be narrowed.
 The issue identifies [Providencia Onchain / VIIO](https://github.com/itrmachines/viio_poc)
 as the deployment-specific prior art that motivated this work. The linked public
 VIIO POC documents an
-[`external_transfer`](https://github.com/ITRMachines/viio_poc/tree/master/external_transfer)
+[`external_transfer`](https://github.com/ITRMachines/viio_poc/tree/main/external_transfer)
 flow that returns a blockchain transaction hash and a project-specific
-[`movements`](https://github.com/ITRMachines/viio_poc/tree/master/movements)
+[`movements`](https://github.com/ITRMachines/viio_poc/tree/main/movements)
 view. The public repository does not independently document every deployment
 detail stated in the issue, so this README does not repeat those details as
 verified facts.
@@ -207,7 +207,7 @@ evidence that a previously verified transaction changed.
   or printed. Transaction hashes are public references and allow an auditor to
   recover public on-chain destinations from Horizon; this bridge does not promise
   recipient anonymity.
-- IPFS content cannot be deleted. Do not add personal data to the record schema.
+- Nobody can guarantee that something is deleted from IPFS (anyone with the CID may have kept a copy). Do not add personal data to the record schema.
 
 ## Development
 

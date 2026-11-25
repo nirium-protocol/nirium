@@ -1,6 +1,7 @@
 import express from 'express';
 import { Agent } from 'nirium';
 import { signAuditRecord } from './attestation.js';
+import { appendAnchor } from './anchors.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -11,7 +12,7 @@ app.use(express.json());
 const PORT = Number(process.env.PORT) || 3000;
 const AGENT_SECRET = process.env.STELLAR_SECRET_KEY;
 const NIRIUM_API_KEY = process.env.NIRIUM_API_KEY || 'nrm_test_key';
-const NIRIUM_BASE_URL = process.env.NIRIUM_BASE_URL || 'http://localhost:3001';
+const NIRIUM_BASE_URL = process.env.NIRIUM_BASE_URL || 'http://localhost:3002';
 
 const agentClient = new Agent({
   apiKey: NIRIUM_API_KEY,
@@ -37,8 +38,14 @@ app.post('/webhook', async (req, res) => {
 
     const anchor = await agentClient.anchorAuditRecord({
       record: event,
-      tag: 'webhook-event',
+      tag: 'wave11-forensic-bridge',
       agent: agentAttestation,
+    });
+
+    await appendAnchor({
+      cid: anchor.cid,
+      contentSha256: anchor.contentSha256,
+      ...(anchor.attestedBy ? { attestedBy: anchor.attestedBy } : {}),
     });
 
     return res.status(200).json({

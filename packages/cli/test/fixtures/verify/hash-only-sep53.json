@@ -1,0 +1,15 @@
+{
+  "version": "1.1.0",
+  "node": "audit-external",
+  "content_sha256": "f3889ed882a1ef2205d42c33d5940268263b100ee51b474cfb28c19a433a2565",
+  "network": "stellar:testnet",
+  "tag": "fixture",
+  "anchoredAt": "2026-10-14T00:00:00.000Z",
+  "agent": {
+    "id": "fixture-agent",
+    "key": "GDVEU3DD4KOFECV66VIHWEZOYX4ZKR3WV27L464SIIPOU2IUI3JCZA57",
+    "alg": "ed25519",
+    "statement": "nirium-audit-v1:f3889ed882a1ef2205d42c33d5940268263b100ee51b474cfb28c19a433a2565",
+    "signature": "h9oj4cm6cNq9RdhdATjahKdkF6hI/YhLjbiI2HUd5icChGnHJMMFrdH32vhJJCyI7dIKB1Ort3XtMV4H/m1uBw=="
+  }
+}

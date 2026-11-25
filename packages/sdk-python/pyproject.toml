@@ -4,17 +4,17 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nirium"
-version = "0.11.0"
-description = "Autonomous treasury and agentic-payments infrastructure for Stellar (x402 + MPP) — Python client"
+version = "0.13.0"
+description = "Pay per request in USDC on Stellar (x402) from Python and AI agents, with a spending cap and receipts anyone can verify. Non-custodial."
 readme = "README.md"
 requires-python = ">=3.10"
 license = "Apache-2.0"
 authors = [{name = "Nirium Protocol", email = "niriumprotocol@gmail.com"}]
-keywords = ["nirium", "stellar", "soroban", "defi", "agent", "autonomous", "treasury", "x402", "mpp", "agentic-payments", "usdc", "cetes", "etherfuse", "rwa"]
+keywords = ["stellar", "x402", "usdc", "payments", "pay-per-request", "ai-agents", "agentic-payments", "receipts", "audit-trail"]
 dependencies = [
     "aiohttp>=3.9.0",
     "websockets>=13.0",
-    "stellar-sdk>=11.0.0,<16.0.0",
+    "stellar-sdk>=17.0.1,<18.0.0",
 ]
 
 [project.optional-dependencies]
@@ -27,9 +27,9 @@ test = [
 
 [project.urls]
 Homepage = "https://nirium.xyz"
-Repository = "https://github.com/nirium-protocol/nirium-sdk"
+Repository = "https://github.com/nirium-protocol/nirium"
 Documentation = "https://nirium.xyz/docs"
-"Bug Tracker" = "https://github.com/nirium-protocol/nirium-sdk/issues"
+"Bug Tracker" = "https://github.com/nirium-protocol/nirium/issues"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

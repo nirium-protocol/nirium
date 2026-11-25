@@ -41,6 +41,12 @@ function parseBooleanInput(value: string): boolean {
   return normalized === '' || normalized === 'true' || normalized === '1' || normalized === 'yes';
 }
 
+// Opt-in flags: empty means false (unlike fail-on-error, whose empty means true).
+function parseOptInFlag(value: string): boolean {
+  const normalized = value.trim().toLowerCase();
+  return normalized === 'true' || normalized === '1' || normalized === 'yes';
+}
+
 function boolOutput(value: boolean): string {
   return value ? 'true' : 'false';
 }
@@ -82,6 +88,7 @@ async function setOutputs(result: VerifyResult): Promise<void> {
   await Promise.all([
     setOutput('verified', boolOutput(result.ok)),
     setOutput('hash_match', boolOutput(result.hashMatch)),
+    setOutput('hash_only', boolOutput(result.hashOnly)),
     setOutput('signature_valid', statusLabel(result.signatureStatus)),
     setOutput('signer', result.signerKey || ''),
     setOutput('content_sha256', result.computedHash),
@@ -102,6 +109,7 @@ function renderSummary(result: VerifyResult): string {
     ['Fetch URL', result.url || ''],
     ['Verified', boolOutput(result.ok)],
     ['Hash match', boolOutput(result.hashMatch)],
+    ['Hash-only document', boolOutput(result.hashOnly)],
     ['Recomputed SHA-256', result.computedHash || ''],
     ['Declared SHA-256', result.expectedHash || ''],
     ['Agent signer', result.signerKey || 'N/A'],
@@ -131,10 +139,22 @@ async function writeSummary(result: VerifyResult): Promise<void> {
 
 export async function run(): Promise<void> {
   const cid = getInput('cid', true);
-  const gateway = getInput('gateway') || 'https://ipfs.io/ipfs/';
+  const gateway = getInput('gateway');
+  const gatewaysRaw = getInput('gateways');
+  const gateways = gatewaysRaw
+    ? gatewaysRaw
+        .split(/[,\n]/)
+        .map((g) => g.trim())
+        .filter(Boolean)
+    : undefined;
   const failOnError = parseBooleanInput(getInput('fail-on-error') || 'true');
+  const requireSignature = parseOptInFlag(getInput('require-signature'));
 
-  const result = await fetchAndVerifyCid(cid, { gateway });
+  const result = await fetchAndVerifyCid(cid, {
+    gateway: gateway || undefined,
+    gateways,
+    requireSignature,
+  });
   await setOutputs(result);
   await writeSummary(result);
 

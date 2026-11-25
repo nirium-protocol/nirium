@@ -2,7 +2,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import validFixture from './fixtures/valid-audit.json' with { type: 'json' };
+import hashOnlyFixture from './fixtures/hash-only-audit.json' with { type: 'json' };
 import {
+  DEFAULT_GATEWAYS,
   fetchAndVerifyCid,
   normalizeGatewayUrl,
   verifyAuditDocument,
@@ -108,4 +110,207 @@ test('fetchAndVerifyCid reports HTTP gateway failures', async () => {
 
   assert.equal(result.ok, false);
   assert.equal(result.error, 'Failed to fetch CID from gateway: IPFS gateway returned HTTP 404');
+});
+
+test('fetchAndVerifyCid falls back to the next gateway when the first one fails (issue #185)', async () => {
+  const calledUrls = [];
+  const result = await fetchAndVerifyCid('QmCID', {
+    gateways: ['https://down.example/ipfs/', 'https://up.example/ipfs/'],
+    retries: 0,
+    fetchFn: async (url) => {
+      calledUrls.push(String(url));
+      if (String(url).startsWith('https://down.example')) {
+        return new Response('too many requests', { status: 429 });
+      }
+      return new Response(JSON.stringify(validFixture), { status: 200 });
+    },
+  });
+
+  assert.deepEqual(calledUrls, [
+    'https://down.example/ipfs/QmCID',
+    'https://up.example/ipfs/QmCID',
+  ]);
+  assert.equal(result.ok, true);
+  assert.equal(result.gateway, 'https://up.example/ipfs/');
+  assert.equal(result.url, 'https://up.example/ipfs/QmCID');
+});
+
+test('fetchAndVerifyCid reports failure only after every gateway in the list fails', async () => {
+  const result = await fetchAndVerifyCid('QmCID', {
+    gateways: ['https://down1.example/ipfs/', 'https://down2.example/ipfs/'],
+    retries: 0,
+    fetchFn: async () => new Response('bad gateway', { status: 502 }),
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.gateway, 'https://down2.example/ipfs/');
+  assert.match(result.error, /HTTP 502/);
+});
+
+test('with no gateway/gateways input, verification works out of the box via the default fallback list', async () => {
+  const calledUrls = [];
+  const result = await fetchAndVerifyCid('QmCID', {
+    retries: 0,
+    fetchFn: async (url) => {
+      calledUrls.push(String(url));
+      // Simulate today's real failure mode: ipfs.io (the old sole default)
+      // rate-limits, so the first DEFAULT_GATEWAYS entry (Filebase) must be
+      // the one that actually answers.
+      if (String(url).startsWith(DEFAULT_GATEWAYS[0])) {
+        return new Response(JSON.stringify(validFixture), { status: 200 });
+      }
+      return new Response('too many requests', { status: 429 });
+    },
+  });
+
+  assert.equal(calledUrls[0], `${DEFAULT_GATEWAYS[0]}QmCID`);
+  assert.equal(result.ok, true);
+  assert.equal(result.gateway, DEFAULT_GATEWAYS[0]);
+});
+
+test('an explicit single gateway input is not treated as a fallback list', async () => {
+  const calledUrls = [];
+  const result = await fetchAndVerifyCid('QmCID', {
+    gateway: 'https://gateway.example/ipfs/',
+    retries: 0,
+    fetchFn: async (url) => {
+      calledUrls.push(String(url));
+      return new Response('not found', { status: 404 });
+    },
+  });
+
+  assert.deepEqual(calledUrls, ['https://gateway.example/ipfs/QmCID']);
+  assert.equal(result.ok, false);
+  assert.equal(result.gateway, 'https://gateway.example/ipfs/');
+});
+
+test('offline verify: a hash-only document (no record field) verifies against its declared hash', () => {
+  const result = verifyAuditDocument(hashOnlyFixture, 'QmHashOnly');
+
+  assert.equal(result.hashOnly, true);
+  assert.equal(result.hashMatch, true);
+  assert.equal(result.signatureStatus, 'valid');
+  assert.equal(result.ok, true);
+  assert.equal(result.computedHash, hashOnlyFixture.content_sha256);
+});
+
+test('offline verify: a hash-only document with a forged signature is rejected', () => {
+  const tampered = structuredClone(hashOnlyFixture);
+  tampered.agent.signature = `INVALID${tampered.agent.signature.slice(7)}`;
+
+  const result = verifyAuditDocument(tampered, 'QmHashOnly');
+
+  assert.equal(result.hashOnly, true);
+  assert.equal(result.signatureStatus, 'invalid');
+  assert.equal(result.ok, false);
+});
+
+test('offline verify: a full-record document is still hashOnly=false and verifies as before', () => {
+  const result = verifyAuditDocument(validFixture, 'QmSSZdtt3dQ8BqUm62zrKQ85E4BUHYiVfvDgZmHfJsqU1U');
+
+  assert.equal(result.hashOnly, false);
+  assert.equal(result.ok, true);
+});
+
+// Reported from outside by Abdellah Ouadoudi (github.com/holistis), who ran
+// the decision logic on edited receipts: an unsigned hash-only document came
+// back ok even with a made-up content_sha256, because nothing failed and
+// nothing was actually checked either.
+test('offline verify: a hash-only document with a made-up hash and no agent block is not verified', () => {
+  const forged = {
+    version: '1.1.0',
+    node: 'audit-external',
+    content_sha256: '0'.repeat(64),
+    network: 'stellar:testnet',
+    tag: 'made-up',
+  };
+
+  const result = verifyAuditDocument(forged, 'QmMadeUp');
+
+  assert.equal(result.hashOnly, true);
+  assert.equal(result.signatureStatus, 'absent');
+  assert.equal(result.ok, false);
+  assert.match(result.error, /Nothing verified/);
+});
+
+test('offline verify: a signed hash-only document stripped of its agent block is not verified', () => {
+  const stripped = structuredClone(hashOnlyFixture);
+  delete stripped.agent;
+
+  const result = verifyAuditDocument(stripped, 'QmHashOnlyStripped');
+
+  assert.equal(result.hashOnly, true);
+  assert.equal(result.signatureStatus, 'absent');
+  assert.equal(result.ok, false);
+});
+
+test('offline verify: a record stripped of its agent block passes on integrity only, and says the signature is absent', () => {
+  const stripped = structuredClone(validFixture);
+  delete stripped.agent;
+
+  const result = verifyAuditDocument(stripped, 'QmRecordStripped');
+
+  // The recomputed hash is a real check, so the record itself is intact.
+  // Who declared it is what signatureStatus answers, and here nobody did.
+  assert.equal(result.hashOnly, false);
+  assert.equal(result.hashMatch, true);
+  assert.equal(result.signatureStatus, 'absent');
+  assert.equal(result.ok, true);
+  assert.equal(result.error, undefined);
+});
+
+// require-signature: an unsigned record verifies on its hash by default. With
+// the option on, only a valid signature verifies, so a record that was changed,
+// re-hashed and stripped of its signature (holistis vector 18) no longer passes.
+test('requireSignature: a signed record still verifies', () => {
+  const result = verifyAuditDocument(validFixture, 'QmSigned', { requireSignature: true });
+  assert.equal(result.ok, true);
+  assert.equal(result.signatureStatus, 'valid');
+});
+
+test('requireSignature: a signed hash-only document still verifies', () => {
+  const result = verifyAuditDocument(hashOnlyFixture, 'QmHashOnly', { requireSignature: true });
+  assert.equal(result.ok, true);
+});
+
+test('requireSignature: an unsigned record is rejected, and passes without the option', () => {
+  const unsigned = structuredClone(validFixture);
+  delete unsigned.agent;
+
+  assert.equal(verifyAuditDocument(unsigned, 'QmUnsigned').ok, true);
+
+  const strict = verifyAuditDocument(unsigned, 'QmUnsigned', { requireSignature: true });
+  assert.equal(strict.ok, false);
+  assert.equal(strict.hashMatch, true);
+  assert.equal(strict.signatureStatus, 'absent');
+  assert.match(strict.error, /Signature required/);
+});
+
+test('requireSignature: a forged, re-hashed record without its signature is rejected', () => {
+  const forged = structuredClone(validFixture);
+  forged.record.outcome = 'refunded_to_client_forged';
+  forged.content_sha256 = crypto.createHash('sha256').update(JSON.stringify(forged.record)).digest('hex');
+  delete forged.agent;
+
+  assert.equal(verifyAuditDocument(forged, 'QmForged').ok, true);
+  assert.equal(verifyAuditDocument(forged, 'QmForged', { requireSignature: true }).ok, false);
+});
+
+test('requireSignature: an invalid signature is still rejected with its own message', () => {
+  const bad = structuredClone(validFixture);
+  bad.agent.signature = `INVALID${bad.agent.signature.slice(7)}`;
+  const result = verifyAuditDocument(bad, 'QmBad', { requireSignature: true });
+  assert.equal(result.ok, false);
+  assert.equal(result.signatureStatus, 'invalid');
+  assert.equal(result.error, undefined);
+});
+
+test('fetchAndVerifyCid passes requireSignature through', async () => {
+  const unsigned = structuredClone(validFixture);
+  delete unsigned.agent;
+  const fetchFn = async () => new Response(JSON.stringify(unsigned), { status: 200 });
+  const loose = await fetchAndVerifyCid('QmUnsigned', { gateway: 'https://gw.example/ipfs/', fetchFn });
+  const strict = await fetchAndVerifyCid('QmUnsigned', { gateway: 'https://gw.example/ipfs/', fetchFn, requireSignature: true });
+  assert.equal(loose.ok, true);
+  assert.equal(strict.ok, false);
 });

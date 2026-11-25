@@ -1,0 +1,37 @@
+# Issue #226: run the example policy engines, including the shared pre-sign
+# policy conformance suite, against the SDK built from this PR. No secrets; no
+# network beyond npm.
+name: Policy Conformance
+on:
+  pull_request:
+    paths:
+      - packages/sdk/**
+      - examples/x402-policy-daily-budget/**
+      - .github/workflows/policy-conformance.yml
+  push:
+    branches:
+      - main
+    paths:
+      - packages/sdk/**
+      - examples/x402-policy-daily-budget/**
+      - .github/workflows/policy-conformance.yml
+permissions:
+  contents: read
+jobs:
+  daily-budget:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      # --legacy-peer-deps: same reason as sdk-test.yml.
+      - run: npm install --no-audit --no-fund --legacy-peer-deps
+        working-directory: packages/sdk
+      - run: npm run build
+        working-directory: packages/sdk
+      # The example links the SDK with file:../../packages/sdk, so this is the build above.
+      - run: npm ci --no-audit --no-fund
+        working-directory: examples/x402-policy-daily-budget
+      - run: npm test
+        working-directory: examples/x402-policy-daily-budget

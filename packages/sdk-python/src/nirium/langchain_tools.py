@@ -164,6 +164,8 @@ class NiriumX402Tool(BaseTool):
         rpc_url: Optional[str] = None,
         agent: Optional[Agent] = None,
         api_url: Optional[str] = None,
+        max_amount_per_payment: Optional[Any] = None,
+        approve: Optional[Any] = None,
         **kwargs: Any,
     ) -> None:
         kwargs.setdefault("handle_tool_error", True)
@@ -186,7 +188,14 @@ class NiriumX402Tool(BaseTool):
                 "Pass secret_key=... or set STELLAR_SECRET_KEY."
             )
         client = Agent(api_url=api_url or "https://nirium-agent.fly.dev")
-        client.init_x402(resolved_secret, network=resolved_network, rpc_url=resolved_rpc)
+        # Only forward the spending options that were set: when omitted, init_x402
+        # keeps its own default cap ($1 of USDC per payment).
+        limits: dict[str, Any] = {}
+        if max_amount_per_payment is not None:
+            limits["max_amount_per_payment"] = max_amount_per_payment
+        if approve is not None:
+            limits["approve"] = approve
+        client.init_x402(resolved_secret, network=resolved_network, rpc_url=resolved_rpc, **limits)
         self._client = client
 
     def __repr__(self) -> str:

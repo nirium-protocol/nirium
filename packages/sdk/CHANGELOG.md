@@ -2,6 +2,99 @@
 
 All notable changes to the `nirium` package are documented here.
 
+## Unreleased
+
+Known issue in 0.20.0: the MPP Charge client (`initMpp()` / `mppFetch()`) fails with `TypeError: prepared.toEnvelope(...).v1 is not a function`. It comes from `@stellar/mpp` 0.7.1, the latest release on npm, which still targets `@stellar/stellar-sdk` 15/16; upstream already moved to 17 on main (stellar/stellar-mpp-sdk#99, #102) but has not published it. x402, Audit Trail and Reporting are not affected. Until a fixed `@stellar/mpp` ships, use `nirium@0.19.8` with `@stellar/stellar-sdk@16` for MPP. Checked on testnet on 23 Nov 2026 (our own test payments, not usage): 0.20.0 + stellar-sdk 17.4.0 failed on MPP and paid over x402 (`85b41e0bade9bf5fc7656c12e50be1a67b7c593ae3c1ad0b6223cd8f84ca5e95`); 0.19.8 + stellar-sdk 16.4.1 paid over MPP (`4495861d68c78baae41f969ead2b0d8b79cfdf34055f7f908cb8beecdfcebecb`).
+
+## 0.20.0 - 2026-11-23
+
+Dependencies move to `@stellar/stellar-sdk` ^17.4.0 (was ^16.3.0) and `@x402/*` ^2.32.0 (was ^2.28.0), after Protocol 30 reached mainnet. `@x402/stellar` 2.32 already required stellar-sdk 17, so a fresh install of 0.19.8 carried two SDK copies; this release carries one.
+
+No change to the public API. The pre-sign policy hook, its `ctx.authorization` fields and the conformance kit behave as before; internally they moved to stellar-sdk 17's XDR accessors.
+
+If you pass your own `signer`: with stellar-sdk 17, `Keypair.sign()` returns a `Uint8Array`. Wrap it with `Buffer.from(...)` before `.toString('base64')`, or the `signedAuthEntry` is not valid base64. See Requirements in the README.
+
+Checked before release with real testnet payments to Nirium's own test endpoint (our own test, not usage), from a fresh install of the packed package: without a policy `820e84f056f7723c257fb2cf2e86f10f512828f48fd20e03b825009850713238`, with an ALLOW policy `415565cb7044dbe59cf73ea1bceaa3141a714fcfba56415d8e2f8a68eb274021`. Published 0.19.8 was checked the same way and also pays.
+
+## 0.19.8 - 2026-11-22
+
+README: the Audit Trail note said IPFS content "cannot be deleted". Corrected: nobody can guarantee deletion from IPFS, because anyone with the CID may have kept a copy; the advice is unchanged (anchor a hash, not personal data). No code change.
+
+## 0.19.7 - 2026-11-21
+
+New `receiptCid(document)`: recomputes a receipt's IPFS CID (CIDv0) locally, with no IPFS node and no new dependency, so a copy you kept can be shown to be the original. Accepts the saved bytes, a string, or the `document` object.
+
+`AuditAnchor` gains an optional `document`: the exact JSON pinned to IPFS, returned by Audit Trail nodes deployed after 21 Nov 2026. Keeping it lets you re-add the receipt to IPFS with the same CID.
+
+## 0.19.6 - 2026-11-17
+
+README: a short note on what a receipt adds over the ledger, with a link to the design FAQ. No code change.
+
+## 0.19.5 - 2026-11-17
+
+Package description and keywords updated. No code change.
+
+## 0.19.4 - 2026-11-17
+
+### Fixed
+
+- `anchorAuditRecord()` now returns `contentSha256`. The node answers with `content_sha256`, and the SDK used to pass that body through unchanged, so the typed `contentSha256` field was always `undefined`. The raw `content_sha256` is kept too.
+
+## 0.19.3 - 2026-11-16
+
+### Changed
+
+- README: Treasury on mainnet is now invite-only for deploy, deposit, set-rebalance-manager, rebalance and propose (the agent returns 403 to free keys since 16-nov-2026); withdraw stays open. The Propose section no longer says "no invite required". Treasury is described as moving funds between idle cash and the strategy, not as a USDC/CETES swap. MPP Charge status matches its own section (untested on mainnet). Docs only, no API change.
+
+## 0.19.2 - 2026-11-16
+
+### Changed
+
+- README: the autonomous-signing section now says it is invite-only until a written legal opinion, instead of "during legal review". No lawyer is reviewing it yet. Docs only, no API change.
+
+## 0.19.1 - 2026-11-12
+
+### Changed
+
+- README leads with Audit Trail: signed receipts and how to verify them with nirium verify or nirium.xyz/verify. HELP text of the 402/403 counters fixed ("Total 402", "Total 403"). Docs only, no API change.
+
+## 0.19.0 - unreleased
+
+### Changed
+
+- `getPayoutRuns()` now returns `{ runs: PublicPayoutRun[] }` instead of `PayoutRun[]`. The node's public `GET /api/payroll/runs` no longer includes `runId` or the IPFS receipt `cid`: a run's receipt is the paying company's evidence, so the public history keeps only what is already public on-chain (amount, asset, recipient count, tx hash). Your own run's CID still comes back from `submitPayout()`. TypeScript code that read `runId` or `cid` from `getPayoutRuns()` will no longer compile; at runtime those fields are `undefined` once a node runs the new version.
+
+## 0.18.0 - 2026-11-07
+
+### Added
+
+- `x402Serve()` routes can declare `input`, `inputSchema`, and/or `output` ([#217](https://github.com/nirium-protocol/nirium/issues/217)): when any is present, the route is announced via `@x402/extensions/bazaar`'s `declareDiscoveryExtension()` as that route's `extensions`, letting a Bazaar (Rail402 on Stellar testnet, Coinbase's CDP Bazaar where applicable) catalog it once a payment for it settles. Without those fields, a route behaves exactly as before - no `extensions` key, no new required dependency (`@x402/extensions` is dynamically loaded only when at least one route opts in). Verified end to end against Rail402's hosted testnet facilitator: a settled payment against a public `x402Serve()`-protected route got the resource listed at `GET https://testnet.rail402.dev/discovery/resources`, trust `origin_verified`.
+
+## 0.17.0 - 2026-11-05
+
+### Added
+
+- `initX402({ maxAmountPerPayment })` ([#106](https://github.com/nirium-protocol/nirium/issues/106)): sets the `@x402/core` 2.28 per-payment cap (`spendControls.maxAmountPerPayment`) so APIs priced above $1 can be paid. Accepts `'$5'`, `'5'` or `5`; validated at `initX402()` time (positive amounts only, `false` is rejected). Without the option, behavior is unchanged: the default stays `$1`. Works with and without `policy`. The `X402SpendCapError` message now points to the option.
+
+### Fixed
+
+- The default `baseUrl` (`Agent` constructor and its JSDoc example) was `http://localhost:3001` - that's only the agent's own standalone fallback, a path the documented `pnpm dev` quickstart never takes (it runs on `3002` via `master.ts`). Now `3002`, matching the quickstart everyone actually follows.
+- The `facilitatorApiKey` JSDoc comment on `X402ServeConfig` said "Mainnet lo exige; testnet no" while the runtime check two lines below throws on both networks ("the facilitator rejects unauthenticated servers on testnet too") - directly contradicting the code it described. Same false claim in the README's quickstart comment. Comment-only; behavior was already correct.
+
+### Security
+
+- `@stellar/mpp` > `mppx` > `viem`/`abitype`/`incur` > `zod` could resolve below 4.6.6 (patched) for `GHSA-mrhx-c7xc-m3w5`, previously only allowlisted rather than fixed. Every package on that chain already declares `zod ^4.x` in its own `peerDependencies` - nothing pinned it low, it just never got bumped. Added a scoped `overrides` entry (`mppx`, `@stellar/mpp`, `viem`) so the whole subtree resolves to a patched version; `@x402/core`'s own `zod ^3.x` is untouched. `@x402/core` itself still requires `zod ^3.24.2`, which cannot resolve to 4.x - no patched 3.x release exists, so that one dependency stays allowlisted via `audit-ci`.
+
+## 0.16.1 - 2026-10-11
+
+Documentation and package metadata only. `dist/` is identical to 0.16.0.
+
+### Changed
+
+- `package.json` `repository` now points to `nirium-protocol/nirium` with `directory: packages/sdk`, and `bugs.url` to `nirium-protocol/nirium/issues` (both pointed to the old `nirium-sdk` repo). `nirium-mcp` gets the same change in its own next release.
+- README: documents the `x402Serve()` replay and rate-limit guard (`guard`, `X402GuardStore`, `createUpstashX402GuardStore`) with a tested example, credit to Edgadafi, and rewrites the "known limitation" text: without `guard` there is still no replay protection or rate limit. Documents `ResilientSignalClient`.
+- README: `/premium/signals` exists only on testnet (mainnet answers 501). Removed two dead links (`/docs/api`, `/docs/mcp`), fixed the GitHub link, removed long dashes.
+
 ## 0.16.0 - 2026-10-02
 
 ### Added
