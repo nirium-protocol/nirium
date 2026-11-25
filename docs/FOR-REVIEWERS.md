@@ -197,4 +197,5 @@ Approvals between the two maintainers (@Eras256 and @M0nsxx) are often AI-assist
 *Every number and link on this page was checked live against its source
 (Horizon, GitHub's API, the running API itself, `nirium-cli verify`) before
 being written down - not copied from an internal doc or an earlier draft.
-Last verified: 22 Nov 2026.*
+Last verified: 22 Nov 2026 (the Stellar Wave counts in section 7 were
+rechecked on 25 Nov 2026).*
