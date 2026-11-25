@@ -1,0 +1,27 @@
+{
+  "name": "nirium-build-correction-receipt-example",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "issue": "node --import tsx src/cli.ts issue",
+    "correct": "node --import tsx src/cli.ts correct",
+    "check": "node --import tsx src/cli.ts check",
+    "test": "node --import tsx --test test/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@stellar/stellar-sdk": "^17.4.0",
+    "nirium": "^0.20.0",
+    "nirium-cli": "^3.2.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "license": "Apache-2.0"
+}
