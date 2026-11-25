@@ -205,7 +205,7 @@ export function describeAuthorization(
 ): X402PolicyContext['authorization'] {
     let pre: any;
     try {
-        pre = xdr.HashIdPreimage.fromXDR(preimageXdr, 'base64');
+        pre = xdr.HashIdPreimage.fromXdr(preimageXdr, 'base64');
     } catch (e: any) {
         throw new X402PolicyError('CONTEXT_MISMATCH', `undecodable auth preimage (${e?.message})`);
     }
@@ -213,47 +213,47 @@ export function describeAuthorization(
     // dentro de lo firmado. En la segunda, esa dirección tiene que ser el signer.
     let auth: any;
     let preimageType: 'legacy' | 'cap71';
-    switch (pre.switch().name) {
+    switch (pre.type) {
         case 'envelopeTypeSorobanAuthorization':
-            auth = pre.sorobanAuthorization();
+            auth = pre.sorobanAuthorization;
             preimageType = 'legacy';
             break;
         case 'envelopeTypeSorobanAuthorizationWithAddress':
-            auth = pre.sorobanAuthorizationWithAddress();
+            auth = pre.sorobanAuthorizationWithAddress;
             preimageType = 'cap71';
-            if (Address.fromScAddress(auth.address()).toString() !== signerAddress) {
+            if (Address.fromScAddress(auth.address).toString() !== signerAddress) {
                 throw new X402PolicyError('CONTEXT_MISMATCH', 'CAP-71 preimage is bound to a different address than the signer');
             }
             break;
         default:
-            throw new X402PolicyError('CONTEXT_MISMATCH', `unsupported preimage type ${pre.switch().name}`);
+            throw new X402PolicyError('CONTEXT_MISMATCH', `unsupported preimage type ${pre.type}`);
     }
     const passphrase = PASSPHRASES[requirements.network];
     if (!passphrase) throw new X402PolicyError('CONTEXT_MISMATCH', `unknown network ${requirements.network}`);
-    if (hex(auth.networkId()) !== hex(hash(Buffer.from(passphrase)))) {
+    if (hex(auth.networkId.value) !== hex(hash(Buffer.from(passphrase)))) {
         throw new X402PolicyError('CONTEXT_MISMATCH', 'auth entry is for a different network than requirements.network');
     }
-    const inv = auth.invocation();
-    if (inv.subInvocations().length !== 0) {
+    const inv = auth.invocation;
+    if (inv.subInvocations.length !== 0) {
         throw new X402PolicyError('CONTEXT_MISMATCH', 'auth entry carries sub-invocations');
     }
-    const fn = inv.function();
-    if (fn.switch().name !== 'sorobanAuthorizedFunctionTypeContractFn') {
-        throw new X402PolicyError('CONTEXT_MISMATCH', `unexpected authorized function ${fn.switch().name}`);
+    const fn = inv.function;
+    if (fn.type !== 'sorobanAuthorizedFunctionTypeContractFn') {
+        throw new X402PolicyError('CONTEXT_MISMATCH', `unexpected authorized function ${fn.type}`);
     }
-    const call = fn.contractFn();
-    const contractId = Address.fromScAddress(call.contractAddress()).toString();
-    const functionName = call.functionName().toString();
-    const rawArgs = call.args();
+    const call = fn.contractFn;
+    const contractId = Address.fromScAddress(call.contractAddress).toString();
+    const functionName = call.functionName.toString();
+    const rawArgs = call.args;
     if (functionName !== 'transfer' || rawArgs.length !== 3) {
         throw new X402PolicyError('CONTEXT_MISMATCH', `expected transfer(from,to,amount), got ${functionName}/${rawArgs.length}`);
     }
-    if (rawArgs[0].switch().name !== 'scvAddress' || rawArgs[1].switch().name !== 'scvAddress'
-        || rawArgs[2].switch().name !== 'scvI128') {
+    if (rawArgs[0].type !== 'scvAddress' || rawArgs[1].type !== 'scvAddress'
+        || rawArgs[2].type !== 'scvI128') {
         throw new X402PolicyError('CONTEXT_MISMATCH', 'transfer arguments have unexpected types');
     }
-    const from = Address.fromScAddress(rawArgs[0].address()).toString();
-    const to = Address.fromScAddress(rawArgs[1].address()).toString();
+    const from = Address.fromScAddress(rawArgs[0].address).toString();
+    const to = Address.fromScAddress(rawArgs[1].address).toString();
     const amount = BigInt(scValToNative(rawArgs[2])).toString();
     if (contractId !== requirements.asset) throw new X402PolicyError('CONTEXT_MISMATCH', 'asset contract differs from requirements.asset');
     if (to !== requirements.payTo) throw new X402PolicyError('CONTEXT_MISMATCH', 'destination differs from requirements.payTo');
@@ -262,10 +262,10 @@ export function describeAuthorization(
     return Object.freeze({
         preimageXdr,
         preimageType,
-        payloadHash: hex(hash(pre.toXDR())),
+        payloadHash: hex(hash(pre.toXdr())),
         networkPassphrase: passphrase,
-        nonce: auth.nonce().toString(),
-        signatureExpirationLedger: auth.signatureExpirationLedger(),
+        nonce: auth.nonce.toString(),
+        signatureExpirationLedger: auth.signatureExpirationLedger,
         contractId, functionName, from, to, amount,
     });
 }

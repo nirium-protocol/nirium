@@ -336,7 +336,7 @@ export function createNiriumMcpServer(options: NiriumMcpOptions = {}): McpServer
         'anchor_audit_record',
         'Anchor evidence to IPFS and get back a CID. Tamper-evident, not tamper-proof: a changed document no longer matches its CID. Not notarization. '
         + 'Pass `hash` (sha-256 hex of your own file/event) or `record` (small JSON object, max 8KB). '
-        + 'Anchor hashes rather than raw personal data — IPFS content cannot be deleted. Free during open beta.',
+        + 'Anchor hashes rather than raw personal data — nobody can guarantee that something is deleted from IPFS. Free during open beta.',
         {
             hash: z.string().optional().describe('sha-256 hex (64 chars), optionally prefixed "sha-256:"'),
             record: z.record(z.unknown()).optional().describe('Small JSON object to anchor verbatim (max 8KB)'),

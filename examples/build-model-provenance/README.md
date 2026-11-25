@@ -1,6 +1,6 @@
 # Build with Nirium: provenance for a model or dataset (Audit Trail, testnet)
 
-Keep the details of how a model or dataset was made **private**, and publish only a **signed public receipt** that proves that exact record existed at a point in time.
+Keep the details of how a model or dataset was made **private**, and publish only a **signed public receipt** of that record. Anyone can later check that a given record is the one that was anchored and who signed it; the receipt does not prove the record is true, and its `anchoredAt` is the Nirium node's clock, not a ledger time.
 
 - **Private record** (stays on your disk): SHA-256 of the weights or dataset file, training config, data source names, code commit.
 - **Public receipt** (IPFS, via the Nirium Audit Trail node): the SHA-256 *of that record*, a timestamp, and your Stellar testnet signature over `nirium-audit-v1:<sha256>`.

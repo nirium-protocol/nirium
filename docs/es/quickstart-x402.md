@@ -1,10 +1,10 @@
-# Cobra a Agentes de IA en 5 Minutos con x402
+# Paga una API x402 en 5 Minutos
 
-Esta guía de inicio rápido muestra cómo configurar y llamar un endpoint pagado de Nirium desde un script TypeScript. El SDK maneja la negociación x402, la firma de entradas de autorización de Stellar y el reintento pagado después de que el endpoint devuelve `402 Payment Required`.
+Esta guía de inicio rápido muestra cómo un agente o script paga un endpoint x402 de Nirium desde TypeScript. Para cobrar por tu propia API, mira [`x402Serve()` en el README](../../README.md#quickstart-charge-for-your-api). El SDK maneja la negociación x402, la firma de entradas de autorización de Stellar y el reintento pagado después de que el endpoint devuelve `402 Payment Required`.
 
 ## Lo que Necesitas
 
-- Node.js >=22.12.0 - `@stellar/stellar-sdk` 16.x (una dependencia de `nirium`) lo requiere; un Node más antiguo resuelve silenciosamente un SDK incompatible más antiguo en lugar de fallar.
+- Node.js >=22.12.0 - `@stellar/stellar-sdk` 17.x (una dependencia de `nirium`) lo requiere; un Node más antiguo resuelve silenciosamente un SDK incompatible más antiguo en lugar de fallar.
 - Un proyecto limpio donde puedas instalar `nirium`.
 
 No uses una clave secreta de mainnet mientras pruebas este flujo.
@@ -15,7 +15,7 @@ No uses una clave secreta de mainnet mientras pruebas este flujo.
 mkdir nirium-x402-demo
 cd nirium-x402-demo
 npm init -y
-npm install nirium @stellar/stellar-sdk@16 tsx typescript dotenv
+npm install nirium @stellar/stellar-sdk@17 tsx typescript dotenv
 ```
 
 ## 2. Crear y Financiar una Clave Stellar
@@ -174,12 +174,14 @@ npx tsx charge-agent.ts
 
 Después de una llamada exitosa:
 
-1. Busca el hash de transacción en los logs o en la respuesta del facilitador
-2. Abre `https://stellar.expert/explorer/testnet/tx/<TRANSACTION_HASH>`
+1. Abre tu cuenta en Stellar Expert: `https://stellar.expert/explorer/testnet/account/<TU_LLAVE_PUBLICA>`
+2. Busca la transferencia de USDC más reciente que salió de tu cuenta y abre su transacción
 3. Confirma:
-   - Cuenta de origen: tu cuenta
-   - Destino: endpoint del vendedor
-   - Monto: $0.05 USDC para `/api/v1/premium/market`
+   - Cuenta de origen de la transacción: el facilitador, que paga el fee
+   - La transferencia de USDC dentro de ella: de tu cuenta al `payTo` del vendedor
+   - Monto: 0.05 USDC para `/api/v1/premium/market`
+
+Un `200` con datos no prueba el pago por sí solo; lo prueba la transacción liquidada en el ledger.
 
 ## Errores Comunes
 
@@ -195,13 +197,13 @@ Después de una llamada exitosa:
 
 ## Endpoints Disponibles
 
-| Endpoint | Precio | Red |
-| --- | --- | --- |
-| `/api/v1/premium/signals` | $0.02 USDC | Testnet solamente |
-| `/api/v1/premium/market` | $0.05 USDC | Testnet y pubnet |
-| `/api/v1/premium/execute` | $0.25 USDC | Testnet solamente |
+| Endpoint | Método | Precio | Red |
+| --- | --- | --- | --- |
+| `/api/v1/premium/signals` | GET | 0.02 USDC | Solo testnet |
+| `/api/v1/premium/market` | GET | 0.05 USDC | Testnet y pubnet |
+| `/api/v1/premium/execute` | POST | 0.25 USDC | Solo testnet |
 
-**Nota**: En mainnet, `/api/v1/premium/signals` devuelve `501` (no hay fuente de señales en mainnet); el agente de mainnet no tiene clave de firma por diseño.
+Precios leídos del reto `402` de cada endpoint en vivo el 22-nov-2026. En mainnet, `signals` y `execute` devuelven `501` (el agente de mainnet no tiene llave de firma, por diseño).
 
 ## Python / LangChain
 

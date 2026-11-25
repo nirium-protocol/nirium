@@ -1,6 +1,6 @@
 # Nirium - 10 minutes for a reviewer
 
-Not a Claude Code session, not a deep dive. Seven things, in order of how much
+Not a Claude Code session, not a deep dive. Eight things, in order of how much
 you have to trust us to believe them. Every link below is something you can
 check yourself right now - none of it depends on taking our word for it.
 The full evidence list, with the network and date of every item, is in
@@ -15,6 +15,11 @@ curl https://nirium-agent.fly.dev/api/nodes
 Real JSON, no auth, right now: the live status of every execution node
 (Settlement, Audit Trail, Treasury Rebalance, Payouts, Reporting), which
 network each runs on, and which endpoints back it.
+
+Uptime history for the same endpoints is public at
+[nirium-protocol.github.io/status](https://nirium-protocol.github.io/status)
+([repo](https://github.com/nirium-protocol/status): results and history are committed
+there by GitHub Actions). It shows availability, not payments or usage.
 
 ## 2. A payment receipt you can verify without us
 
@@ -46,19 +51,27 @@ It should print `SIGNATURE: VALID`, signed by
 `VERIFICATION PASSED`. That receipt was anchored on mainnet by TIA, an
 external integrator, with its own key, for the payment
 [`cc5740ae…b577808a`](https://stellar.expert/explorer/public/tx/cc5740aebf850194532392a1d216c2af620c70a7c46c8b36a0ea4a06b577808a)
-(18 Oct 2026). TIA has anchored three such receipts on mainnet (18 Oct,
-23 Oct and 6 Nov 2026). The wallets behind its payments are also TIA's own,
-so we count these as integration tests, not as paying customers.
+(18 Oct 2026). TIA has anchored seven receipts on mainnet between 18 Oct
+and 12 Nov 2026, with two keys of its own (each one listed in EVIDENCE). The
+wallets behind its payments are also TIA's own, so we count these as
+integration tests, not as paying customers.
 
 To see why a receipt can be trusted, change one character of any receipt
 and verify it again: the signature still belongs to the original, the file
 no longer does, and verification fails.
 
+The /verify page recomputes the CID and the hash in your browser from the
+gateway bytes, but checks the signature on our server; the CLI checks
+everything on your machine. An outside reviewer, [holistis](https://github.com/holistis),
+checked two receipts with their own code and no Nirium tools on 19 Nov 2026,
+and their 21 test cases now run in our CI (details in EVIDENCE, section 1).
+
 ## 3. Payments that settle
 
 - **Mainnet:** the x402 payment account,
   [`GCLBBPON…ZWKBHP`](https://stellar.expert/explorer/public/account/GCLBBPON256CV7ATEHM5B54BOKNC7GX53MBINJ42MHVXGDMMZ3ZWKBHP),
-  has 39 settled payments. The last three settled on 18 Nov 2026, in a
+  has 40 settled payments. The last one, on 24 Nov 2026, is our own test of
+  `nirium` 0.20.0. The three before it settled on 18 Nov 2026, in a
   mainnet test of the pre-sign policy hook by AgentLedger, whose founder works
   with Nirium part-time. None of them came from an external payer; they are
   our own and our integrators' tests.
@@ -103,7 +116,7 @@ zero seed phrase) pay for x402 APIs and sign audit records without touching
 a raw Stellar key. Two concrete artifacts:
 
 - **Merged, not just proposed**: [nirium-pollar-adapter PR #1](https://github.com/nirium-protocol/nirium-pollar-adapter/pull/1) (deferred-mode wallet funding) merged 29 Aug 2026.
-- **Live demo**: [nirium-pollar-x402-demo.vercel.app](https://nirium-pollar-x402-demo.vercel.app) - log in with Google, pay a real x402 endpoint, holding zero XLM end to end. Testnet only. **Known issue, 10 Nov 2026:** the demo app's code lives in Pollar's repo, and a payment in it can fail with `XDR Read Error: unknown StellarValueType member for value 3` because two versions of the Stellar SDK end up in its dependencies. The fix, [pollar-apps#36](https://github.com/pollar-xyz/pollar-apps/pull/36) (opened by our team on 7 Nov 2026), is waiting for Pollar's review; the demo works again once it is merged and redeployed.
+- **Live demo**: [nirium-pollar-x402-demo.vercel.app](https://nirium-pollar-x402-demo.vercel.app) - log in with Google, pay a real x402 endpoint, holding zero XLM end to end. Testnet only. The live demo is deployed by our team from the branch of [pollar-apps#37](https://github.com/pollar-xyz/pollar-apps/pull/37) (opened 14 Nov 2026, still waiting for Pollar's review), which fixes the `XDR Read Error` caused by two Stellar SDK versions in the demo's dependencies; it replaced #36. Pollar's own x402 guide links this demo.
 - **Two real mainnet transactions**, not just a working demo: a payment [`25ebaf9a…`](https://stellar.expert/explorer/public/tx/25ebaf9aa7e72c1c3edcc43a1c18aaa102c12eee42c57e02fed4fda79af6605d) settled 27 Jul 2026 (evidence anchored at [`QmZiwxidm…`](https://gateway.pinata.cloud/ipfs/QmZiwxidm7pcTqNufxzFyUc7qJrCRN2TKRNwcXkg7vUUwR)), and a user who signed in with Google paying $0.02 USDC on mainnet, [`e4fa3df9…`](https://stellar.expert/explorer/public/tx/e4fa3df9cb225a4d7f64dd0082eb38218ada4b4af3378f288989a5d4b1116ed9), holding zero XLM throughout. Both detailed in [nirium-pollar-adapter's own README](https://github.com/nirium-protocol/nirium-pollar-adapter#readme).
 
 The demo-app integration itself,
@@ -173,7 +186,7 @@ omit it - caught 2026-09-28 re-verifying this page.
 
 ### Stellar Wave on Drips (from 18 Nov 2026)
 
-Since Wave 11 we also publish issues on [Stellar Wave](https://www.drips.network/wave): 31 so far, labeled [`Stellar Wave`](https://github.com/nirium-protocol/nirium/issues?q=label%3A%22Stellar+Wave%22). Contributors apply with a plan and we assign by merit. Only merged work counts: 14 PRs merged so far (22 Nov 2026 UTC), each listed in EVIDENCE. Same rule as GrantFox: contributors earn Wave points, so this is people building on the code, not product demand. The running list is in [EVIDENCE.md](../EVIDENCE.md), section 14, and on [nirium.xyz/stats](https://nirium.xyz/stats).
+Since Wave 11 we also publish issues on [Stellar Wave](https://www.drips.network/wave): 70 so far, labeled [`Stellar Wave`](https://github.com/nirium-protocol/nirium/issues?q=label%3A%22Stellar+Wave%22). Contributors apply with a plan and we assign by merit. Only merged work counts: 25 PRs merged so far (25 Nov 2026 UTC), each listed in EVIDENCE. Same rule as GrantFox: contributors earn Wave points, so this is people building on the code, not product demand. The running list is in [EVIDENCE.md](../EVIDENCE.md), section 14, and on [nirium.xyz/stats](https://nirium.xyz/stats).
 
 ## 8. How we review each other's pull requests
 
@@ -184,4 +197,4 @@ Approvals between the two maintainers (@Eras256 and @M0nsxx) are often AI-assist
 *Every number and link on this page was checked live against its source
 (Horizon, GitHub's API, the running API itself, `nirium-cli verify`) before
 being written down - not copied from an internal doc or an earlier draft.
-Last verified: 10 Nov 2026.*
+Last verified: 22 Nov 2026.*

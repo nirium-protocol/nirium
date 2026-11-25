@@ -17,11 +17,9 @@ updates:
     commit-message:
       prefix: chore
       include: scope
-    # stellar-sdk 17 waits for @x402/stellar (still requires ^16.3.0); mppx is bumped by hand
+    # mppx is bumped by hand
     # because an earlier bump broke MPP; TypeScript majors are not taken automatically.
     ignore:
-      - dependency-name: "@stellar/stellar-sdk"
-        versions: [">=17"]
       - dependency-name: "typescript"
         update-types: ["version-update:semver-major"]
       - dependency-name: "mppx"
@@ -49,11 +47,9 @@ updates:
     commit-message:
       prefix: chore
       include: scope
-    # stellar-sdk 17 waits for @x402/stellar (still requires ^16.3.0); mppx is bumped by hand
+    # mppx is bumped by hand
     # because an earlier bump broke MPP; TypeScript majors are not taken automatically.
     ignore:
-      - dependency-name: "@stellar/stellar-sdk"
-        versions: [">=17"]
       - dependency-name: "typescript"
         update-types: ["version-update:semver-major"]
       - dependency-name: "mppx"
@@ -81,11 +77,9 @@ updates:
     commit-message:
       prefix: chore
       include: scope
-    # stellar-sdk 17 waits for @x402/stellar (still requires ^16.3.0); mppx is bumped by hand
+    # mppx is bumped by hand
     # because an earlier bump broke MPP; TypeScript majors are not taken automatically.
     ignore:
-      - dependency-name: "@stellar/stellar-sdk"
-        versions: [">=17"]
       - dependency-name: "typescript"
         update-types: ["version-update:semver-major"]
       - dependency-name: "mppx"

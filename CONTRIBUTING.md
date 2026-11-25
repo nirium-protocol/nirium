@@ -10,7 +10,7 @@ Thank you for your interest in contributing. This repository holds the open-sour
 
 ### Prerequisites
 
-- Node.js >=22.12.0 (`@stellar/stellar-sdk` 16.x requires it)
+- Node.js >=22.12.0 (`@stellar/stellar-sdk` 17.x requires it)
 - Python 3.10+ (for `packages/sdk-python`)
 - Git
 
@@ -48,9 +48,9 @@ nirium/
 ├── packages/cli/           → CLI (npm: nirium-cli)
 ├── actions/verify-audit-cid/ → GitHub Action that verifies an Audit Trail CID in CI
 ├── skills/                 → Agent skill (nirium-agentic-payments)
-├── community/              → Contributor programs (Niriumtober)
+├── community/              → Contributor programs (Niriumtober badges)
 ├── docs/                   → Quickstarts and guides
-└── examples/               → 14 runnable integrations (TypeScript, Python, Go, Rust, Unity, policy hooks)
+└── examples/               → 24 runnable integrations (TypeScript, Python, Go, Rust, Unity, policy hooks)
 ```
 
 ---
@@ -67,6 +67,18 @@ nirium/
 6. Push and open a PR against `main`
 
 Reviewers will not follow up for missing context - include a clear description of what changed and why.
+
+### Stellar Wave issues (Drips)
+
+Issues labeled [`Stellar Wave`](https://github.com/nirium-protocol/nirium/issues?q=label%3A%22Stellar+Wave%22) are part of [Stellar Wave](https://www.drips.network/wave). Apply on Drips with a short plan; we assign by merit, usually one issue at a time until you have a merged PR here. Each issue lists its own "Done when" and evidence. In short:
+
+- Use your **own** testnet keys (Friendbot is fine). Never ask for, or use, a key or funds from us.
+- Put the transaction hashes and receipt CIDs from your own run in the README, and a short screen recording in the PR.
+- Link the issue in the PR (`Closes #123`). A PR from outside the team needs one maintainer approval; CI on a fork runs after a maintainer approves it.
+
+Only merged work counts. The running list is in [EVIDENCE.md](EVIDENCE.md), section 14.
+
+Questions about an issue, or want to show what you are building? Join the community on [Telegram](https://t.me/+SbqIpneqUZc2NjJh) or [Discord](https://discord.gg/gAAznKrSQZ), and follow [@Niriumstellar on X](https://x.com/Niriumstellar). New Wave issues and updates are posted there too. Applications and assignments still happen on Drips, and reviews on GitHub.
 
 ### Commit Convention
 
@@ -93,9 +105,9 @@ Many earlier reviews (October and November 2026) were drafted the same way, ofte
 
 ### Dependency updates
 
-Dependabot (`.github/dependabot.yml`) opens update PRs every Monday for `packages/sdk`, `packages/cli`, `packages/mcp` and the GitHub Actions used in `.github/workflows/`. Each package gets at most one minor/patch PR a week; majors come as separate PRs, and `@stellar/stellar-sdk`, `@x402/*` and `@stellar/mpp` majors are grouped so they move together.
+Dependabot (`.github/dependabot.yml`) opens update PRs every Monday for `packages/sdk`, `packages/cli`, `packages/mcp` and the GitHub Actions used in `.github/workflows/`. Each package gets at most one minor/patch PR a week; majors come as separate PRs, and `@stellar/stellar-sdk`, `@x402/*` and `@stellar/mpp` majors are grouped so they move together. Dependabot security updates can also open PRs for the examples (`examples/*`); those get the same review and are held while that example fails its typecheck.
 
-These PRs are reviewed like any other PR: by the code owner of the path (CODEOWNERS requests @M0nsxx for `packages/cli`), and otherwise by a maintainer (@Eras256). Nothing is auto-merged. Before approving, the reviewer checks that the package builds and its tests pass, and, for majors or the Stellar/x402 group, reads the changelog and the peer-dependency note in `.github/workflows/sdk-test.yml`.
+These PRs are reviewed like any other PR: by the code owner of the path (CODEOWNERS requests @M0nsxx for `packages/sdk` and `packages/cli`), and otherwise by a maintainer (@Eras256). Nothing is auto-merged. Before approving, the reviewer checks that the package builds and its tests pass, and, for majors or the Stellar/x402 group, reads the changelog and the peer-dependency note in `.github/workflows/sdk-test.yml`.
 
 ### Code Style
 
@@ -123,4 +135,4 @@ By contributing, you agree that your contributions will be licensed under the [A
 
 ---
 
-*Updated October 20, 2026*
+*Updated November 22, 2026*

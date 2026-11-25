@@ -8,7 +8,7 @@ setup(
     install_requires=[
         "websockets>=13.0",
         "aiohttp>=3.9.0",
-        "stellar-sdk>=11.0.0,<16.0.0",
+        "stellar-sdk>=17.0.1,<18.0.0",
     ],
     extras_require={
         "langchain": ["langchain-core>=0.3.0"],

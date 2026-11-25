@@ -1,7 +1,7 @@
 # Core dependencies (exact versions tested)
 nirium==0.12.7
 openai-agents==0.25.0
-python-dotenv==1.0.0
+python-dotenv==1.2.2
 
 # Testing
 pytest==8.3.0

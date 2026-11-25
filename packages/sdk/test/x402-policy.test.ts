@@ -67,14 +67,14 @@ function instrumentedSigner(opts: { mutate?: (preimageXdr: string) => string } =
         signAuthEntry: async (preimageXdr: string) => {
             calls.push(preimageXdr);
             const signed = opts.mutate ? opts.mutate(preimageXdr) : preimageXdr;
-            const pre = xdr.HashIdPreimage.fromXDR(signed, 'base64');
-            return { signedAuthEntry: payer.sign(hash(pre.toXDR())).toString('base64'), signerAddress: payer.publicKey() };
+            const pre = xdr.HashIdPreimage.fromXdr(signed, 'base64');
+            return { signedAuthEntry: Buffer.from(payer.sign(hash(pre.toXdr()))).toString('base64'), signerAddress: payer.publicKey() };
         },
     };
     return { calls, signer };
 }
 
-/** What stellar-sdk 16 `signAuthEntries` does with each entry. */
+/** What stellar-sdk `signAuthEntries` does with each entry. */
 async function sign(gated: { signAuthEntry: (...a: any[]) => Promise<any> }, entry = transferEntry(), passphrase = Networks.TESTNET) {
     return authorizeEntry(entry, async (preimage: any) => {
         const { signedAuthEntry } = await gated.signAuthEntry(preimage.toXDR('base64'), { address: payer.publicKey() });
@@ -106,7 +106,7 @@ describe('decision binding (G1)', () => {
         assert.equal(seen!.authorization.to, merchant);
         assert.equal(seen!.authorization.preimageType, 'legacy');
         assert.equal(seen!.url, 'https://api.example/paid');
-        assert.equal(signed.credentials().address().signatureExpirationLedger(), LEDGER);
+        assert.equal(signed.credentials.address.signatureExpirationLedger, LEDGER);
     });
 
     for (const verdict of ['DENY', 'WAIT'] as const) test(`${verdict} never reaches the signer`, async () => {
@@ -509,9 +509,9 @@ describe('CAP-71 preimage (…WithAddress, stellar-sdk >= 16)', () => {
 // stellar-sdk o cambia el camino de firma, esto tiene que fallar.
 describe('signature/preimage mismatch is rejected by stellar-sdk, not by the gate', () => {
     const mutateAmount = (preimageXdr: string) => {
-        const p = xdr.HashIdPreimage.fromXDR(preimageXdr, 'base64');
-        p.sorobanAuthorization().invocation().function().contractFn().args()[2] = nativeToScVal('999', { type: 'i128' });
-        return p.toXDR('base64');
+        const p: any = xdr.HashIdPreimage.fromXdr(preimageXdr, 'base64');
+        p.sorobanAuthorization.invocation.function.contractFn.args[2] = nativeToScVal('999', { type: 'i128' });
+        return p.toXdr('base64');
     };
 
     test('a signature over altered bytes never becomes a signed entry', async () => {
@@ -526,7 +526,7 @@ describe('signature/preimage mismatch is rejected by stellar-sdk, not by the gat
         const signer = {
             address: payer.publicKey(),
             signAuthEntry: async (preimageXdr: string) => ({
-                signedAuthEntry: intruder.sign(hash(xdr.HashIdPreimage.fromXDR(preimageXdr, 'base64').toXDR())).toString('base64'),
+                signedAuthEntry: Buffer.from(intruder.sign(hash(xdr.HashIdPreimage.fromXdr(preimageXdr, 'base64').toXdr()))).toString('base64'),
             }),
         };
         const gated = createPolicyGatedSigner(signer, { evaluate: allow() }, call());

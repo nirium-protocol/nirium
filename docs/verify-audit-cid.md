@@ -14,7 +14,7 @@ The verification model reconstructs the signed statement from the **recomputed**
 ## Prerequisites
 
 - Node.js >=22.12.0
-- `@stellar/stellar-sdk` v16.x for Stellar Ed25519 public key decoding
+- `@stellar/stellar-sdk` v17.x for Stellar Ed25519 public key decoding
 - `curl` for the command-line example
 
 ## 1. Fetch the Audit Document from IPFS
@@ -142,7 +142,7 @@ console.log(`Signature valid: ${isValid}`);
 Install dependencies and run:
 
 ```bash
-npm install --save-dev @stellar/stellar-sdk@16 tsx typescript
+npm install --save-dev @stellar/stellar-sdk@17 tsx typescript
 npx tsx verify-audit.ts
 ```
 

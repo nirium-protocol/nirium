@@ -81,9 +81,9 @@ test('signer identity change during evaluation: SIGNER_CHANGED, zero signer call
 // sha256(preimage)), no el gate. Este test la ata al camino real de x402Fetch.
 test('a signature over altered bytes never reaches the merchant (stellar-sdk check)', async () => {
     const mutate = (p: string) => {
-        const pre = S.xdr.HashIdPreimage.fromXDR(p, 'base64');
-        pre.sorobanAuthorization().invocation().function().contractFn().args()[2] = S.nativeToScVal('1', { type: 'i128' });
-        return pre.toXDR('base64');
+        const pre: any = S.xdr.HashIdPreimage.fromXdr(p, 'base64');
+        pre.sorobanAuthorization.invocation.function.contractFn.args[2] = S.nativeToScVal('1', { type: 'i128' });
+        return pre.toXdr('base64');
     };
     const { calls, signer } = keySigner(undefined, { mutate });
     const a = agent();

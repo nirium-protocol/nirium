@@ -78,7 +78,7 @@ to the Reporting service.
 A verified receipt proves that the record in the IPFS document has not changed since it was
 anchored and, when an agent signature is present, which Stellar key signed it. It does **not**
 prove that the record is true. `anchoredAt` is the Nirium node's clock, not a ledger timestamp.
-Anchor only hashes or small non-personal records: IPFS content cannot be deleted.
+Anchor only hashes or small non-personal records: nobody can guarantee that something is deleted from IPFS, since anyone with the CID may have kept a copy.
 
 ## Testnet run (21 November 2026)
 
