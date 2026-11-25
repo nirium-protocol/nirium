@@ -12,7 +12,7 @@ Honesty about cryptographic guarantees is a core requirement of the Nirium proto
 
 - **What it proves:**
   - **Prior Existence:** The exact report text existed at or before `anchoredAt`.
-  - **Immutability:** The report content has not been altered, backdated, or rewritten after anchoring.
+  - **Tamper-evidence:** If a stored report is edited or backdated, the recomputed salted hash no longer matches the anchored receipt.
   - **Attribution:** The commitment was authored and signed by the holder of the specific Stellar public key (`attestedBy`).
 - **What it does NOT prove:**
   - **Truth of Content:** Anchoring a receipt does not prove that the reported vulnerability is valid, reproducible, or correctly assessed.
