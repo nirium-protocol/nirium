@@ -56,6 +56,11 @@ and 12 Nov 2026, with two keys of its own (each one listed in EVIDENCE). The
 wallets behind its payments are also TIA's own, so we count these as
 integration tests, not as paying customers.
 
+The same page has eight more examples, each saying whose receipt it is: a
+payment a policy blocked, one held until a person approved it, a shipment
+handoff signed by several keys, a proof of delivery, and others. Most are
+testnet demos or integration tests, and the page says so.
+
 To see why a receipt can be trusted, change one character of any receipt
 and verify it again: the signature still belongs to the original, the file
 no longer does, and verification fails.
@@ -75,7 +80,10 @@ and their 21 test cases now run in our CI (details in EVIDENCE, section 1).
   mainnet test of the pre-sign policy hook by AgentLedger, whose founder works
   with Nirium part-time. None of them came from an external payer; they are
   our own and our integrators' tests.
-- **Testnet:** a payment through `nirium-cli` on 10 Nov 2026 settled as
+- **Testnet:** the server snippet on nirium.xyz, run as published with
+  `nirium` 0.20.0 on 25 Nov 2026, settled 0.05 USDC between our own test accounts as
+  [`0ab43362…6025e24`](https://stellar.expert/explorer/testnet/tx/0ab43362e90d5d123ade51ea906fa760c7d042dfd4d01c5ca8815aa6e6025e24),
+  and a payment through `nirium-cli` on 10 Nov 2026 settled as
   [`4b1427ae…8607ecf3`](https://stellar.expert/explorer/testnet/tx/4b1427ae8328a0c1c70daaa412f941234895a8c9f5fd85c03c49501e8607ecf3).
   Settlement on testnet goes through a hosted facilitator and sometimes
   fails on the first try; a retry settles.
@@ -85,7 +93,8 @@ Live counts, each labeled with its source: [nirium.xyz/stats](https://nirium.xyz
 ## 4. Treasury Node - real money, on mainnet, with a contract that can't take it
 
 Nirium doesn't hold the vault. It holds the `RebalanceManager` role of a
-[DeFindex](https://defindex.io) vault the client owns, and DeFindex's own
+[DeFindex](https://defindex.io) vault structured for the client to own (the
+one below is our own, self-funded), and DeFindex's own
 `rebalance()` function never takes a destination address - withdrawal isn't
 forbidden, it's inexpressible in the contract. That's not our framing; it's
 verifiable in DeFindex's own source.
@@ -197,5 +206,5 @@ Approvals between the two maintainers (@Eras256 and @M0nsxx) are often AI-assist
 *Every number and link on this page was checked live against its source
 (Horizon, GitHub's API, the running API itself, `nirium-cli verify`) before
 being written down - not copied from an internal doc or an earlier draft.
-Last verified: 22 Nov 2026 (the Stellar Wave counts in section 7 were
-rechecked on 25 Nov 2026).*
+Last verified: 22 Nov 2026 (sections 2 to 4 and the Stellar Wave
+counts in section 7 were updated on 25 Nov 2026).*

@@ -24,6 +24,10 @@ A receipt is for what the ledger doesn't hold:
   GET /signals, request r-123, response delivered".
 - **A policy decision**, including a payment the agent refused and never
   signed. No transaction exists for that, so the ledger has nothing to show.
+  The same goes for one it held until a person approved it.
+- **Several parties**, each signing its own part with its own key, so a missing
+  or out-of-order step can be detected
+  ([example](../examples/build-logistics-checkpoints)).
 - **Records that never touch the chain**: a partner's exchange-rate quote, the
   evidence behind an escrow release, the invoice or order being paid, which
   version of the terms a user accepted.
@@ -65,6 +69,14 @@ a copy), so raw personal data could outlive any erasure request.
 A receipt is an integrity seal: it shows the record hasn't changed since it
 was anchored and, if signed, who declared it. It does not prove the record is
 true, and it is not notarization or legal proof.
+
+## What if a receipt was wrong?
+
+It can't be edited, so you anchor a second one that names the first by CID and
+hash, says what changed and why, and is signed with the same key. Both stay
+visible ([example](../examples/build-correction-receipt)). The limit: someone
+who holds only the first CID can't tell that a correction exists, so the issuer
+has to share the whole chain.
 
 ## What if Nirium goes away?
 
