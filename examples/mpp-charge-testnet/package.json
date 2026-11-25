@@ -1,0 +1,29 @@
+{
+  "name": "nirium-mpp-charge-testnet-example",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Start an upstream @stellar/mpp Charge server on Stellar testnet and pay one request with nirium initMpp().",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "start": "node --import tsx src/demo.ts",
+    "demo": "node --import tsx src/demo.ts",
+    "server": "node --import tsx src/server.ts"
+  },
+  "dependencies": {
+    "@stellar/mpp": "0.7.1",
+    "@stellar/stellar-sdk": "17.4.0",
+    "dotenv": "17.4.2",
+    "mppx": "0.6.31",
+    "nirium": "0.20.0"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "license": "Apache-2.0"
+}
