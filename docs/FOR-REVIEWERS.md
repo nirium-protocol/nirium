@@ -186,7 +186,7 @@ omit it - caught 2026-09-28 re-verifying this page.
 
 ### Stellar Wave on Drips (from 18 Nov 2026)
 
-Since Wave 11 we also publish issues on [Stellar Wave](https://www.drips.network/wave): 70 so far, labeled [`Stellar Wave`](https://github.com/nirium-protocol/nirium/issues?q=label%3A%22Stellar+Wave%22). Contributors apply with a plan and we assign by merit. Only merged work counts: 25 PRs merged so far (25 Nov 2026 UTC), each listed in EVIDENCE. Same rule as GrantFox: contributors earn Wave points, so this is people building on the code, not product demand. The running list is in [EVIDENCE.md](../EVIDENCE.md), section 14, and on [nirium.xyz/stats](https://nirium.xyz/stats).
+Since Wave 11 we also publish issues on [Stellar Wave](https://www.drips.network/wave): 70 so far, labeled [`Stellar Wave`](https://github.com/nirium-protocol/nirium/issues?q=label%3A%22Stellar+Wave%22). Contributors apply with a plan and we assign by merit. Only merged work counts: 25 PRs had merged when Wave 11 closed on 25 Nov 2026, each listed in EVIDENCE; 45 of the 70 issues were still open. A PR merged after that date is listed as post-Wave. Same rule as GrantFox: contributors earn Wave points, so this is people building on the code, not product demand. The running list is in [EVIDENCE.md](../EVIDENCE.md), section 14, and on [nirium.xyz/stats](https://nirium.xyz/stats).
 
 ## 8. How we review each other's pull requests
 
@@ -197,4 +197,5 @@ Approvals between the two maintainers (@Eras256 and @M0nsxx) are often AI-assist
 *Every number and link on this page was checked live against its source
 (Horizon, GitHub's API, the running API itself, `nirium-cli verify`) before
 being written down - not copied from an internal doc or an earlier draft.
-Last verified: 22 Nov 2026.*
+Last verified: 22 Nov 2026 (the Stellar Wave counts in section 7 were
+rechecked on 25 Nov 2026).*

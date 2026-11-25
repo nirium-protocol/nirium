@@ -70,7 +70,7 @@ Reviewers will not follow up for missing context - include a clear description o
 
 ### Stellar Wave issues (Drips)
 
-Issues labeled [`Stellar Wave`](https://github.com/nirium-protocol/nirium/issues?q=label%3A%22Stellar+Wave%22) are part of [Stellar Wave](https://www.drips.network/wave). Apply on Drips with a short plan; we assign by merit, usually one issue at a time until you have a merged PR here. Each issue lists its own "Done when" and evidence. In short:
+Issues labeled [`Stellar Wave`](https://github.com/nirium-protocol/nirium/issues?q=label%3A%22Stellar+Wave%22) are part of [Stellar Wave](https://www.drips.network/wave). Wave 11 closed on 25 Nov 2026; the next dates are on Drips, and issues still open can be applied for again then. Apply on Drips with a short plan; we assign by merit, usually one issue at a time until you have a merged PR here. Each issue lists its own "Done when" and evidence. In short:
 
 - Use your **own** testnet keys (Friendbot is fine). Never ask for, or use, a key or funds from us.
 - Put the transaction hashes and receipt CIDs from your own run in the README, and a short screen recording in the PR.
