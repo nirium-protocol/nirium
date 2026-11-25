@@ -22,7 +22,7 @@ Every anchored moderation record is attested by the community's own Stellar keyp
 
 ### 3. What a Receipt Proves (and What It Doesn't)
 - **What it proves:**
-  1. **Proof of Non-Tampering:** The exact moderation record (action, reason, target hash, message hash) existed at the recorded time and has not been altered, rewritten, or deleted.
+  1. **Tamper-Evidence:** If a stored moderation record is edited, altered, or rewritten after anchoring, its recomputed hash will no longer match the anchored receipt. (Note: A receipt cannot prove a record was not deleted; it proves that any record presented as authentic has not been modified since anchoring).
   2. **Proof of Authority:** The decision was signed and authorized by the specific community Stellar public key (`G...`).
 - **What it does NOT prove:**
   1. It does **not** prove that the moderator's accusation was objectively true or fair.
@@ -36,11 +36,11 @@ A demonstration community server (`guild_nirium_community_demo`) was created wit
 
 | Action ID | Action | Target User Hash (Salted) | Anchored CID | SHA-256 Hash | Anchored At |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| `mod-mwscienp-12r7` | **WARN** | `e6e969019b8df790...` | [`QmUrJezMWZw15CF8tsj4ZW7917oxi18sTCYqkrgrrMHChS`](https://ipfs.io/ipfs/QmUrJezMWZw15CF8tsj4ZW7917oxi18sTCYqkrgrrMHChS) | `e27363ab85489af99ee8974006ae09bfffe6c7c87e621ba9c2a05dd19854e9df` | `2026-11-22T21:25:14.764Z` |
-| `mod-mwscilt0-2fk3` | **MUTE** | `68c347f71b960c16...` | [`QmSZaccongZ7trqq1LvH7BTfVx7uRLx8atd5uD9VT2pFEd`](https://ipfs.io/ipfs/QmSZaccongZ7trqq1LvH7BTfVx7uRLx8atd5uD9VT2pFEd) | `af43ef9ed18bbec4426f338eea900fedc0b14475f0c411e62860654f62ab68dd` | `2026-11-22T21:25:23.911Z` |
-| `mod-mwscisr0-lz61` | **MESSAGE_REMOVAL** | `265c71da517bc582...` | [`QmQci6hVcRAX8GX4hN5LCHi5RPqqramQkf3N1Gw5FMxQZa`](https://ipfs.io/ipfs/QmQci6hVcRAX8GX4hN5LCHi5RPqqramQkf3N1Gw5FMxQZa) | `c37195c36455532cf3155ab418a99511e07ef84dea80b87ead1df8f35e805ded` | `2026-11-22T21:25:32.890Z` |
-| `mod-mwscizvx-jgih` | **KICK** | `3f2347eb10526e85...` | [`QmY6fcPmTDKJc2Pt6AGyZQd1mAnvfGi49QVho1PqRrHaoc`](https://ipfs.io/ipfs/QmY6fcPmTDKJc2Pt6AGyZQd1mAnvfGi49QVho1PqRrHaoc) | `fb9eba9cb4771ec9d448b8993a2f8e6d2af8edabb3859ec9ea03de5903de5b50` | `2026-11-22T21:25:42.089Z` |
-| `mod-mwscj71d-lxhe` | **BAN** | `ab40d2bb4fbda7ff...` | [`QmRem2Trtiy1uwqKzc6ahR6cxRLL3WLt5GFE1Y6KLnidNq`](https://ipfs.io/ipfs/QmRem2Trtiy1uwqKzc6ahR6cxRLL3WLt5GFE1Y6KLnidNq) | `b50e79b2d89ba9caa256dbd3868b0bddf4e635c0d79277309118ce42cdeb6520` | `2026-11-22T21:25:51.358Z` |
+| `mod-mwscienp-12r7` | **WARN** | `370bfad6b9eb5584...` | [`QmUrJezMWZw15CF8tsj4ZW7917oxi18sTCYqkrgrrMHChS`](https://ipfs.io/ipfs/QmUrJezMWZw15CF8tsj4ZW7917oxi18sTCYqkrgrrMHChS) | `e27363ab85489af99ee8974006ae09bfffe6c7c87e621ba9c2a05dd19854e9df` | `2026-11-22T21:25:14.764Z` |
+| `mod-mwscilt0-2fk3` | **MUTE** | `c7efc5baea648646...` | [`QmSZaccongZ7trqq1LvH7BTfVx7uRLx8atd5uD9VT2pFEd`](https://ipfs.io/ipfs/QmSZaccongZ7trqq1LvH7BTfVx7uRLx8atd5uD9VT2pFEd) | `af43ef9ed18bbec4426f338eea900fedc0b14475f0c411e62860654f62ab68dd` | `2026-11-22T21:25:23.911Z` |
+| `mod-mwscisr0-lz61` | **MESSAGE_REMOVAL** | `293ce42f340dd63b...` | [`QmQci6hVcRAX8GX4hN5LCHi5RPqqramQkf3N1Gw5FMxQZa`](https://ipfs.io/ipfs/QmQci6hVcRAX8GX4hN5LCHi5RPqqramQkf3N1Gw5FMxQZa) | `c37195c36455532cf3155ab418a99511e07ef84dea80b87ead1df8f35e805ded` | `2026-11-22T21:25:32.890Z` |
+| `mod-mwscizvx-jgih` | **KICK** | `d5910dc8ad8ccf0b...` | [`QmY6fcPmTDKJc2Pt6AGyZQd1mAnvfGi49QVho1PqRrHaoc`](https://ipfs.io/ipfs/QmY6fcPmTDKJc2Pt6AGyZQd1mAnvfGi49QVho1PqRrHaoc) | `fb9eba9cb4771ec9d448b8993a2f8e6d2af8edabb3859ec9ea03de5903de5b50` | `2026-11-22T21:25:42.089Z` |
+| `mod-mwscj71d-lxhe` | **BAN** | `ff589cc3c73c2e65...` | [`QmRem2Trtiy1uwqKzc6ahR6cxRLL3WLt5GFE1Y6KLnidNq`](https://ipfs.io/ipfs/QmRem2Trtiy1uwqKzc6ahR6cxRLL3WLt5GFE1Y6KLnidNq) | `b50e79b2d89ba9caa256dbd3868b0bddf4e635c0d79277309118ce42cdeb6520` | `2026-11-22T21:25:51.358Z` |
 
 **Community Signer Public Key:** `GDAIIS2ERWGIUJZTA4UMH43C5NOBGDCLNKPUDXLXD27JUO5FDA5T6USE`
 
