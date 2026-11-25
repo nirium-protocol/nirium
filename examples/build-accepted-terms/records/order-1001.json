@@ -1,0 +1,10 @@
+{
+  "schema": "example.terms-acceptance.v1",
+  "termsVersion": "v2",
+  "termsSha256": "14c8eba5fec81c122df96fff3c3cbe57863898688c59a7ad04c319c8b53588bb",
+  "order": "order-1001",
+  "customerRef": "47e69f29cce01167f2c0ac9542293875e3ea733af94b65b5ccfebff71f803be5",
+  "salt": "20423e31ab02d2a8de4673759503bcdc4eacbc914e1aafe69f16bc6756a5f660",
+  "customerKey": "GDTX4G4LGEX6KYSSKXYCSYVZWDQ44PKQGRTXQHDU6H7BDNQJZ6C5NIFB",
+  "acceptedAt": "2026-11-25T18:44:41.033Z"
+}

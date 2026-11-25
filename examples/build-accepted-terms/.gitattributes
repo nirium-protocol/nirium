@@ -1,0 +1,3 @@
+# These files are hashed: keep their bytes the same on every system.
+records/* text eol=lf
+terms/* text eol=lf

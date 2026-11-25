@@ -1,0 +1,13 @@
+{
+  "schema": "example.correction.v1",
+  "invoice": "A-12",
+  "corrects": {
+    "cid": "QmWDQGzF2naWgrP1uh5BNSBMKs7d6Az6Lgy2aVJ3dcKjB3",
+    "sha256": "fcca808ac859043d1bfdf64b51afbcbbfef3459faab8d42575725df81761a539"
+  },
+  "reason": "Shipping was charged twice",
+  "previousTotal": "120.00",
+  "newTotal": "100.00",
+  "currency": "USD",
+  "issuer": "GCSJVDW2EAXHB6QEBR5VVHTPCRBQ2YA5DIBRME3GT52G7XEACFYVZ4TP"
+}

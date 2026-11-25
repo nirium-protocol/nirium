@@ -1,0 +1,7 @@
+{
+  "schema": "example.invoice.v1",
+  "invoice": "A-12",
+  "total": "120.00",
+  "currency": "USD",
+  "issuer": "GCSJVDW2EAXHB6QEBR5VVHTPCRBQ2YA5DIBRME3GT52G7XEACFYVZ4TP"
+}
