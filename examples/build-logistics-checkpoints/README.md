@@ -99,15 +99,18 @@ Every anchored CID can also be independently validated using `npx nirium-cli ver
 npx nirium-cli verify QmRCNTPUQB8smQHFnXvqSGF2eQZpn9eGKw6oaQi3rx9Scz
 ```
 
-Output:
+Output (nirium-cli 3.2.8, run by the maintainers on 25 Nov 2026; the output first pasted here did not match the receipt):
 ```text
-MODE: hash-only
-HASH: NOT CHECKED (supply --hash <sha256> or --evidence <file> to check it)
-SIGNATURE: VALID (ed25519)
-STATEMENT: nirium-audit-v1:44605928a6f6dfeb7297e55957b16503c8b4ecf554625b96791e87d853e8e7fa
-SIGNER: GDTWMTILHQRKVGPFALJLO2IJRUIDQKNK7WF472GCI2YFRHSCXZ5KTHUZ
-CID: QmRCNTPUQB8smQHFnXvqSGF2eQZpn9eGKw6oaQi3rx9Scz
-VERIFICATION PASSED
+🔍 Nirium Audit Verifier
+CID:            QmRCNTPUQB8smQHFnXvqSGF2eQZpn9eGKw6oaQi3rx9Scz
+--------------------------------------------------
+ℹ HASH:        NOT CHECKED (hash-only anchor: 8b3110258dedf2b0...)
+   Pass --hash <hex> or --evidence <file> to compare it with your original evidence.
+✔ SIGNATURE:   VALID (Signed by GDTWMTILHQRKVGPFALJLO2IJRUIDQKNK7WF472GCI2YFRHSCXZ5KTHUZ)
+   Statement:  nirium-audit-v1:8b3110258dedf2b08a49aa4bbada337bf447137ec017fe0aa82a059b33cac18c
+   Agent ID:   origin-manufacturer
+--------------------------------------------------
+✅ VERIFICATION PASSED
 ```
 
 ---
