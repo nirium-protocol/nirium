@@ -1,6 +1,6 @@
 # Build with Nirium: Discord/Telegram Moderation Log Bot with Audit Trail Receipts
 
-A community moderation log bot that anchors every moderation action (warn, mute, message removal, kick, ban) to the **Nirium Audit Trail** testnet. Every decision receives an immutable cryptographic receipt so community members, appeal reviewers, and server owners can independently prove a decision was not rewritten or backdated after the fact.
+A community moderation log bot that anchors every moderation action (warn, mute, message removal, kick, ban) to the **Nirium Audit Trail** testnet. Every decision receives a tamper-evident cryptographic receipt so community members, appeal reviewers, and server owners can independently verify a decision was not edited or backdated after the fact.
 
 ---
 
@@ -124,7 +124,7 @@ CID:            QmRem2Trtiy1uwqKzc6ahR6cxRLL3WLt5GFE1Y6KLnidNq
 
 ## Tamper Detection Evidence (Editing Stored Record Fails)
 
-If a moderator or rogue database admin attempts to alter an action record after the fact (e.g. changing the reason or modifying the penalized user), the recomputed hash diverges from the immutable IPFS receipt, and `/check` immediately rejects it:
+If a moderator or rogue database admin attempts to alter an action record after the fact (e.g. changing the reason or modifying the penalized user), the recomputed hash diverges from the anchored IPFS receipt, and `/check` immediately rejects it:
 
 ```bash
 $ node --import tsx src/cli.ts tamper mod-mwscj71d-lxhe "Changed ban reason secretly"
