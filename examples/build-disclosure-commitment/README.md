@@ -1,6 +1,6 @@
 # Vulnerability Disclosure Commitment
 
-A tool for security researchers and auditors to commit to a vulnerability report before coordinated disclosure. It computes a cryptographic commitment over the report (salted with random entropy so short reports cannot be brute-forced or guessed), anchors the signed commitment hash on the Stellar testnet through Nirium's free Audit Trail node, and allows full public verification upon disclosure.
+A tool for security researchers and auditors to commit to a vulnerability report before coordinated disclosure. It computes a cryptographic commitment over the report (salted with random entropy so short reports cannot be brute-forced or guessed), anchors the signed commitment hash to IPFS through Nirium's free testnet Audit Trail node, and allows full public verification upon disclosure.
 
 Only the salted SHA-256 commitment hash is anchored. The vulnerability report itself remains confidential on the researcher's local machine until coordinated disclosure.
 
@@ -115,7 +115,7 @@ CID:            QmXBFNkCoWaYvDMiMWoi2kSqDaSjkDhi8ivyNy3GbwinFH
 
 ---
 
-### Tamper Proof Verification
+### Tamper-Evident Verification
 
 If any party attempts to modify the report (even by a single byte) and claims the earlier receipt:
 

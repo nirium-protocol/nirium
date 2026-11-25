@@ -35,7 +35,7 @@ export const niriumCliVerify: Verifier = (cid: string, sha256: string): VerifyOu
  * Reveals a previously committed vulnerability report and verifies its proof-of-prior-existence:
  * 1. Retrieves the original commitment record (salt, anchored CID, expected hash).
  * 2. Recomputes reportSha256 and commitmentSha256 using the salt and current report content.
- * 3. Verifies whether recomputed hash matches the immutable IPFS audit anchor.
+ * 3. Verifies whether recomputed hash matches the tamper-evident IPFS audit receipt anchor.
  */
 export function revealReport(
   commitmentId: string,
