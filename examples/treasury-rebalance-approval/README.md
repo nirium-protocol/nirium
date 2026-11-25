@@ -99,17 +99,18 @@ Cualquier passphrase que no sea la de testnet se rechaza **antes de firmar**.
 
 | Paso | Hash | Enlace |
 |---|---|---|
-| deploy de vault (owner, testnet) | `7dea4ff9013f17694657f3b2b4f2cc66d1f9a3fe59c3b78ea688e67425985e09` | https://horizon-testnet.stellar.org/transactions/7dea4ff9013f17694657f3b2b4f2cc66d1f9a3fe59c3b78ea688e67425985e09 |
-| `set_treasury_rebalance_manager` (owner, testnet) | `b2a3f938ac704d7319fecf338854318e6a814cce9988387381eb63fc77d2269d` | https://horizon-testnet.stellar.org/transactions/b2a3f938ac704d7319fecf338854318e6a814cce9988387381eb63fc77d2269d |
+| deploy de vault (owner, testnet) | `da078080e18223e42b6220989c2ba7361ee72e44f59f8e9d59c76930e9982841` | https://horizon-testnet.stellar.org/transactions/da078080e18223e42b6220989c2ba7361ee72e44f59f8e9d59c76930e9982841 |
+| `set_treasury_rebalance_manager` (owner, testnet) | `6822907cdfc1c1897666e7971c386d82b1f31b434425310d6dc79b82efc78380` | https://horizon-testnet.stellar.org/transactions/6822907cdfc1c1897666e7971c386d82b1f31b434425310d6dc79b82efc78380 |
+| depósito `owner` de `0.1` BlendUSDC antes del test negativo | `6505dce06a1beb10ef78d7f8a77464b385d8f06b407697eb1b95f3b38e88c5f2` | https://horizon-testnet.stellar.org/transactions/6505dce06a1beb10ef78d7f8a77464b385d8f06b407697eb1b95f3b38e88c5f2 |
 | rebalance (manager, tras aprobación) | `N/A` — no se ejecutó; la firma condicional la cubre el demo | `N/A` |
-| intento de cambio de rol firmado por manager key | rechazado por el agente (`400`) | ver salida abajo |
+| retiro firmado por la manager key rechazado | sin hash: el agente responde `400 txBadAuth` antes de broadcast | ver salida abajo |
 
-Vault real: `CAOQKOJZTU5B56LEKDT3UM4DAQQX4RA7DKTRYVG65N2C2NSJWUKAQ2BX`.
-Owner: `GATD6N3WSUKPD5OAJV4YUXKFDYRV5EQPU4HOIDD6YYLDSBA5TYLD4M4B`.
-RebalanceManager: `GCIQ3NGNPI4OSKMAXQKSYEAD5QKLKTUSVXC57WF7IRJGOGZCDOPSOAJ5`.
-Ambos hashes están confirmados como `successful: true` en Horizon testnet
-(ledgers 5901398 y 5901399). Las claves se generaron en memoria y no se
-persistieron ni imprimieron. No se inventaron hashes.
+Vault real: `CCCHF7MTQRZBY4HX6H5V36OXEBXTGASHANVT7LIXMCV3VSHK7RGDVUCH`.
+Owner: `GBR4MQRRBFIJ4WQ2ILSNONAZJPVKG2W4OKRJK44EKLJA4L7DQ3D2QYDG`.
+RebalanceManager: `GD4X526TJPGFGR47IVFXAI3MVFXNSDCQWJ4GNYU5KFEX6LF5UP5FYPIX`.
+Los 3 hashes están confirmados como `successful: true` en Horizon testnet.
+Las claves se generaron en memoria y no se persistieron ni imprimieron. No se
+inventaron hashes.
 
 ## Test negativo: la manager key no puede sacar fondos
 
@@ -147,22 +148,25 @@ python main.py --negative-testnet --i-understand-testnet-only
 # Si el envío se acepta (exit 2), no uses ese vault: revisa los roles on-chain.
 ```
 
-Ejecución real contra testnet (vault `CAOQKOJZTU5B56LEKDT3UM4DAQQX4RA7DKTRYVG65N2C2NSJWUKAQ2BX`,
-owner `GATD6N3WSUKPD5OAJV4YUXKFDYRV5EQPU4HOIDD6YYLDSBA5TYLD4M4B`,
-manager `GCIQ3NGNPI4OSKMAXQKSYEAD5QKLKTUSVXC57WF7IRJGOGZCDOPSOAJ5`):
+Ejecución real contra testnet (vault `CCCHF7MTQRZBY4HX6H5V36OXEBXTGASHANVT7LIXMCV3VSHK7RGDVUCH`,
+owner `GBR4MQRRBFIJ4WQ2ILSNONAZJPVKG2W4OKRJK44EKLJA4L7DQ3D2QYDG`,
+manager `GD4X526TJPGFGR47IVFXAI3MVFXNSDCQWJ4GNYU5KFEX6LF5UP5FYPIX`):
 
 ```
-UNAUTH_SUBMIT_STATUS 400
-UNAUTH_SUBMIT_BODY {"ok":false,"error":"txBadAuth: the signature does not match the account that must sign — the wallet likely signed with a different active account, or for a different network","hint":"check that the wallet is on the same account you connected with, and on the same network"}
-WITHDRAW_BUILD_STATUS 400
-WITHDRAW_BUILD_BODY {"ok":false,"error":"this account holds no shares of the vault","hint":"deposit first, or check you are using the account that deposited"}
+USDC_BALANCE_STROOPS=10000000000
+DEPOSIT_HASH=6505dce06a1beb10ef78d7f8a77464b385d8f06b407697eb1b95f3b38e88c5f2
+VAULT_STATE holderBalance=9999000000 idle_amount=1000000
+MANAGER_WITHDRAW_STATUS=400
+MANAGER_WITHDRAW_BODY={"ok":false,"error":"txBadAuth: the signature does not match the account that must sign — the wallet likely signed with a different active account, or for a different network","hint":"check that the wallet is on the same account you connected with, and on the same network"}
 ```
 
-La manager key no puede cambiar roles: el XDR se construyó con el owner como
-`manager`, se firmó con la manager key y el agente rechazó el `submit` con
-`txBadAuth`. El retiro tampoco se construyó (`this account holds no shares`),
-así que no existe transacción de retiro que enlazar: no había un faucet
-scriptable de USDC Blend testnet para depositar acciones primero.
+La manager key no puede retirar: el owner depositó `1000000` stroops de
+BlendUSDC (`share balance 9999000000`, `idle_amount 1000000`), el XDR de
+`withdraw` se construyó con el owner como `from_` y se firmó con la manager key;
+el agente rechazó el `submit` con `400 txBadAuth` porque la firma no corresponde
+al owner, que es la cuenta autorizada para retirar sus shares. No se emitió
+ningún hash de retiro porque el rechazo ocurre antes del broadcast. Las llaves
+fueron efímeras (generadas en memoria) y no se guardaron ni imprimieron.
 
 El modo `negative-testnet` sin el flag explícito no firma ni envía nada. Sin
 credenciales falla cerrado, p. ej. en este PR:
