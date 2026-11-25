@@ -51,7 +51,7 @@ It should print `SIGNATURE: VALID`, signed by
 `VERIFICATION PASSED`. That receipt was anchored on mainnet by TIA, an
 external integrator, with its own key, for the payment
 [`cc5740ae…b577808a`](https://stellar.expert/explorer/public/tx/cc5740aebf850194532392a1d216c2af620c70a7c46c8b36a0ea4a06b577808a)
-(18 Oct 2026). TIA has anchored seven receipts on mainnet between 18 Oct
+(18 Oct 2026). TIA has anchored eight receipts on mainnet between 18 Oct
 and 12 Nov 2026, with two keys of its own (each one listed in EVIDENCE). The
 wallets behind its payments are also TIA's own, so we count these as
 integration tests, not as paying customers.
