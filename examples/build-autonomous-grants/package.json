@@ -16,7 +16,7 @@
     "demo-one-signature": "node --import tsx src/cli.ts demo-one-signature"
   },
   "dependencies": {
-    "@stellar/stellar-sdk": "^14.5.0"
+    "@stellar/stellar-sdk": "^17.4.0"
   },
   "devDependencies": {
     "@types/node": "^20.19.30",
