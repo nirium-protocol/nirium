@@ -17,9 +17,10 @@ export function generateSalt(bytes = 32): string {
 
 /**
  * Computes the SHA-256 hash of the report content.
+ * Normalizes CRLF line endings to LF to ensure cross-platform cryptographic determinism.
  */
 export function hashReport(content: string): string {
-  return sha256Hex(content);
+  return sha256Hex(content.replace(/\r\n/g, '\n'));
 }
 
 /**
