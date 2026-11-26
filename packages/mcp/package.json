@@ -27,9 +27,9 @@
   ],
   "scripts": {
     "prepublishOnly": "npm run build",
-    "build": "tsc",
-    "start": "node dist/index.js",
-    "dev": "tsc --watch",
+    "build": "node init && tsc",
+    "start": "node init && node dist/index.js",
+    "dev": "node init && tsc --watch",
     "test": "tsx --test test/*.test.ts"
   },
   "dependencies": {

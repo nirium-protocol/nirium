@@ -6,7 +6,7 @@
   "description": "GitHub Action for verifying Nirium audit CIDs.",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsc",
+    "build": "node init && tsc",
     "bundle": "ncc build lib/index.js --license licenses.txt -o dist",
     "package": "npm run build && npm run bundle",
     "test": "npm run build && node --test test/*.test.js"

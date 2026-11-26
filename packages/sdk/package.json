@@ -28,9 +28,9 @@
     "node": ">=22.12.0"
   },
   "scripts": {
-    "build": "tsc",
+    "build": "node init && tsc",
     "prepublishOnly": "npm run build",
-    "dev": "tsc --watch",
+    "dev": "node init && tsc --watch",
     "lint": "eslint src/",
     "test": "jest --passWithNoTests && node --experimental-strip-types --test test/*.test.ts"
   },

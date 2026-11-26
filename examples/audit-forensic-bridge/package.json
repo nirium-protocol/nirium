@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx src/server.ts",
+    "dev": "node init && tsx src/server.ts",
     "export": "tsx src/export.ts",
     "test": "tsx --test test/*.test.ts",
     "typecheck": "tsc --noEmit"
