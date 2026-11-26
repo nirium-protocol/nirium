@@ -1,0 +1,33 @@
+{
+  "name": "nirium-hono-x402-example",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Charge for one Hono route with nirium's x402Serve() on Stellar testnet, through a thin Express-shaped adapter.",
+  "scripts": {
+    "dev": "tsx src/server.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test test/*.test.ts",
+    "testnet:setup": "tsx scripts/setup-testnet-accounts.ts",
+    "testnet:proof": "tsx scripts/testnet-proof.ts"
+  },
+  "dependencies": {
+    "@hono/node-server": "^2.1.9",
+    "@stellar/stellar-sdk": "^16.3.0",
+    "@x402/core": "^2.31.0",
+    "@x402/express": "^2.31.0",
+    "@x402/stellar": "^2.31.0",
+    "dotenv": "^17.2.3",
+    "hono": "^4.13.19",
+    "nirium": "^0.19.6"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.7.0"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "license": "Apache-2.0"
+}
