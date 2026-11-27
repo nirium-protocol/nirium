@@ -69,7 +69,7 @@ SHA256 plan digest: ceacea123986595db08c9251db270716c4c4c5810724b0e67938b5aecb16
 DRY RUN: no keys read, no network requests, no ledger writes.
 ```
 
-**These three Friendbot hashes are account-funding transactions, NOT contractor payout transactions.** The separately verified real payout is documented below. [PR #498](https://github.com/nirium-protocol/nirium/pull/498) remains open pending video evidence and maintainer review. Offline suite: `npm run typecheck` PASS, `npm test` 6/6 PASS.
+**These three Friendbot hashes are account-funding transactions, NOT contractor payout transactions.** The separately verified real payout is documented below. [PR #498](https://github.com/nirium-protocol/nirium/pull/498) includes the video evidence and remains open pending final maintainer approval. Offline suite: `npm run typecheck` PASS, `npm test` 6/6 PASS.
 
 ## Historical authentication blocker (resolved 2026-11-23)
 
@@ -94,11 +94,13 @@ Testnet tx: https://stellar.expert/explorer/testnet/tx/cc5bd7be470702994fe271da3
 Receipt CID: QmTnncskA1Pe6o3yVLfE3Boi8hu2oRWGNZnE3XUdwX1VhU
 ```
 
+**Receipt verification note (2026-11-27):** This CID identifies an unsigned, hash-only record returned by Nirium, not a cryptographically verified receipt. As reported in the [maintainer review](https://github.com/nirium-protocol/nirium/pull/498#pullrequestreview-6044984721), `nirium-cli verify` returns `verified: false` because the signature is absent. This does not affect the independent on-chain verification of the Stellar testnet payout below.
+
 **Independent on-chain verification:** Stellar Horizon testnet reports the transaction `cc5bd7be470702994fe271da30577edd40d3426afa8fbaed343c7e858be8edfb` **successful** at 2026-11-23 18:33:57 UTC, signed/submitted from payer `GCUV5CMMWG4NNAHA42N2TVKBZWRSYW2GYXIMAQOX6E3CWRUAZ3O3C57T`. It contains exactly **two native XLM payment operations**: 1.0000000 XLM to C-001 and 1.5000000 XLM to C-002. Total fees: 200 stroops. The ignored local ledger `ledger/2026-11.json` records `state: completed` and the matching run ID, digest, tx hash and CID.
 
 **Live ledger replay-guard check (no second broadcast):** Calling `executePayroll()` for the same month with a client spy and existing ledger rejects with `Payroll 2026-11 already submitted (...); no duplicate payment.` **Zero** client method calls were made; the ledger remained completed and the lock was removed. The offline test suite also covers replay protection. Do not reset or delete the month ledger.
 
-**Screen recording:** Captured locally on the Mac as a 36.15-second MOV on 2026-11-23. Duration is within the required 2-minute limit. Video frames were visually reviewed for readable dry-run/real-run output and absence of exposed secrets. Uploaded and posted as [PR #498 comment](https://github.com/nirium-protocol/nirium/pull/498#issuecomment-7110539564), with the [GitHub video asset](https://github.com/user-attachments/assets/df1fad7f-6d5d-4c29-8edb-b11721379ca1). Sharing permission for Nirium's external channels is **not granted**. PR #498 is ready for maintainer review; final acceptance/CI approval remains pending.
+**Screen recording:** Captured locally on the Mac as a 36.15-second MOV on 2026-11-23. Duration is within the required 2-minute limit. Video frames were visually reviewed for readable dry-run/real-run output and absence of exposed secrets. Uploaded and posted as [PR #498 comment](https://github.com/nirium-protocol/nirium/pull/498#issuecomment-7110539564), with the [GitHub video asset](https://github.com/user-attachments/assets/df1fad7f-6d5d-4c29-8edb-b11721379ca1). Sharing permission for Nirium's external channels is **not granted**. The maintainer's 2026-11-24 review confirmed the payout, replay guard, tests, video and green CI; final approval remains pending.
 
 ## Duplicate-payment protection and recovery
 
@@ -120,5 +122,8 @@ The tests create test-only ephemeral Stellar keypairs and XDR locally; they stub
 - [x] Actual payer-signed payout transaction hash linked on Stellar Expert (testnet), operations independently verified via Horizon
 - [x] Local offline tests and typecheck pass, results recorded (6/6 tests)
 - [x] 36-second demo recording attached in [PR comment](https://github.com/nirium-protocol/nirium/pull/498#issuecomment-7110539564) and linked from the PR description; external sharing permission **not granted**
-- [x] [PR #498](https://github.com/nirium-protocol/nirium/pull/498) marked **ready for review**, links `Closes #456`, and includes the AI-assistance commit trailer; awaiting maintainer approval and CI
+- [x] [PR #498](https://github.com/nirium-protocol/nirium/pull/498) links `Closes #456` and includes the AI-assistance commit trailer; maintainer review confirmed green CI on 2026-11-24.
+- [x] Review follow-up (2026-11-27): README clarifies that the optional receipt is unsigned and not verified; payout verification remains independent.
+- [ ] Final maintainer approval and merge.
+
 The program keeps all seed keys out of tracked files and will never send them to a Nirium node.
