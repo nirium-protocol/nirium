@@ -1,0 +1,94 @@
+[
+  {
+    "actionId": "mod-mwscienp-12r7",
+    "cid": "QmUrJezMWZw15CF8tsj4ZW7917oxi18sTCYqkrgrrMHChS",
+    "sha256": "e27363ab85489af99ee8974006ae09bfffe6c7c87e621ba9c2a05dd19854e9df",
+    "signerKey": "GDAIIS2ERWGIUJZTA4UMH43C5NOBGDCLNKPUDXLXD27JUO5FDA5T6USE",
+    "tag": "wave11-moderation-log",
+    "anchoredAt": "2026-11-22T21:25:14.764Z",
+    "payload": {
+      "actionId": "mod-mwscienp-12r7",
+      "action": "warn",
+      "reason": "Repeated spamming of bot commands in #general",
+      "moderatorIdHash": "e2691daaa4bad131536d2c9c8f5b131d7768c93446c940b14ca08c0a665de598",
+      "targetUserIdHash": "370bfad6b9eb5584d6561ae70b4b55d2de36463e43feb20e3f87f1815984c8db",
+      "messageContentHash": "c5e1a0080e035f8a3c8396936b0e935ce8994f2a52bebb566d5885bd28caeef2",
+      "channelId": "chan_general_chat",
+      "serverId": "guild_nirium_community_demo",
+      "timestamp": "2026-11-22T21:25:11.988Z"
+    }
+  },
+  {
+    "actionId": "mod-mwscilt0-2fk3",
+    "cid": "QmSZaccongZ7trqq1LvH7BTfVx7uRLx8atd5uD9VT2pFEd",
+    "sha256": "af43ef9ed18bbec4426f338eea900fedc0b14475f0c411e62860654f62ab68dd",
+    "signerKey": "GDAIIS2ERWGIUJZTA4UMH43C5NOBGDCLNKPUDXLXD27JUO5FDA5T6USE",
+    "tag": "wave11-moderation-log",
+    "anchoredAt": "2026-11-22T21:25:23.911Z",
+    "payload": {
+      "actionId": "mod-mwscilt0-2fk3",
+      "action": "mute",
+      "reason": "Disruptive acoustic noise and harassment in voice lounge",
+      "moderatorIdHash": "5ed141df3fd1b1861bf93252d9490643c2ca1c7bd5489554541949e3b051ce5f",
+      "targetUserIdHash": "c7efc5baea648646ccefe784acf562ac4d8c76f90df04ba6b506a14c89b43e93",
+      "channelId": "voice_community_lounge",
+      "serverId": "guild_nirium_community_demo",
+      "timestamp": "2026-11-22T21:25:21.252Z"
+    }
+  },
+  {
+    "actionId": "mod-mwscisr0-lz61",
+    "cid": "QmQci6hVcRAX8GX4hN5LCHi5RPqqramQkf3N1Gw5FMxQZa",
+    "sha256": "c37195c36455532cf3155ab418a99511e07ef84dea80b87ead1df8f35e805ded",
+    "signerKey": "GDAIIS2ERWGIUJZTA4UMH43C5NOBGDCLNKPUDXLXD27JUO5FDA5T6USE",
+    "tag": "wave11-moderation-log",
+    "anchoredAt": "2026-11-22T21:25:32.890Z",
+    "payload": {
+      "actionId": "mod-mwscisr0-lz61",
+      "action": "message_removal",
+      "reason": "Posting deceptive phishing links disguised as airdrop",
+      "moderatorIdHash": "b83f730254888d96d4c56080f778d84349c3451a83cf799ee126f8b96989ca93",
+      "targetUserIdHash": "293ce42f340dd63b3f38956917535463aa4a833098ddc8b889ec71a27dc2afa8",
+      "messageContentHash": "ea61691f185f9a7031adfecb94748c49115ec1dc44623100d0991db9753b03ae",
+      "channelId": "chan_announcements",
+      "serverId": "guild_nirium_community_demo",
+      "timestamp": "2026-11-22T21:25:30.252Z"
+    }
+  },
+  {
+    "actionId": "mod-mwscizvx-jgih",
+    "cid": "QmY6fcPmTDKJc2Pt6AGyZQd1mAnvfGi49QVho1PqRrHaoc",
+    "sha256": "fb9eba9cb4771ec9d448b8993a2f8e6d2af8edabb3859ec9ea03de5903de5b50",
+    "signerKey": "GDAIIS2ERWGIUJZTA4UMH43C5NOBGDCLNKPUDXLXD27JUO5FDA5T6USE",
+    "tag": "wave11-moderation-log",
+    "anchoredAt": "2026-11-22T21:25:42.089Z",
+    "payload": {
+      "actionId": "mod-mwscizvx-jgih",
+      "action": "kick",
+      "reason": "Unsolicited promotional DM spam sent to 50+ members",
+      "moderatorIdHash": "eda176719c0e9c084adde17c5ace8e8545924676b8da57ba3a29b51f9f79abfe",
+      "targetUserIdHash": "d5910dc8ad8ccf0b12541f5f8ae15ac1cf1125da074523beeddf2d365303a4c1",
+      "serverId": "guild_nirium_community_demo",
+      "timestamp": "2026-11-22T21:25:39.501Z"
+    }
+  },
+  {
+    "actionId": "mod-mwscj71d-lxhe",
+    "cid": "QmRem2Trtiy1uwqKzc6ahR6cxRLL3WLt5GFE1Y6KLnidNq",
+    "sha256": "b50e79b2d89ba9caa256dbd3868b0bddf4e635c0d79277309118ce42cdeb6520",
+    "signerKey": "GDAIIS2ERWGIUJZTA4UMH43C5NOBGDCLNKPUDXLXD27JUO5FDA5T6USE",
+    "tag": "wave11-moderation-log",
+    "anchoredAt": "2026-11-22T21:25:51.358Z",
+    "payload": {
+      "actionId": "mod-mwscj71d-lxhe",
+      "action": "ban",
+      "reason": "Malicious impersonation of Nirium core team administrators",
+      "moderatorIdHash": "420e3a1885cb91904a80e0c11b4c7ba9a27e27b04b506d5d31629cfbab4a64da",
+      "targetUserIdHash": "ff589cc3c73c2e650ea925d8b416f840e8d2859715169ae360cd00e9c0bddec6",
+      "messageContentHash": "49eff3034f07780ac02572f5a16b9591df478eed06e056466a95dc8a4144fd9b",
+      "channelId": "chan_helpdesk",
+      "serverId": "guild_nirium_community_demo",
+      "timestamp": "2026-11-22T21:25:48.769Z"
+    }
+  }
+]
