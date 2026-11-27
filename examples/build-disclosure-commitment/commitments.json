@@ -1,0 +1,13 @@
+[
+  {
+    "id": "cmt-6hzivv5h",
+    "reportName": "reports/sample-vulnerability-report.md",
+    "reportSha256": "38a96cc7c0eaf499c5e23df188c24a6987dd9e4a17fc08bdea64d3b7ef868548",
+    "salt": "33acd220980be3678d78ff215632ca8a491034bf639b4be6c639420d4fe3b826",
+    "commitmentSha256": "e89a07e91a6f466de568899677b8a9ac04ea0f9dc07f362589f90fd8541b7087",
+    "cid": "QmXBFNkCoWaYvDMiMWoi2kSqDaSjkDhi8ivyNy3GbwinFH",
+    "anchoredAt": "2026-11-22T20:59:05.978Z",
+    "tag": "wave11-disclosure-commitment",
+    "attestedBy": "GCQRPVYI7XOIBRCMGJIUIGD5V3G3ZHB75DLL4DFD64QQPYV4CLCWFDGK"
+  }
+]
