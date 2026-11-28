@@ -1,6 +1,6 @@
 # Nirium: Evidence Index
 
-Last verified live: 22 Nov 2026 (section 14 counts rechecked 25 Nov 2026), against Horizon (mainnet/testnet), the Filebase gateway, `nirium verify`, the GitHub API, npm and PyPI. Every item below links directly to its own evidence. Check any of them independently. The CID links below use the Pinata gateway; if one answers `429` (rate limit), open the same CID at `https://nirium.myfilebase.com/ipfs/<CID>`, or run `npx nirium-cli@latest verify <CID>`, which tries Filebase, Pinata, ipfs.io and dweb.link in that order.
+Last verified live: 22 Nov 2026 (section 14 counts rechecked 25 Nov 2026, section 8 rechecked 28 Nov 2026), against Horizon (mainnet/testnet), the Filebase gateway, `nirium verify`, the GitHub API, npm and PyPI. Every item below links directly to its own evidence. Check any of them independently. The CID links below use the Pinata gateway; if one answers `429` (rate limit), open the same CID at `https://nirium.myfilebase.com/ipfs/<CID>`, or run `npx nirium-cli@latest verify <CID>`, which tries Filebase, Pinata, ipfs.io and dweb.link in that order.
 
 For what a receipt does and doesn't prove, see [`docs/DESIGN-FAQ.md`](docs/DESIGN-FAQ.md).
 
